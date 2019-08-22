@@ -129,7 +129,7 @@ def train_classifier(MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels,mo
                 for j in range(test_group):
                     test_batch = RTE_test[j*batch_size:(j+1)*batch_size]
                     _, batch_probs = model(test_batch)
-                    print('batch_probs:', batch_probs)
+                    # print('batch_probs:', batch_probs)
                     if len(pred) == 0:
                         pred.append(batch_probs.detach().cpu().numpy())
                     else:

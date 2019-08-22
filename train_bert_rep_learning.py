@@ -172,7 +172,7 @@ if __name__ == '__main__':
                 MNLI_pos.append([parts[8].strip(), parts[9].strip()])
                 MNLI_train.append([parts[8].strip(), parts[9].strip()])
                 MNLI_train_labels.append(1)
-            elif labelstr == 'not_entailment':
+            elif labelstr == 'contradiction':
                 MNLI_neg.append([parts[8].strip(), parts[9].strip()])
                 MNLI_train.append([parts[8].strip(), parts[9].strip()])
                 MNLI_train_labels.append(0)

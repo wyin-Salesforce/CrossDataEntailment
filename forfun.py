@@ -184,16 +184,22 @@ if __name__ == '__main__':
 
     RTE_pos = []
     RTE_neg = []
+    RTE_train = []
+    RTE_train_labels = []
     readfile = codecs.open('/export/home/Dataset/glue_data/RTE/train.tsv', 'r', 'utf-8')
     line_co = 0
     for line in readfile:
         if line_co>0:
             parts=line.strip().split('\t')
             labelstr = parts[-1]
+            RTE_train.append([parts[1].strip(), parts[2].strip()])
+
             if labelstr == 'entailment':
                 RTE_pos.append([parts[1].strip(), parts[2].strip()])
+                RTE_train_labels.append(1)
             else:
                 RTE_neg.append([parts[1].strip(), parts[2].strip()])
+                RTE_train_labels.append(0)
         line_co+=1
     readfile.close()
     print('load RTE over, sizes: pos', len(RTE_pos), 'neg', len(RTE_neg))
@@ -231,4 +237,4 @@ if __name__ == '__main__':
     print("build model...")
     model, loss_function, optimizer = build_model()
     print("training...")
-    train_representation_learning(MNLI_pos, MNLI_neg, RTE_pos, RTE_neg, SciTail_pos, SciTail_neg, MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels, model, loss_function, optimizer)
+    train_representation_learning(MNLI_pos, MNLI_neg, RTE_pos, RTE_neg, SciTail_pos, SciTail_neg, RTE_train, RTE_train_labels, RTE_test, RTE_test_labels, model, loss_function, optimizer)

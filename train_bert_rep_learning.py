@@ -90,6 +90,7 @@ def train_representation_learning(MNLI_pos, MNLI_neg, RTE_pos, RTE_neg, SciTail_
         neg_samples = MNLI_neg_samples + RTE_neg_samples + SciTail_neg_samples
         '''we assume 1 means entail, 0 otherwise'''
         label_batch = torch.tensor([1]*len(pos_samples)+[0]*len(neg_samples)) # batch
+        label_batch = autograd.Variable(torch.cuda.LongTensor(label_batch))
 
         model.zero_grad()
         batch_scores, _ = model(pos_samples+neg_samples) #(batch, 2)
@@ -111,6 +112,7 @@ def train_classifier(MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels,mo
         model.train()
         train_batch = MNLI_train[i*batch_size:(i+1)*batch_size]
         train_label_batch = torch.tensor(MNLI_train_labels[i*batch_size:(i+1)*batch_size]) # batch
+        train_label_batch = autograd.Variable(torch.cuda.LongTensor(train_label_batch))
         model.zero_grad()
         _, batch_probs = model(train_batch)
         loss = loss_function(batch_probs, train_label_batch)

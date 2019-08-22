@@ -20,16 +20,14 @@ device = torch.device("cuda")
 
 from bert_common_functions import sent_pair_to_embedding
 
-bert = BertModel.from_pretrained('bert-base-uncased')
-bert_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-bert.to('cuda')
 
 
 class Encoder(nn.Module):
     def __init__(self):
-
+        self.bert_model = BertModel.from_pretrained('bert-base-uncased')
+        self.bert_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
         # self.bert_model.eval()
-        # self.bert_model.to('cuda')
+        self.bert_model.to('cuda')
 
         '''we do not use bias term in representation learning'''
         '''does it have tanh()?'''
@@ -37,20 +35,18 @@ class Encoder(nn.Module):
         '''we use bias term in classifier'''
         self.classifier = nn.Linear(768, 2)
 
-        def forward(self, sent_pair_batch):
-            '''
-            sent_pair_batch: a list of list: each sublist has two ele: premise, hypo
-            '''
-            self.bert_model = bert
-            self.bert_tokenizer = bert_tokenizer
-            emb_batch = []
-            for sent_pair in sent_pair_batch:
-                emb_batch.append(sent_pair_to_embedding(sent_pair[0], sent_pair[1], self.bert_tokenizer, self.bert_model, tokenized_yes).reshape(1,-1))
-            bert_rep_batch = torch.cat(emb_batch, 0) #(batch, 768)
-            batch_scores = (self.label_rep(bert_rep_batch)).tanh()#(batch, 2)
-            batch_probs = nn.Softmax(dim=1)((self.classifier(bert_rep_batch)).tanh())#(batch, 2)
+    def forward(self, sent_pair_batch):
+        '''
+        sent_pair_batch: a list of list: each sublist has two ele: premise, hypo
+        '''
+        emb_batch = []
+        for sent_pair in sent_pair_batch:
+            emb_batch.append(sent_pair_to_embedding(sent_pair[0], sent_pair[1], self.bert_tokenizer, self.bert_model, tokenized_yes).reshape(1,-1))
+        bert_rep_batch = torch.cat(emb_batch, 0) #(batch, 768)
+        batch_scores = (self.label_rep(bert_rep_batch)).tanh()#(batch, 2)
+        batch_probs = nn.Softmax(dim=1)((self.classifier(bert_rep_batch)).tanh())#(batch, 2)
 
-            return batch_scores, batch_probs
+        return batch_scores, batch_probs
 
 def build_model():
     model = Encoder()

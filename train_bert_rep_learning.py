@@ -11,6 +11,7 @@ import random
 '''head files for using pretrained bert'''
 from pytorch_transformers.tokenization_bert import BertTokenizer
 from pytorch_transformers.modeling_bert import BertModel
+from pytorch_transformers.optimization import AdamW
 # from preprocess_IL3_Uyghur import recover_pytorch_idmatrix_2_text
 # from bert_common_functions import sent_to_embedding, sent_to_embedding_last4
 
@@ -56,7 +57,7 @@ def build_model():
     '''binary cross entropy'''
     loss_function = nn.NLLLoss().cuda()
     '''seems weight_decay is not good for LSTM'''
-    optimizer = optim.Adagrad(model.parameters(), lr=0.001)#, weight_decay=1e-2)
+    optimizer = AdamW(model.parameters(), lr=5e-5)#, weight_decay=1e-2)
     return model, loss_function, optimizer
 
 

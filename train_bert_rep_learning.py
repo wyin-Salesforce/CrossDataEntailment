@@ -70,7 +70,7 @@ def train_representation_learning(MNLI_pos, MNLI_neg, RTE_pos, RTE_neg, SciTail_
     for iter in range(10000000):
         model.train()
 
-        print('current epoch: ', epoch)
+        print('current iter: ', iter)
         '''first sample pairs'''
         MNLI_pos_sampled_indices = random.sample(range(0,MNLI_pos_len), sample_size)
         MNLI_pos_samples = [ MNLI_pos[i] for i in MNLI_pos_sampled_indices]

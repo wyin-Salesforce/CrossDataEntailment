@@ -24,10 +24,9 @@ def sent_pair_to_embedding(sent1, sent2, tokenizer, model, tokenized_yes):
 
     # Predict hidden states features for each layer
     with torch.no_grad():
-        encoded_layers, _ = model(tokens_tensor, segments_tensors)
-    # We have a hidden states for each of the 12 layers in model bert-base-uncased
-    last_layer_output = encoded_layers[-1]
-    return last_layer_output[0][0]
+        last_hidden_states = model(tokens_tensor, segments_tensors)[0]
+
+    return last_hidden_states[0,0,:]
 
 def sent_to_embedding(sent1, tokenizer, model, tokenized_yes):
     sent1_tokenized = tokenizer.tokenize(sent1)

@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import torch.nn as nn
 import numpy as np
 import torch.autograd as autograd
-# from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
+import codecs
 import torch
 import torch.optim as optim
 # from common_functions import attentive_convolution, normalize_matrix_rowwise_by_max, LSTM, multi_channel_conv_and_pool, cosine_two_matrices, torch_where

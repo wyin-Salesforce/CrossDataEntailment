@@ -1,5 +1,4 @@
 import torch
-from pytorch_pretrained_bert import BertTokenizer, BertModel, BertForMaskedLM
 import torch.nn as nn
 import torch.nn.functional as F
 import os

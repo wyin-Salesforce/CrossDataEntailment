@@ -57,6 +57,7 @@ def build_model():
     '''binary cross entropy'''
     loss_function = nn.NLLLoss().cuda()
     '''seems weight_decay is not good for LSTM'''
+    print('model.parameters():', model.parameters())
     optimizer = AdamW(model.parameters(), lr=5e-5)#, weight_decay=1e-2)
     return model, loss_function, optimizer
 

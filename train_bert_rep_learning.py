@@ -114,6 +114,7 @@ def train_classifier(MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels,mo
         train_batch = MNLI_train[i*batch_size:(i+1)*batch_size]
         train_label_batch = np.array(MNLI_train_labels[i*batch_size:(i+1)*batch_size]) # batch
         train_label_batch = autograd.Variable(torch.cuda.LongTensor(train_label_batch))
+        print('train_label_batch:', train_label_batch)
         model.zero_grad()
         _, batch_probs = model(train_batch)
         loss = loss_function(batch_probs, train_label_batch)
@@ -134,6 +135,7 @@ def train_classifier(MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels,mo
                         pred[0] = np.append(pred[0], batch_probs.detach().cpu().numpy(), axis=0)
             pred = pred[0]
             pred_labels = np.argmax(pred, axis=1)
+            print('pred_labels:', pred_labels)
             hit=0
             for k in range(len(pred_labels)):
                 if pred_labels[k] == RTE_test_labels[k]:

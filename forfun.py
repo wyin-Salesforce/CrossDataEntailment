@@ -109,41 +109,43 @@ def train_classifier(MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels,mo
     batch_size =60
     train_groups = len(MNLI_train)//batch_size
     test_group = len(RTE_test)//batch_size
-    for i in range(train_groups):
-        print('\t\t classifier training group #', i)
-        model.train()
-        train_batch = MNLI_train[i*batch_size:(i+1)*batch_size]
-        train_label_batch = np.array(MNLI_train_labels[i*batch_size:(i+1)*batch_size]) # batch
-        train_label_batch = autograd.Variable(torch.cuda.LongTensor(train_label_batch))
-        print('train_label_batch:', train_label_batch)
-        model.zero_grad()
-        _, batch_probs = model(train_batch)
-        loss = loss_function(batch_probs, train_label_batch)
-        loss.backward()
-        optimizer.step()
-        if i %10==0:
-            '''test on RTE'''
-            print('\t\t\t test classifier performace:')
-            model.eval()
-            pred = []
-            with torch.no_grad():
-                for j in range(test_group):
-                    test_batch = RTE_test[j*batch_size:(j+1)*batch_size]
-                    _, batch_probs = model(test_batch)
-                    # print('batch_probs:', batch_probs)
-                    if len(pred) == 0:
-                        pred.append(batch_probs.detach().cpu().numpy())
-                    else:
-                        pred[0] = np.append(pred[0], batch_probs.detach().cpu().numpy(), axis=0)
-            pred = pred[0]
-            pred_labels = np.argmax(pred, axis=1)
-            print('pred_labels:', pred_labels)
-            hit=0
-            for k in range(len(pred_labels)):
-                if pred_labels[k] == RTE_test_labels[k]:
-                    hit+=1
-            acc = hit/len(pred_labels)
-            print('\t\t\t\t\t\t RTE acc:', acc)
+    while True:
+        for i in range(train_groups):
+            print('\t\t classifier training group #', i)
+            model.train()
+            train_batch = MNLI_train[i*batch_size:(i+1)*batch_size]
+            train_label_batch = np.array(MNLI_train_labels[i*batch_size:(i+1)*batch_size]) # batch
+            train_label_batch = autograd.Variable(torch.cuda.LongTensor(train_label_batch))
+            print('train_label_batch:', train_label_batch)
+            model.zero_grad()
+            _, batch_probs = model(train_batch)
+            loss = loss_function(batch_probs, train_label_batch)
+            loss.backward()
+            optimizer.step()
+
+            if i %10==0:
+                '''test on RTE'''
+                print('\t\t\t test classifier performace:')
+                model.eval()
+                pred = []
+                with torch.no_grad():
+                    for j in range(test_group):
+                        test_batch = RTE_test[j*batch_size:(j+1)*batch_size]
+                        _, batch_probs = model(test_batch)
+                        # print('batch_probs:', batch_probs)
+                        if len(pred) == 0:
+                            pred.append(batch_probs.detach().cpu().numpy())
+                        else:
+                            pred[0] = np.append(pred[0], batch_probs.detach().cpu().numpy(), axis=0)
+                pred = pred[0]
+                pred_labels = np.argmax(pred, axis=1)
+                print('pred_labels:', pred_labels)
+                hit=0
+                for k in range(len(pred_labels)):
+                    if pred_labels[k] == RTE_test_labels[k]:
+                        hit+=1
+                acc = hit/len(pred_labels)
+                print('\t\t\t\t\t\t RTE acc:', acc)
 
 
 
@@ -237,4 +239,4 @@ if __name__ == '__main__':
     print("build model...")
     model, loss_function, optimizer = build_model()
     print("training...")
-    train_representation_learning(MNLI_pos, MNLI_neg, RTE_pos, RTE_neg, SciTail_pos, SciTail_neg, RTE_test, RTE_test_labels, RTE_test, RTE_test_labels, model, loss_function, optimizer)
+    train_representation_learning(MNLI_pos, MNLI_neg, RTE_pos, RTE_neg, SciTail_pos, SciTail_neg, RTE_train, RTE_train_labels, RTE_test, RTE_test_labels, model, loss_function, optimizer)

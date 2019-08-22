@@ -109,6 +109,7 @@ def train_classifier(MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels,mo
     train_groups = len(MNLI_train)//batch_size
     test_group = len(RTE_test)//batch_size
     for i in range(train_groups):
+        print('\t\t classifier training group #', i)
         model.train()
         train_batch = MNLI_train[i*batch_size:(i+1)*batch_size]
         train_label_batch = np.array(MNLI_train_labels[i*batch_size:(i+1)*batch_size]) # batch
@@ -120,6 +121,7 @@ def train_classifier(MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels,mo
         optimizer.step()
         if i %10==0:
             '''test on RTE'''
+            print('\t\t\t test classifier performace:')
             model.eval()
             pred = []
             with torch.no_grad():
@@ -137,7 +139,7 @@ def train_classifier(MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels,mo
                 if pred_labels[k] == RTE_test_labels[k]:
                     hit+=1
             acc = hit/len(pred_labels)
-            print('RTE acc:', acc)
+            print('\t\t\t\t\t\t RTE acc:', acc)
 
 
 

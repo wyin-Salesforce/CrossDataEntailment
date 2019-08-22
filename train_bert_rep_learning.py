@@ -164,7 +164,7 @@ if __name__ == '__main__':
                 MNLI_neg.append([parts[8].strip(), parts[9].strip()])
         line_co+=1
     readfile.close()
-    print('load MNLI over, sizes: pos', len(MNLI_pos), 'neg', len(MNLI_neg), 'neu', len(MNLI_neu))
+    print('load MNLI over, sizes: pos', len(MNLI_pos), 'neg', len(MNLI_neg))
 
 
     RTE_pos = []

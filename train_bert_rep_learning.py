@@ -46,7 +46,7 @@ class Encoder(nn.Module):
             emb_batch.append(sent_pair_to_embedding(sent_pair[0], sent_pair[1], self.bert_tokenizer, self.bert_model, False).reshape(1,-1))
         bert_rep_batch = torch.cat(emb_batch, 0) #(batch, 768)
         batch_scores = (self.label_rep(bert_rep_batch)).tanh()#(batch, 2)
-        batch_probs = nn.Softmax(dim=1)((self.classifier(bert_rep_batch)).tanh())#(batch, 2)
+        batch_probs = nn.Softmax(dim=1)((self.classifier(bert_rep_batch)))#(batch, 2)
 
         return batch_scores, batch_probs
 

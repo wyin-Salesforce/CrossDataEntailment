@@ -99,7 +99,7 @@ def train_representation_learning(MNLI_pos, MNLI_neg, RTE_pos, RTE_neg, SciTail_
         loss = loss_function(batch_scores, label_batch)
         loss.backward()
         optimizer.step()
-        if iter > 1000 and iter % 100 == 0:
+        if iter > 50 and iter % 10 == 0:
             print('representation learning iter:', iter)
             '''now use the pretrained BERT to do classification'''
             train_classifier(MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels,model, loss_function, optimizer)

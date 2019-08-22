@@ -166,12 +166,16 @@ if __name__ == '__main__':
         if line_co>0:
             parts=line.strip().split('\t')
             labelstr = parts[-1]
-            MNLI_train.append([parts[8].strip(), parts[9].strip()])
-            MNLI_train_labels.append(1 if labelstr == 'entailment' else 0)
+            # MNLI_train.append([parts[8].strip(), parts[9].strip()])
+            # MNLI_train_labels.append(1 if labelstr == 'entailment' else 0)
             if labelstr == 'entailment':
                 MNLI_pos.append([parts[8].strip(), parts[9].strip()])
-            else:
+                MNLI_train.append([parts[8].strip(), parts[9].strip()])
+                MNLI_train_labels.append(1)
+            elif labelstr == 'not_entailment':
                 MNLI_neg.append([parts[8].strip(), parts[9].strip()])
+                MNLI_train.append([parts[8].strip(), parts[9].strip()])
+                MNLI_train_labels.append(0)
         line_co+=1
     readfile.close()
     print('load MNLI over, sizes: pos', len(MNLI_pos), 'neg', len(MNLI_neg))

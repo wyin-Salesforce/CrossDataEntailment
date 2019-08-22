@@ -237,4 +237,4 @@ if __name__ == '__main__':
     print("build model...")
     model, loss_function, optimizer = build_model()
     print("training...")
-    train_representation_learning(MNLI_pos, MNLI_neg, RTE_pos, RTE_neg, SciTail_pos, SciTail_neg, RTE_train, RTE_train_labels, RTE_test, RTE_test_labels, model, loss_function, optimizer)
+    train_representation_learning(MNLI_pos, MNLI_neg, RTE_pos, RTE_neg, SciTail_pos, SciTail_neg, RTE_test, RTE_test_labels, RTE_test, RTE_test_labels, model, loss_function, optimizer)

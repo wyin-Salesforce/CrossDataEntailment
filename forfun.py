@@ -59,7 +59,7 @@ def build_model():
     '''seems weight_decay is not good for LSTM'''
     for name, param in model.named_parameters():
         if param.requires_grad:
-            print name
+            print(name)
     optimizer = AdamW(model.parameters(), lr=5e-5)#, weight_decay=1e-2)
     return model, loss_function, optimizer
 

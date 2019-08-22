@@ -27,8 +27,7 @@ bert.to('cuda')
 
 class Encoder(nn.Module):
     def __init__(self):
-        self.bert_model = bert
-        self.bert_tokenizer = bert_tokenizer
+
         # self.bert_model.eval()
         # self.bert_model.to('cuda')
 
@@ -42,6 +41,8 @@ class Encoder(nn.Module):
             '''
             sent_pair_batch: a list of list: each sublist has two ele: premise, hypo
             '''
+            self.bert_model = bert
+            self.bert_tokenizer = bert_tokenizer
             emb_batch = []
             for sent_pair in sent_pair_batch:
                 emb_batch.append(sent_pair_to_embedding(sent_pair[0], sent_pair[1], self.bert_tokenizer, self.bert_model, tokenized_yes).reshape(1,-1))

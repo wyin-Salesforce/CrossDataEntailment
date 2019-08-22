@@ -20,14 +20,17 @@ device = torch.device("cuda")
 
 from bert_common_functions import sent_pair_to_embedding
 
+bert = BertModel.from_pretrained('bert-base-uncased')
+bert_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+bert.to('cuda')
 
 
 class Encoder(nn.Module):
     def __init__(self):
-        self.bert_model = BertModel.from_pretrained('bert-base-uncased')
-        self.bert_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+        self.bert_model = bert
+        self.bert_tokenizer = bert_tokenizer
         # self.bert_model.eval()
-        self.bert_model.to('cuda')
+        # self.bert_model.to('cuda')
 
         '''we do not use bias term in representation learning'''
         '''does it have tanh()?'''
@@ -97,6 +100,7 @@ def train_representation_learning(MNLI_pos, MNLI_neg, RTE_pos, RTE_neg, SciTail_
         loss.backward()
         optimizer.step()
         if iter % 100 == 0:
+            print('representation learning iter:', iter)
             '''now use the pretrained BERT to do classification'''
             train_classifier(MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels,model, loss_function, optimizer)
 

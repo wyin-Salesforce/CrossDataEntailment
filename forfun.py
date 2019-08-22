@@ -132,6 +132,7 @@ def train_classifier(MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels,mo
                 with torch.no_grad():
                     for j in range(test_group):
                         test_batch = RTE_test[j*batch_size:(j+1)*batch_size]
+                        print('test_batch:', test_batch)
                         _, batch_probs = model(test_batch)
                         # print('batch_probs:', batch_probs)
                         if len(pred) == 0:

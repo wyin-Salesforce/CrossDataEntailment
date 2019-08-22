@@ -7,7 +7,7 @@ import torch.autograd as autograd
 import codecs
 import torch
 import torch.optim as optim
-# from common_functions import attentive_convolution, normalize_matrix_rowwise_by_max, LSTM, multi_channel_conv_and_pool, cosine_two_matrices, torch_where
+import random
 '''head files for using pretrained bert'''
 from pytorch_transformers.tokenization_bert import BertTokenizer
 from pytorch_transformers.modeling_bert import BertModel

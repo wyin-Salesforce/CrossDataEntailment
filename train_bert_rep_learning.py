@@ -193,11 +193,6 @@ def train_classifier(MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels,mo
 
 
 
-
-
-
-
-
 if __name__ == '__main__':
     task_names = ['MNLI', 'GLUE-RTE', 'SciTail']
     # all_entail_training_data = '/export/home/Dataset/MNLI-SNLI-SciTail-RTE-SICK/all.6.train.txt'

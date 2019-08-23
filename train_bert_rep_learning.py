@@ -35,7 +35,7 @@ class Encoder(nn.Module):
         '''does it have tanh()?'''
         self.label_rep = nn.Linear(768, 2, False) # here we consider three classes: entail, non_entail
         '''we use bias term in classifier'''
-        self.classifier = nn.Linear(768, 2)
+        # self.classifier = nn.Linear(768, 2)
 
     def forward(self, sent_pair_batch):
         '''
@@ -47,21 +47,65 @@ class Encoder(nn.Module):
             emb_batch.append(sent_pair_to_embedding(sent_pair[0], sent_pair[1], self.bert_tokenizer, self.bert_model, False).reshape(1,-1))
         bert_rep_batch = torch.cat(emb_batch, 0) #(batch, 768)
         batch_scores = (self.label_rep(bert_rep_batch)).tanh()#(batch, 2)
+        # batch_probs = nn.Softmax(dim=1)((self.classifier(bert_rep_batch)))#(batch, 2)
+
+        return batch_scores#, batch_probs
+
+class Classifier(nn.Module):
+    def __init__(self):
+        super(Classifier, self).__init__()
+        # self.bert_model = BertModel.from_pretrained('bert-base-uncased')
+        # self.bert_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+        # # self.bert_model.eval()
+        # self.bert_model.to('cuda')
+        #
+        # '''we do not use bias term in representation learning'''
+        # '''does it have tanh()?'''
+        # self.label_rep = nn.Linear(768, 2, False) # here we consider three classes: entail, non_entail
+        # '''we use bias term in classifier'''
+        self.classifier = nn.Linear(768, 2)
+
+    def forward(self, sent_pair_batch, tokenizer, bert_model):
+        '''
+        sent_pair_batch: a list of list: each sublist has two ele: premise, hypo
+        '''
+        emb_batch = []
+        for sent_pair in sent_pair_batch:
+            # print(sent_pair_to_embedding(sent_pair[0], sent_pair[1], self.bert_tokenizer, self.bert_model, False).reshape(1,-1))
+            emb_batch.append(sent_pair_to_embedding(sent_pair[0], sent_pair[1], tokenizer, bert_model, False).reshape(1,-1))
+        bert_rep_batch = torch.cat(emb_batch, 0) #(batch, 768)
+        # batch_scores = (self.label_rep(bert_rep_batch)).tanh()#(batch, 2)
         batch_probs = nn.Softmax(dim=1)((self.classifier(bert_rep_batch)))#(batch, 2)
 
-        return batch_scores, batch_probs
+        return batch_probs
 
 def build_model():
     model = Encoder()
     model.to(device)
     '''binary cross entropy'''
     loss_function = nn.NLLLoss().cuda()
+    print('repre lear parameters:')
+    for name, param in model.named_parameters():
+        if param.requires_grad:
+            print(name)
     '''seems weight_decay is not good for LSTM'''
     optimizer = AdamW(model.parameters(), lr=5e-5)#, weight_decay=1e-2)
     return model, loss_function, optimizer
 
+def build_classifier():
+    model = Classifier()
+    model.to(device)
+    '''binary cross entropy'''
+    loss_function = nn.NLLLoss().cuda()
+    print('classifier parameters:')
+    for name, param in model.named_parameters():
+        if param.requires_grad:
+            print(name)
+    '''seems weight_decay is not good for LSTM'''
+    optimizer = AdamW(model.parameters(), lr=5e-5)#, weight_decay=1e-2)
+    return model, loss_function, optimizer
 
-def train_representation_learning(MNLI_pos, MNLI_neg, RTE_pos, RTE_neg, SciTail_pos, SciTail_neg, MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels, model, loss_function, optimizer):
+def train_representation_learning(MNLI_pos, MNLI_neg, RTE_pos, RTE_neg, SciTail_pos, SciTail_neg, MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels, model, loss_function, optimizer, model_cls, loss_function_cls, optimizer_cls):
     MNLI_pos_len = len(MNLI_pos)
     MNLI_neg_len = len(MNLI_neg)
     RTE_pos_len = len(RTE_pos)
@@ -103,7 +147,7 @@ def train_representation_learning(MNLI_pos, MNLI_neg, RTE_pos, RTE_neg, SciTail_
         if iter > 50 and iter % 10 == 0:
             print('representation learning iter:', iter)
             '''now use the pretrained BERT to do classification'''
-            train_classifier(MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels,model, loss_function, optimizer)
+            train_classifier(MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels,model_cls, loss_function_cls, optimizer_cls)
 
 def train_classifier(MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels,model, loss_function, optimizer):
     batch_size =60
@@ -230,5 +274,6 @@ if __name__ == '__main__':
 
     print("build model...")
     model, loss_function, optimizer = build_model()
+    model_cls, loss_function_cls, optimizer_cls = build_classifier()
     print("training...")
-    train_representation_learning(MNLI_pos, MNLI_neg, RTE_pos, RTE_neg, SciTail_pos, SciTail_neg, MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels, model, loss_function, optimizer)
+    train_representation_learning(MNLI_pos, MNLI_neg, RTE_pos, RTE_neg, SciTail_pos, SciTail_neg, MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels, model, loss_function, optimizer, model_cls, loss_function_cls, optimizer_cls)

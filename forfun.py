@@ -109,7 +109,7 @@ def train_representation_learning(MNLI_pos, MNLI_neg, RTE_pos, RTE_neg, SciTail_
     train_classifier(MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels,model, loss_function, optimizer)
 
 def train_classifier(MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels,model, loss_function, optimizer):
-    batch_size =10
+    batch_size =60
     train_groups = len(MNLI_train)//batch_size
     test_group = len(RTE_test)//batch_size
     while True:

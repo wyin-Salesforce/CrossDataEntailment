@@ -138,7 +138,7 @@ def train_representation_learning(MNLI_pos, MNLI_neg, RTE_pos, RTE_neg, SciTail_
         label_batch = autograd.Variable(torch.cuda.LongTensor(label_batch))
 
         model.zero_grad()
-        batch_scores, _ = model(pos_samples+neg_samples) #(batch, 2)
+        batch_scores = model(pos_samples+neg_samples) #(batch, 2)
         '''Binary Cross Entropy'''
 
         loss = loss_function(batch_scores, label_batch)
@@ -161,7 +161,7 @@ def train_classifier(MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels,mo
         train_label_batch = autograd.Variable(torch.cuda.LongTensor(train_label_batch))
         # print('train_label_batch:', train_label_batch)
         model.zero_grad()
-        _, batch_probs = model(train_batch)
+        batch_probs = model(train_batch)
         loss = loss_function(batch_probs, train_label_batch)
         loss.backward()
         optimizer.step()

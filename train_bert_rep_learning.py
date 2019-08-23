@@ -13,7 +13,7 @@ from pytorch_transformers.tokenization_bert import BertTokenizer
 from pytorch_transformers.modeling_bert import BertModel
 from pytorch_transformers.optimization import AdamW
 # from preprocess_IL3_Uyghur import recover_pytorch_idmatrix_2_text
-# from bert_common_functions import sent_to_embedding, sent_to_embedding_last4
+from bert_common_functions import store_bert_model
 
 '''the following torch seed can result in the same performance'''
 torch.manual_seed(400)
@@ -144,10 +144,12 @@ def train_representation_learning(MNLI_pos, MNLI_neg, RTE_pos, RTE_neg, SciTail_
         loss = loss_function(batch_scores, label_batch)
         loss.backward()
         optimizer.step()
-        if iter > 200 and iter % 10 == 0:
+        if iter > 200 and iter % 100 == 0:
             print('representation learning iter:', iter)
             '''now use the pretrained BERT to do classification'''
-            train_classifier(MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels, model, model_cls, loss_function_cls, optimizer_cls)
+            '''score bert models'''
+            store_bert_model(model.bert_model, model.bert_tokenizer.vocab, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail', str(iter))
+            # train_classifier(MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels, model, model_cls, loss_function_cls, optimizer_cls)
 
 def train_classifier(MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels,model_rep, model, loss_function, optimizer):
     batch_size =60

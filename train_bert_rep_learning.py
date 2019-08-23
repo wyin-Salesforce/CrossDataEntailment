@@ -144,12 +144,12 @@ def train_representation_learning(MNLI_pos, MNLI_neg, RTE_pos, RTE_neg, SciTail_
         loss = loss_function(batch_scores, label_batch)
         loss.backward()
         optimizer.step()
-        if iter > 50 and iter % 10 == 0:
+        if iter > 9 and iter % 10 == 0:
             print('representation learning iter:', iter)
             '''now use the pretrained BERT to do classification'''
-            train_classifier(MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels,model_cls, loss_function_cls, optimizer_cls)
+            train_classifier(MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels, model, model_cls, loss_function_cls, optimizer_cls)
 
-def train_classifier(MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels,model, loss_function, optimizer):
+def train_classifier(MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels,model_rep, model, loss_function, optimizer):
     batch_size =60
     train_groups = len(MNLI_train)//batch_size
     test_group = len(RTE_test)//batch_size
@@ -173,7 +173,7 @@ def train_classifier(MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels,mo
             with torch.no_grad():
                 for j in range(test_group):
                     test_batch = RTE_test[j*batch_size:(j+1)*batch_size]
-                    _, batch_probs = model(test_batch)
+                    batch_probs = model(test_batch, model_rep.bert_tokenizer, model_rep.bert_model)
                     # print('batch_probs:', batch_probs)
                     if len(pred) == 0:
                         pred.append(batch_probs.detach().cpu().numpy())

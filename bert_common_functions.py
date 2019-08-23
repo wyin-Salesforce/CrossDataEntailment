@@ -137,7 +137,7 @@ def store_bert_model(model, vocab, output_dir, flag_str):
 
     # If we save using the predefined names, we can load using `from_pretrained`
     output_model_file = os.path.join(output_dir, 'pytorch_model.bin')
-    output_config_file = os.path.join(output_dir, 'bert_config.json')
+    output_config_file = os.path.join(output_dir, 'config.json')
 
     torch.save(model_to_save.state_dict(), output_model_file)
     model_to_save.config.to_json_file(output_config_file)

@@ -144,7 +144,7 @@ def train_representation_learning(MNLI_pos, MNLI_neg, RTE_pos, RTE_neg, SciTail_
         loss = loss_function(batch_scores, label_batch)
         loss.backward()
         optimizer.step()
-        if iter > 200 and iter % 500 == 0:
+        if iter > 1500 and iter % 500 == 0:
             print('representation learning iter:', iter)
             '''now use the pretrained BERT to do classification'''
             '''score bert models'''
@@ -274,3 +274,6 @@ if __name__ == '__main__':
     model_cls, loss_function_cls, optimizer_cls = build_classifier()
     print("training...")
     train_representation_learning(MNLI_pos, MNLI_neg, RTE_pos, RTE_neg, SciTail_pos, SciTail_neg, MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels, model, loss_function, optimizer, model_cls, loss_function_cls, optimizer_cls)
+
+
+#CUDA_VISIBLE_DEVICES=2 python -u train_yahoo.py --task_name rte --do_train --do_lower_case --bert_model bert-base-uncased --max_seq_length 128 --learning_rate 2e-5 --num_train_epochs 3 --data_dir '' --output_dir '' > log.wo.2.txt 2>&1

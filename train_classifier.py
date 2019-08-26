@@ -158,8 +158,7 @@ def train_classifier(MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels,mo
     train_groups = len(MNLI_train)//batch_size
     test_group = len(RTE_test)//batch_size
     for i in range(train_groups):
-        if i %10==0:
-            print('\t\t classifier training group #', i)
+        print('\t\t classifier training group #', i)
         model.train()
         train_batch = MNLI_train[i*batch_size:(i+1)*batch_size]
         train_label_batch = np.array(MNLI_train_labels[i*batch_size:(i+1)*batch_size]) # batch
@@ -170,7 +169,7 @@ def train_classifier(MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels,mo
         loss = loss_function(batch_probs, train_label_batch)
         loss.backward()
         optimizer.step()
-        if i %100==0:
+        if i %10==0:
             '''test on RTE'''
             print('\t\t\t test classifier performace:')
             model.eval()

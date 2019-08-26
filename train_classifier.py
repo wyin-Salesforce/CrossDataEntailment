@@ -26,8 +26,10 @@ pretrained_model_dir = '/export/home/Dataset/BERT_pretrained_mine/crossdataentai
 class Encoder(nn.Module):
     def __init__(self):
         super(Encoder, self).__init__()
-        self.bert_model = BertModel.from_pretrained(pretrained_model_dir)
-        self.bert_tokenizer = BertTokenizer.from_pretrained(pretrained_model_dir)
+        # self.bert_model = BertModel.from_pretrained(pretrained_model_dir)
+        # self.bert_tokenizer = BertTokenizer.from_pretrained(pretrained_model_dir)
+        self.bert_model = BertModel.from_pretrained('bert-base-uncased')
+        self.bert_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
         # self.bert_model.eval()
         self.bert_model.to('cuda')
 
@@ -156,7 +158,8 @@ def train_classifier(MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels,mo
     train_groups = len(MNLI_train)//batch_size
     test_group = len(RTE_test)//batch_size
     for i in range(train_groups):
-        print('\t\t classifier training group #', i)
+        if i %10==0:
+            print('\t\t classifier training group #', i)
         model.train()
         train_batch = MNLI_train[i*batch_size:(i+1)*batch_size]
         train_label_batch = np.array(MNLI_train_labels[i*batch_size:(i+1)*batch_size]) # batch
@@ -167,7 +170,7 @@ def train_classifier(MNLI_train, MNLI_train_labels, RTE_test, RTE_test_labels,mo
         loss = loss_function(batch_probs, train_label_batch)
         loss.backward()
         optimizer.step()
-        if i %10==0:
+        if i %100==0:
             '''test on RTE'''
             print('\t\t\t test classifier performace:')
             model.eval()

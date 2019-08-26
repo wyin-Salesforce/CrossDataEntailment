@@ -21,15 +21,15 @@ device = torch.device("cuda")
 
 from bert_common_functions import sent_pair_to_embedding
 
-pretrained_model_dir = '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/133000/'
+pretrained_model_dir = '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/1000/'
 
 class Encoder(nn.Module):
     def __init__(self):
         super(Encoder, self).__init__()
-        # self.bert_model = BertModel.from_pretrained(pretrained_model_dir)
-        # self.bert_tokenizer = BertTokenizer.from_pretrained(pretrained_model_dir)
-        self.bert_model = BertModel.from_pretrained('bert-base-uncased')
-        self.bert_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+        self.bert_model = BertModel.from_pretrained(pretrained_model_dir)
+        self.bert_tokenizer = BertTokenizer.from_pretrained(pretrained_model_dir)
+        # self.bert_model = BertModel.from_pretrained('bert-base-uncased')
+        # self.bert_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
         # self.bert_model.eval()
         self.bert_model.to('cuda')
 

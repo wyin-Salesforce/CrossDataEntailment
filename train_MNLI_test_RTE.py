@@ -134,109 +134,47 @@ class RteProcessor(DataProcessor):
         print('loaded training size:', line_co)
         return examples
 
+    def get_MNLI_as_train(self, filename_list):
+        '''
+        can read the training file, dev and test file
+        '''
+        examples=[]
+        for filename in filename_list:
+            readfile = codecs.open(filename, 'r', 'utf-8')
+            line_co=0
+            for row in readfile:
+                if line_co>0:
+                    line=row.strip().split('\t')
+                    guid = "train-"+str(line_co-1)
+                    text_a = line[8].strip()
+                    text_b = line[9].strip()
+                    label = line[-1].strip() #["entailment", "neutral", "contradiction"]
+                    examples.append(
+                        InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+                line_co+=1
+            readfile.close()
+        print('loaded  size:', line_co)
+        return examples
 
-    def get_examples_situation_train(self, filename):
+    def get_RTE_as_test(self, filename):
         readfile = codecs.open(filename, 'r', 'utf-8')
         line_co=0
-        exam_co = 0
         examples=[]
-        label_list = []
-
-        '''first get all the seen types, since we will only create pos and neg hypo in seen types'''
-        seen_types = set()
         for row in readfile:
             line=row.strip().split('\t')
-            if len(line)==2: # label_id, text
-                type_index_list =  line[0].strip().split()
-                for type in type_index_list:
-                    seen_types.add(type)
-        readfile.close()
-
-        readfile = codecs.open(filename, 'r', 'utf-8')
-        # type_load_size = defaultdict(int)
-        for row in readfile:
-            line=row.strip().split('\t')
-            if len(line)==2: # label_id_list, text
-
-                type_index_set =  set(line[0].strip().split())
-                # if type_load_size.get(type_index,0)< size_limit_per_type:
-                for type, hypo_list in type2hypothesis.items():
-                    # hypo_list = type2hypothesis.get(i)
-                    if type in type_index_set:
-                        '''pos pair'''
-                        for hypo in hypo_list:
-                            guid = "train-"+str(exam_co)
-                            text_a = line[1]
-                            text_b = hypo
-                            label = 'entailment' #if line[0] == '1' else 'not_entailment'
-                            examples.append(
-                                InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
-                            exam_co+=1
-                    elif type in seen_types:
-                        '''neg pair'''
-                        for hypo in hypo_list:
-                            guid = "train-"+str(exam_co)
-                            text_a = line[1]
-                            text_b = hypo
-                            label = 'not_entailment' #if line[0] == '1' else 'not_entailment'
-                            examples.append(
-                                InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
-                            exam_co+=1
+            if len(line)==3:
+                guid = "test-"+str(line_co)
+                text_a = line[1]
+                text_b = line[2]
+                '''for RTE, we currently only choose randomly two labels in the set, in prediction we then decide the predicted labels'''
+                label = 'entailment'  if line[0] == '1' else 'neutral'
+                examples.append(
+                    InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
                 line_co+=1
-                if line_co % 100 == 0:
-                    print('loading training size:', line_co)
 
         readfile.close()
-        print('loaded size:', line_co)
-        print('seen_types:', seen_types)
-        return examples, seen_types
-
-
-    def get_examples_situation_test(self, filename, seen_types):
-        readfile = codecs.open(filename, 'r', 'utf-8')
-        line_co=0
-        exam_co = 0
-        examples=[]
-
-        hypo_seen_str_indicator=[]
-        hypo_2_type_index=[]
-        '''notice that noemo hasnt be set as unseen, we treat it in evaluation part'''
-        for type, hypo_list in type2hypothesis.items():
-            for hypo in hypo_list:
-                hypo_2_type_index.append(type) # this hypo is for type i
-                if type in seen_types:
-                    hypo_seen_str_indicator.append('seen')# this hypo is for a seen type
-                else:
-                    hypo_seen_str_indicator.append('unseen')
-
-        gold_label_list = []
-        for row in readfile:
-            line=row.strip().split('\t')
-            if len(line)==2: # label_id_list, text
-
-                type_index_list =  line[0].strip().split()
-                '''note that here is a type string list'''
-                gold_label_list.append(type_index_list)
-                for type, hypo_list in type2hypothesis.items():
-                    '''here we put not-entail as label just for occupying the arg, not use'''
-                    for hypo in hypo_list:
-                            guid = "test-"+str(exam_co)
-                            text_a = line[1]
-                            text_b = hypo
-                            label = 'not_entailment' #if line[0] == '1' else 'not_entailment'
-                            examples.append(
-                                InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
-                            exam_co+=1
-                line_co+=1
-                if line_co % 100 == 0:
-                    print('loading test size:', line_co)
-                # if line_co == 1000:
-                #     break
-
-
-        readfile.close()
-        print('loaded size:', line_co)
-        return examples, gold_label_list, hypo_seen_str_indicator, hypo_2_type_index
+        print('loaded test size:', line_co)
+        return examples
 
     # def get_train_examples(self, data_dir):
     #     """See base class."""
@@ -554,7 +492,7 @@ def main():
     train_examples = None
     num_train_optimization_steps = None
     if args.do_train:
-        train_examples, seen_types = processor.get_examples_situation_train('/export/home/Dataset/LORELEI/zero-shot-split/train_pu_half_v1.txt') #train_pu_half_v1.txt
+        train_examples = processor.get_MNLI_as_train('/export/home/Dataset/glue_data/MNLI/train.tsv') #train_pu_half_v1.txt
         # seen_classes=[0,2,4,6,8]
 
         num_train_optimization_steps = int(
@@ -569,7 +507,7 @@ def main():
     #           num_labels=num_labels)
     # tokenizer = BertTokenizer.from_pretrained(args.bert_model, do_lower_case=args.do_lower_case)
 
-    pretrain_model_dir = '/export/home/Dataset/fine_tune_Bert_stored/FineTuneOnRTE' #FineTuneOnCombined'# FineTuneOnMNLI
+    pretrain_model_dir = 'bert-large-uncased' #FineTuneOnCombined'# FineTuneOnMNLI
     model = BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
     tokenizer = BertTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
 
@@ -587,38 +525,19 @@ def main():
         {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
         {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
         ]
-    if args.fp16:
-        try:
-            from apex.optimizers import FP16_Optimizer
-            from apex.optimizers import FusedAdam
-        except ImportError:
-            raise ImportError("Please install apex from https://www.github.com/nvidia/apex to use distributed and fp16 training.")
 
-        optimizer = FusedAdam(optimizer_grouped_parameters,
-                              lr=args.learning_rate,
-                              bias_correction=False,
-                              max_grad_norm=1.0)
-        if args.loss_scale == 0:
-            optimizer = FP16_Optimizer(optimizer, dynamic_loss_scale=True)
-        else:
-            optimizer = FP16_Optimizer(optimizer, static_loss_scale=args.loss_scale)
-
-    else:
-        optimizer = AdamW(optimizer_grouped_parameters,
+    optimizer = AdamW(optimizer_grouped_parameters,
                              lr=args.learning_rate)
     global_step = 0
     nb_tr_steps = 0
     tr_loss = 0
-    max_test_unseen_acc = 0.0
-    max_dev_unseen_acc = 0.0
-    max_dev_seen_acc = 0.0
-    max_overall_acc = 0.0
+    max_test_acc = 0.0
     if args.do_train:
         train_features = convert_examples_to_features(
             train_examples, label_list, args.max_seq_length, tokenizer, output_mode)
 
         '''load dev set'''
-        eval_examples, eval_label_list, eval_hypo_seen_str_indicator, eval_hypo_2_type_index = processor.get_examples_situation_test('/export/home/Dataset/LORELEI/zero-shot-split/dev.txt', seen_types)
+        eval_examples = processor.get_RTE_as_test('/export/home/Dataset/RTE/test_RTE_1235.txt')
         eval_features = convert_examples_to_features(
             eval_examples, label_list, args.max_seq_length, tokenizer, output_mode)
 
@@ -631,19 +550,19 @@ def main():
         eval_sampler = SequentialSampler(eval_data)
         eval_dataloader = DataLoader(eval_data, sampler=eval_sampler, batch_size=args.eval_batch_size)
 
-        '''load test set'''
-        test_examples, test_label_list, test_hypo_seen_str_indicator, test_hypo_2_type_index = processor.get_examples_situation_test('/export/home/Dataset/LORELEI/zero-shot-split/test.txt', seen_types)
-        test_features = convert_examples_to_features(
-            test_examples, label_list, args.max_seq_length, tokenizer, output_mode)
-
-        test_all_input_ids = torch.tensor([f.input_ids for f in test_features], dtype=torch.long)
-        test_all_input_mask = torch.tensor([f.input_mask for f in test_features], dtype=torch.long)
-        test_all_segment_ids = torch.tensor([f.segment_ids for f in test_features], dtype=torch.long)
-        test_all_label_ids = torch.tensor([f.label_id for f in test_features], dtype=torch.long)
-
-        test_data = TensorDataset(test_all_input_ids, test_all_input_mask, test_all_segment_ids, test_all_label_ids)
-        test_sampler = SequentialSampler(test_data)
-        test_dataloader = DataLoader(test_data, sampler=test_sampler, batch_size=args.eval_batch_size)
+        # '''load test set'''
+        # test_examples, test_label_list, test_hypo_seen_str_indicator, test_hypo_2_type_index = processor.get_examples_situation_test('/export/home/Dataset/LORELEI/zero-shot-split/test.txt', seen_types)
+        # test_features = convert_examples_to_features(
+        #     test_examples, label_list, args.max_seq_length, tokenizer, output_mode)
+        #
+        # test_all_input_ids = torch.tensor([f.input_ids for f in test_features], dtype=torch.long)
+        # test_all_input_mask = torch.tensor([f.input_mask for f in test_features], dtype=torch.long)
+        # test_all_segment_ids = torch.tensor([f.segment_ids for f in test_features], dtype=torch.long)
+        # test_all_label_ids = torch.tensor([f.label_id for f in test_features], dtype=torch.long)
+        #
+        # test_data = TensorDataset(test_all_input_ids, test_all_input_mask, test_all_segment_ids, test_all_label_ids)
+        # test_sampler = SequentialSampler(test_data)
+        # test_dataloader = DataLoader(test_data, sampler=test_sampler, batch_size=args.eval_batch_size)
 
 
         logger.info("***** Running training *****")
@@ -653,14 +572,8 @@ def main():
         all_input_ids = torch.tensor([f.input_ids for f in train_features], dtype=torch.long)
         all_input_mask = torch.tensor([f.input_mask for f in train_features], dtype=torch.long)
         all_segment_ids = torch.tensor([f.segment_ids for f in train_features], dtype=torch.long)
+        all_label_ids = torch.tensor([f.label_id for f in train_features], dtype=torch.long)
 
-        if output_mode == "classification":
-            all_label_ids = torch.tensor([f.label_id for f in train_features], dtype=torch.long)
-        elif output_mode == "regression":
-            all_label_ids = torch.tensor([f.label_id for f in train_features], dtype=torch.float)
-
-        # print('train all_label_ids:', all_label_ids)
-        # exit(0)
         train_data = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids)
         train_sampler = RandomSampler(train_data)
 
@@ -706,12 +619,14 @@ def main():
                     eval_loss = 0
                     nb_eval_steps = 0
                     preds = []
+                    gold_label_ids = []
                     print('Evaluating...')
                     for input_ids, input_mask, segment_ids, label_ids in eval_dataloader:
                         input_ids = input_ids.to(device)
                         input_mask = input_mask.to(device)
                         segment_ids = segment_ids.to(device)
                         label_ids = label_ids.to(device)
+                        gold_label_ids+=list(label_ids.detach().cpu().numpy())
 
                         with torch.no_grad():
                             logits = model(input_ids, segment_ids, input_mask, labels=None)
@@ -731,82 +646,30 @@ def main():
                     preds = preds[0]
 
                     '''
-                    preds: size*2 (entail, not_entail)
+                    preds: size*3 ["entailment", "neutral", "contradiction"]
                     wenpeng added a softxmax so that each row is a prob vec
                     '''
-                    pred_probs = softmax(preds,axis=1)[:,0]
-                    pred_binary_labels_harsh = []
-                    pred_binary_labels_loose = []
-                    for i in range(preds.shape[0]):
-                        if preds[i][0]>preds[i][1]+0.1:
-                            pred_binary_labels_harsh.append(0)
-                        else:
-                            pred_binary_labels_harsh.append(1)
-                        if preds[i][0]>preds[i][1]:
-                            pred_binary_labels_loose.append(0)
-                        else:
-                            pred_binary_labels_loose.append(1)
+                    pred_probs = softmax(preds,axis=1)
+                    pred_indices = np.argsort(pred_probs, axis=1)
+                    pred_label_ids = []
+                    for p in pred_indices:
+                        pred_label_ids.append(0 if p == 0 else 1)
+                    gold_label_ids = gold_label_ids
+                    assert len(pred_label_ids) = len(gold_label_ids)
+                    hit_co = 0
+                    for k in range(len(pred_label_ids)):
+                        if pred_label_ids[k] == gold_label_ids[k]:
+                            hit_co +=1
+                    test_acc = hit_co/len(gold_label_ids)
 
-                    seen_acc, unseen_acc = evaluate_situation_zeroshot_TwpPhasePred(pred_probs, pred_binary_labels_harsh, pred_binary_labels_loose, eval_label_list, eval_hypo_seen_str_indicator, eval_hypo_2_type_index, seen_types)
-                    # result = compute_metrics('F1', preds, all_label_ids.numpy())
-                    loss = tr_loss/nb_tr_steps if args.do_train else None
+
                     # test_acc = mean_f1#result.get("f1")
-                    if unseen_acc > max_dev_unseen_acc:
-                        max_dev_unseen_acc = unseen_acc
-                    print('\ndev seen_f1 & unseen_f1:', seen_acc,unseen_acc, ' max_dev_unseen_f1:', max_dev_unseen_acc, '\n')
-                    # if seen_acc+unseen_acc > max_overall_acc:
-                    #     max_overall_acc = seen_acc + unseen_acc
-                    # if seen_acc > max_dev_seen_acc:
-                    #     max_dev_seen_acc = seen_acc
-                    '''
-                    start evaluate on test set after this epoch
-                    '''
-                    model.eval()
+                    if test_acc > max_test_acc:
+                        max_test_acc = test_acc
+                    print('\ntest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
 
-                    logger.info("***** Running testing *****")
-                    logger.info("  Num examples = %d", len(test_examples))
-                    logger.info("  Batch size = %d", args.eval_batch_size)
 
-                    test_loss = 0
-                    nb_test_steps = 0
-                    preds = []
-                    print('Testing...')
-                    for input_ids, input_mask, segment_ids, label_ids in test_dataloader:
-                        input_ids = input_ids.to(device)
-                        input_mask = input_mask.to(device)
-                        segment_ids = segment_ids.to(device)
-                        label_ids = label_ids.to(device)
 
-                        with torch.no_grad():
-                            logits = model(input_ids, segment_ids, input_mask, labels=None)
-                        logits = logits[0]
-                        if len(preds) == 0:
-                            preds.append(logits.detach().cpu().numpy())
-                        else:
-                            preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
-
-                    # eval_loss = eval_loss / nb_eval_steps
-                    preds = preds[0]
-                    pred_probs = softmax(preds,axis=1)[:,0]
-                    pred_binary_labels_harsh = []
-                    pred_binary_labels_loose = []
-                    for i in range(preds.shape[0]):
-                        if preds[i][0]>preds[i][1]+0.1:
-                            pred_binary_labels_harsh.append(0)
-                        else:
-                            pred_binary_labels_harsh.append(1)
-                        if preds[i][0]>preds[i][1]:
-                            pred_binary_labels_loose.append(0)
-                        else:
-                            pred_binary_labels_loose.append(1)
-
-                    seen_acc, unseen_acc = evaluate_situation_zeroshot_TwpPhasePred(pred_probs, pred_binary_labels_harsh, pred_binary_labels_loose, test_label_list, test_hypo_seen_str_indicator, test_hypo_2_type_index, seen_types)
-                    # result = compute_metrics('F1', preds, all_label_ids.numpy())
-                    # loss = tr_loss/nb_tr_steps if args.do_train else None
-                    # test_acc = mean_f1#result.get("f1")
-                    if unseen_acc > max_test_unseen_acc:
-                        max_test_unseen_acc = unseen_acc
-                    print('\n\n\t test seen_f1 & unseen_f1:', seen_acc,unseen_acc, ' max_test_unseen_f1:', max_test_unseen_acc, '\n')
 
 if __name__ == "__main__":
     main()

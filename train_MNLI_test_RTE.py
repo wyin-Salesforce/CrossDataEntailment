@@ -655,7 +655,7 @@ def main():
                     for p in pred_indices:
                         pred_label_ids.append(0 if p == 0 else 1)
                     gold_label_ids = gold_label_ids
-                    assert len(pred_label_ids) = len(gold_label_ids)
+                    assert len(pred_label_ids) == len(gold_label_ids)
                     hit_co = 0
                     for k in range(len(pred_label_ids)):
                         if pred_label_ids[k] == gold_label_ids[k]:

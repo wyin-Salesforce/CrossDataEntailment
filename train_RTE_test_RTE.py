@@ -508,7 +508,7 @@ def main():
     #           num_labels=num_labels)
     # tokenizer = BertTokenizer.from_pretrained(args.bert_model, do_lower_case=args.do_lower_case)
 
-    pretrain_model_dir = 'bert-large-cased' #FineTuneOnCombined'# FineTuneOnMNLI
+    pretrain_model_dir = 'bert-large-uncased' #FineTuneOnCombined'# FineTuneOnMNLI
     model = BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
     tokenizer = BertTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
 
@@ -607,7 +607,7 @@ def main():
                 optimizer.zero_grad()
                 global_step += 1
                 iter_co+=1
-                if iter_co %50==0:
+                if iter_co %10==0:
                     '''
                     start evaluate on dev set after this epoch
                     '''

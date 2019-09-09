@@ -44,7 +44,7 @@ from pytorch_transformers.optimization import AdamW
 
 # from pytorch_transformers import *
 
-from preprocess_situation import evaluate_situation_zeroshot_TwpPhasePred
+# from preprocess_situation import evaluate_situation_zeroshot_TwpPhasePred
 # import torch.optim as optimizer_wenpeng
 
 logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s',

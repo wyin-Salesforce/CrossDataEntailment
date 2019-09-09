@@ -651,7 +651,7 @@ def main():
                     wenpeng added a softxmax so that each row is a prob vec
                     '''
                     pred_probs = softmax(preds,axis=1)
-                    pred_indices = np.argsort(pred_probs, axis=1)
+                    pred_indices = np.argmax(pred_probs, axis=1)
                     pred_label_ids = []
                     for p in pred_indices:
                         pred_label_ids.append(0 if p == 0 else 1)

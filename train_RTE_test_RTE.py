@@ -189,7 +189,7 @@ class RteProcessor(DataProcessor):
 
     def get_labels(self):
         'here we keep the three-way in MNLI training '
-        return ["entailment", "neutral", "contradiction"]
+        return ["entailment", "not_entailment"]
 
     def _create_examples(self, lines, set_type):
         """Creates examples for the training and dev sets."""
@@ -651,10 +651,8 @@ def main():
                     wenpeng added a softxmax so that each row is a prob vec
                     '''
                     pred_probs = softmax(preds,axis=1)
-                    pred_indices = np.argmax(pred_probs, axis=1)
-                    pred_label_ids = []
-                    for p in pred_indices:
-                        pred_label_ids.append(0 if p == 0 else 1)
+                    pred_label_ids = list(np.argmax(pred_probs, axis=1))
+
                     gold_label_ids = gold_label_ids
                     assert len(pred_label_ids) == len(gold_label_ids)
                     hit_co = 0

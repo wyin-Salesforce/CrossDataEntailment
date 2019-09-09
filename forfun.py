@@ -12,8 +12,6 @@ import random
 from pytorch_transformers.tokenization_bert import BertTokenizer
 from pytorch_transformers.modeling_bert import BertModel
 from pytorch_transformers.optimization import AdamW
-# from preprocess_IL3_Uyghur import recover_pytorch_idmatrix_2_text
-# from bert_common_functions import sent_to_embedding, sent_to_embedding_last4
 
 '''the following torch seed can result in the same performance'''
 torch.manual_seed(400)

@@ -393,7 +393,7 @@ def main():
                         action='store_true',
                         help="Set this flag if you are using an uncased model.")
     parser.add_argument("--train_batch_size",
-                        default=32,
+                        default=16,
                         type=int,
                         help="Total batch size for training.")
     parser.add_argument("--eval_batch_size",
@@ -674,4 +674,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-# CUDA_VISIBLE_DEVICES=1,2 python -u train_Yahoo_fine_tune_Bert_zeroshot.py --task_name rte --do_train --do_lower_case --bert_model bert-base-uncased --max_seq_length 128 --train_batch_size 32 --learning_rate 2e-5 --num_train_epochs 3 --data_dir '' --output_dir ''
+# CUDA_VISIBLE_DEVICES=0 python -u train_MNLI_test_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --max_seq_length 128 --learning_rate 2e-5 --num_train_epochs 3 --data_dir '' --output_dir ''

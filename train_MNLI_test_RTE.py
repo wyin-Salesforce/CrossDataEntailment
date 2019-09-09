@@ -134,25 +134,24 @@ class RteProcessor(DataProcessor):
         print('loaded training size:', line_co)
         return examples
 
-    def get_MNLI_as_train(self, filename_list):
+    def get_MNLI_as_train(self, filename):
         '''
         can read the training file, dev and test file
         '''
         examples=[]
-        for filename in filename_list:
-            readfile = codecs.open(filename, 'r', 'utf-8')
-            line_co=0
-            for row in readfile:
-                if line_co>0:
-                    line=row.strip().split('\t')
-                    guid = "train-"+str(line_co-1)
-                    text_a = line[8].strip()
-                    text_b = line[9].strip()
-                    label = line[-1].strip() #["entailment", "neutral", "contradiction"]
-                    examples.append(
-                        InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
-                line_co+=1
-            readfile.close()
+        readfile = codecs.open(filename, 'r', 'utf-8')
+        line_co=0
+        for row in readfile:
+            if line_co>0:
+                line=row.strip().split('\t')
+                guid = "train-"+str(line_co-1)
+                text_a = line[8].strip()
+                text_b = line[9].strip()
+                label = line[-1].strip() #["entailment", "neutral", "contradiction"]
+                examples.append(
+                    InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+            line_co+=1
+        readfile.close()
         print('loaded  size:', line_co)
         return examples
 

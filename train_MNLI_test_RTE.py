@@ -151,6 +151,8 @@ class RteProcessor(DataProcessor):
                 examples.append(
                     InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
             line_co+=1
+            if line_co > 20000:
+                break
         readfile.close()
         print('loaded  size:', line_co)
         return examples
@@ -391,11 +393,11 @@ def main():
                         action='store_true',
                         help="Set this flag if you are using an uncased model.")
     parser.add_argument("--train_batch_size",
-                        default=64,
+                        default=32,
                         type=int,
                         help="Total batch size for training.")
     parser.add_argument("--eval_batch_size",
-                        default=256,
+                        default=64,
                         type=int,
                         help="Total batch size for eval.")
     parser.add_argument("--learning_rate",

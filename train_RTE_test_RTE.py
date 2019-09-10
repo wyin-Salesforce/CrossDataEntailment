@@ -505,13 +505,11 @@ def main():
 
     # Prepare model
     cache_dir = args.cache_dir if args.cache_dir else os.path.join(str(PYTORCH_TRANSFORMERS_CACHE), 'distributed_{}'.format(args.local_rank))
-    # model = BertForSequenceClassification.from_pretrained(args.bert_model,
-    #           cache_dir=cache_dir,
-    #           num_labels=num_labels)
-    # tokenizer = BertTokenizer.from_pretrained(args.bert_model, do_lower_case=args.do_lower_case)
 
     pretrain_model_dir = 'bert-large-uncased' #FineTuneOnCombined'# FineTuneOnMNLI
     model = BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
+    print(model.classifier.weight)
+    exit(0)
     tokenizer = BertTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
 
     if args.fp16:

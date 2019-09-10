@@ -37,16 +37,16 @@ from scipy.special import softmax
 from scipy.stats import pearsonr, spearmanr
 from sklearn.metrics import matthews_corrcoef, f1_score
 
-from my_pytorch_transformers.file_utils import PYTORCH_TRANSFORMERS_CACHE
-from my_pytorch_transformers.modeling_bert import BertConfig#, BertForSequenceClassification
-from my_pytorch_transformers.tokenization_bert import BertTokenizer
-from my_pytorch_transformers.optimization import AdamW
+
+# from my_pytorch_transformers.modeling_bert import BertConfig#, BertForSequenceClassification
+# from my_pytorch_transformers.tokenization_bert import BertTokenizer
+# from my_pytorch_transformers.optimization import AdamW
 from my_pytorch_transformers.modeling_bert import  BertForSequenceClassification
 
-# from pytorch_transformers.file_utils import PYTORCH_TRANSFORMERS_CACHE
-# from pytorch_transformers.modeling_bert import BertConfig, BertForSequenceClassification
-# from pytorch_transformers.tokenization_bert import BertTokenizer
-# from pytorch_transformers.optimization import AdamW
+
+from pytorch_transformers.modeling_bert import BertConfig#, BertForSequenceClassification
+from pytorch_transformers.tokenization_bert import BertTokenizer
+from pytorch_transformers.optimization import AdamW
 
 
 # from bert_common_functions import BertForSequenceClassification
@@ -498,20 +498,18 @@ def main():
             num_train_optimization_steps = num_train_optimization_steps // torch.distributed.get_world_size()
 
     # Prepare model
-    cache_dir = args.cache_dir if args.cache_dir else os.path.join(str(PYTORCH_TRANSFORMERS_CACHE), 'distributed_{}'.format(args.local_rank))
+    # cache_dir = args.cache_dir if args.cache_dir else os.path.join(str(PYTORCH_TRANSFORMERS_CACHE), 'distributed_{}'.format(args.local_rank))
 
-    pretrain_model_dir = 'bert-large-cased' #FineTuneOnCombined'# FineTuneOnMNLI
+    pretrain_model_dir = 'bert-large-uncased' #FineTuneOnCombined'# FineTuneOnMNLI
     model = BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
     # print(model.classifier.weight)
     # exit(0)
     tokenizer = BertTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
 
-    if args.fp16:
-        model.half()
     model.to(device)
 
-    if n_gpu > 1:
-        model = torch.nn.DataParallel(model)
+    # if n_gpu > 1:
+    #     model = torch.nn.DataParallel(model)
 
     # Prepare optimizer
     param_optimizer = list(model.named_parameters())

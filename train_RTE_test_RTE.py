@@ -502,8 +502,9 @@ def main():
 
     pretrain_model_dir = 'bert-large-uncased' #FineTuneOnCombined'# FineTuneOnMNLI
     model = BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
-    for nn, pp in list(model.named_parameters()):
-        print(nn)
+    # for nn, pp in list(model.named_parameters()):
+    #     print(nn)
+    print(model.bert.pooler.dense.weight)
     exit(0)
     tokenizer = BertTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
 

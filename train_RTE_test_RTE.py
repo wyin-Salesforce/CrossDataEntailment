@@ -353,56 +353,12 @@ def _truncate_seq_pair(tokens_a, tokens_b, max_length):
             tokens_b.pop()
 
 
-def simple_accuracy(preds, labels):
-    return (preds == labels).mean()
 
 
-def acc_and_f1(preds, labels):
-    acc = simple_accuracy(preds, labels)
-    f1 = f1_score(y_true=labels, y_pred=preds)
-    return {
-        "acc": acc,
-        "f1": f1,
-        "acc_and_f1": (acc + f1) / 2,
-    }
 
 
-def pearson_and_spearman(preds, labels):
-    pearson_corr = pearsonr(preds, labels)[0]
-    spearman_corr = spearmanr(preds, labels)[0]
-    return {
-        "pearson": pearson_corr,
-        "spearmanr": spearman_corr,
-        "corr": (pearson_corr + spearman_corr) / 2,
-    }
 
 
-def compute_metrics(task_name, preds, labels):
-    assert len(preds) == len(labels)
-    if task_name == "cola":
-        return {"mcc": matthews_corrcoef(labels, preds)}
-    elif task_name == "sst-2":
-        return {"acc": simple_accuracy(preds, labels)}
-    elif task_name == "mrpc":
-        return acc_and_f1(preds, labels)
-    elif task_name == "sts-b":
-        return pearson_and_spearman(preds, labels)
-    elif task_name == "qqp":
-        return acc_and_f1(preds, labels)
-    elif task_name == "mnli":
-        return {"acc": simple_accuracy(preds, labels)}
-    elif task_name == "mnli-mm":
-        return {"acc": simple_accuracy(preds, labels)}
-    elif task_name == "qnli":
-        return {"acc": simple_accuracy(preds, labels)}
-    elif task_name == "rte":
-        return {"acc": simple_accuracy(preds, labels)}
-    elif task_name == "wnli":
-        return {"acc": simple_accuracy(preds, labels)}
-    elif task_name == 'F1':
-        return {"f1": f1_score(y_true=labels, y_pred=preds)}
-    else:
-        raise KeyError(task_name)
 
 
 def main():
@@ -563,6 +519,8 @@ def main():
 
     pretrain_model_dir = 'bert-large-uncased' #FineTuneOnCombined'# FineTuneOnMNLI
     model = BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
+    print(model.bert.classifier.weight)
+    exit(0)
     # model = my_BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
 
     # for np1, np2 in zip(list(model.named_parameters()),list(my_model.named_parameters())):

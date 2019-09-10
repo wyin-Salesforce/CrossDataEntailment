@@ -41,7 +41,7 @@ from sklearn.metrics import matthews_corrcoef, f1_score
 
 from my_pytorch_transformers.tokenization_bert import BertTokenizer
 from my_pytorch_transformers.optimization import AdamW
-import my_pytorch_transformers.modeling_bert.BertForSequenceClassification as my_BertForSequenceClassification
+from my_pytorch_transformers.modeling_bert import BertForSequenceClassification as my_BertForSequenceClassification
 
 
 from pytorch_transformers.modeling_bert import BertForSequenceClassification

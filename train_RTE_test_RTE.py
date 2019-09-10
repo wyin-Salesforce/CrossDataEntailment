@@ -38,12 +38,12 @@ from scipy.stats import pearsonr, spearmanr
 from sklearn.metrics import matthews_corrcoef, f1_score
 
 from pytorch_transformers.file_utils import PYTORCH_TRANSFORMERS_CACHE
-from pytorch_transformers.modeling_bert import BertConfig, WEIGHTS_NAME, CONFIG_NAME#, BertForSequenceClassification
+from pytorch_transformers.modeling_bert import BertConfig, WEIGHTS_NAME, CONFIG_NAME, BertForSequenceClassification
 from pytorch_transformers.tokenization_bert import BertTokenizer
 from pytorch_transformers.optimization import AdamW
 
 
-from bert_common_functions import BertForSequenceClassification
+# from bert_common_functions import BertForSequenceClassification
 # from pytorch_transformers import *
 
 # from preprocess_situation import evaluate_situation_zeroshot_TwpPhasePred
@@ -178,16 +178,6 @@ class RteProcessor(DataProcessor):
         readfile.close()
         print('loaded test size:', line_co)
         return examples
-
-    # def get_train_examples(self, data_dir):
-    #     """See base class."""
-    #     return self._create_examples(
-    #         self._read_tsv(os.path.join(data_dir, "train.tsv")), "train")
-    #
-    # def get_dev_examples(self, data_dir):
-    #     """See base class."""
-    #     return self._create_examples(
-    #         self._read_tsv(os.path.join(data_dir, "dev.tsv")), "dev")
 
     def get_labels(self):
         'here we keep the three-way in MNLI training '

@@ -498,7 +498,7 @@ def main():
     print(st_model.classifier.weight)
     model2 = BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
     print(model2.classifier.weight)
-    exit(0)
+    # exit(0)
     # model = my_BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
 
     # for np1, np2 in zip(list(model.named_parameters()),list(my_model.named_parameters())):
@@ -510,13 +510,13 @@ def main():
 
     tokenizer = BertTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
 
-    model.to(device)
+    st_model.to(device)
 
     # if n_gpu > 1:
     #     model = torch.nn.DataParallel(model)
 
     # Prepare optimizer
-    param_optimizer = list(model.named_parameters())
+    param_optimizer = list(st_model.named_parameters())
     no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
     optimizer_grouped_parameters = [
         {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
@@ -566,10 +566,10 @@ def main():
             tr_loss = 0
             nb_tr_examples, nb_tr_steps = 0, 0
             for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
-                model.train()
+                st_model.train()
                 batch = tuple(t.to(device) for t in batch)
                 input_ids, input_mask, segment_ids, label_ids = batch
-                logits = model(input_ids, segment_ids, input_mask, labels=None)
+                logits = st_model(input_ids, segment_ids, input_mask, labels=None)
                 loss_fct = CrossEntropyLoss()
                 loss = loss_fct(logits[0].view(-1, num_labels), label_ids.view(-1))
 
@@ -592,7 +592,7 @@ def main():
                     '''
                     start evaluate on dev set after this epoch
                     '''
-                    model.eval()
+                    st_model.eval()
 
                     logger.info("***** Running evaluation *****")
                     logger.info("  Num examples = %d", len(eval_examples))
@@ -611,7 +611,7 @@ def main():
                         gold_label_ids+=list(label_ids.detach().cpu().numpy())
 
                         with torch.no_grad():
-                            logits = model(input_ids, segment_ids, input_mask, labels=None)
+                            logits = st_model(input_ids, segment_ids, input_mask, labels=None)
                         logits = logits[0]
 
                         loss_fct = CrossEntropyLoss()

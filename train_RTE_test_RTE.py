@@ -41,7 +41,7 @@ from sklearn.metrics import matthews_corrcoef, f1_score
 
 from my_pytorch_transformers.tokenization_bert import BertTokenizer
 from my_pytorch_transformers.optimization import AdamW
-from my_pytorch_transformers.modeling_bert import BertForSequenceClassification as my_BertForSequenceClassification
+# from my_pytorch_transformers.modeling_bert import BertForSequenceClassification as my_BertForSequenceClassification
 
 
 from pytorch_transformers.modeling_bert import BertForSequenceClassification
@@ -418,7 +418,7 @@ def main():
                         help="local_rank for distributed training on gpus")
     parser.add_argument('--seed',
                         type=int,
-                        default=45,
+                        default=42,
                         help="random seed for initialization")
     parser.add_argument('--gradient_accumulation_steps',
                         type=int,
@@ -591,7 +591,7 @@ def main():
                 optimizer.zero_grad()
                 global_step += 1
                 iter_co+=1
-                if iter_co %1==0:
+                if iter_co %20==0:
                     '''
                     start evaluate on dev set after this epoch
                     '''

@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import os
-from pytorch_transformers.modeling_bert import BertPreTrainedModel
+from pytorch_transformers.modeling_bert import BertPreTrainedModel, BertModel
 
 class BertForSequenceClassification(BertPreTrainedModel):
     r"""

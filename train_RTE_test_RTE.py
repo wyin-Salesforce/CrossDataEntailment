@@ -506,6 +506,8 @@ def main():
     for np1, np2 in zip(list(model.named_parameters()),list(my_model.named_parameters())):
         if np1[1].data.ne(np2[1].data).sum() > 0:
             print(np1[0], np2[0])
+            print(np1[1].data)
+            print(np2[1].data)
     exit(0)
     flag=True
     for p1, p2 in zip(model.parameters(), my_model.parameters()):

@@ -519,7 +519,7 @@ def main():
 
     pretrain_model_dir = 'bert-large-uncased' #FineTuneOnCombined'# FineTuneOnMNLI
     model = BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
-    print(model.bert.classifier.weight)
+    print(model.classifier.weight)
     exit(0)
     # model = my_BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
 

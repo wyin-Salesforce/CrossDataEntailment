@@ -503,7 +503,7 @@ def main():
     pretrain_model_dir = 'bert-large-uncased' #FineTuneOnCombined'# FineTuneOnMNLI
     model = BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
     my_model = my_BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
-    for np1, np2 in zip(list(model.named_parameters()),list(model.named_parameters())):
+    for np1, np2 in zip(list(model.named_parameters()),list(my_model.named_parameters())):
         if np1[1].data.ne(np2[1].data).sum() > 0:
             print(np1[0], np2[0])
     exit(0)

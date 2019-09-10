@@ -41,10 +41,10 @@ from sklearn.metrics import matthews_corrcoef, f1_score
 
 from my_pytorch_transformers.tokenization_bert import BertTokenizer
 from my_pytorch_transformers.optimization import AdamW
-from my_pytorch_transformers.modeling_bert import  BertForSequenceClassification
+import my_pytorch_transformers.modeling_bert.BertForSequenceClassification as my_BertForSequenceClassification
 
 
-# from pytorch_transformers.modeling_bert import BertForSequenceClassification
+from pytorch_transformers.modeling_bert import BertForSequenceClassification
 # from pytorch_transformers.tokenization_bert import BertTokenizer
 # from pytorch_transformers.optimization import AdamW
 
@@ -502,9 +502,14 @@ def main():
 
     pretrain_model_dir = 'bert-large-uncased' #FineTuneOnCombined'# FineTuneOnMNLI
     model = BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
+    my_model = my_BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
     # for nn, pp in list(model.named_parameters()):
     #     print(nn)
-    print(model.bert.pooler.dense.weight)
+    flag=True
+    for p1, p2 in zip(model.parameters(), my_model.parameters()):
+        if p1.data.ne(p2.data).sum() > 0:
+            flag = False
+    print(flag)
     exit(0)
     tokenizer = BertTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
 

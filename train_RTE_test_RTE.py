@@ -38,12 +38,12 @@ from scipy.stats import pearsonr, spearmanr
 from sklearn.metrics import matthews_corrcoef, f1_score
 
 from pytorch_transformers.file_utils import PYTORCH_TRANSFORMERS_CACHE
-from pytorch_transformers.modeling_bert import BertConfig, WEIGHTS_NAME, CONFIG_NAME, BertForSequenceClassification
+from pytorch_transformers.modeling_bert import BertConfig, WEIGHTS_NAME, CONFIG_NAME#, BertForSequenceClassification
 from pytorch_transformers.tokenization_bert import BertTokenizer
 from pytorch_transformers.optimization import AdamW
 
 
-# from bert_common_functions import BertForSequenceClassification
+from bert_common_functions import BertForSequenceClassification
 # from pytorch_transformers import *
 
 # from preprocess_situation import evaluate_situation_zeroshot_TwpPhasePred

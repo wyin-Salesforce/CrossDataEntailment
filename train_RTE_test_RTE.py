@@ -37,12 +37,18 @@ from scipy.special import softmax
 from scipy.stats import pearsonr, spearmanr
 from sklearn.metrics import matthews_corrcoef, f1_score
 
-from my_pytorch_transformers.file_utils import PYTORCH_TRANSFORMERS_CACHE
-from my_pytorch_transformers.modeling_bert import BertConfig#, BertForSequenceClassification
-from my_pytorch_transformers.tokenization_bert import BertTokenizer
-from my_pytorch_transformers.optimization import AdamW
+# from my_pytorch_transformers.file_utils import PYTORCH_TRANSFORMERS_CACHE
+# from my_pytorch_transformers.modeling_bert import BertConfig#, BertForSequenceClassification
+# from my_pytorch_transformers.tokenization_bert import BertTokenizer
+# from my_pytorch_transformers.optimization import AdamW
+# from my_pytorch_transformers.modeling_bert import  BertForSequenceClassification
 
-from my_pytorch_transformers.modeling_bert import  BertForSequenceClassification
+from pytorch_transformers.file_utils import PYTORCH_TRANSFORMERS_CACHE
+from pytorch_transformers.modeling_bert import BertConfig, BertForSequenceClassification
+from pytorch_transformers.tokenization_bert import BertTokenizer
+from pytorch_transformers.optimization import AdamW
+
+
 # from bert_common_functions import BertForSequenceClassification
 
 

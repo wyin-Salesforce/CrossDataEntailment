@@ -496,6 +496,8 @@ def main():
     print(model.classifier.weight)
     st_model = st_BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
     print(st_model.classifier.weight)
+    model2 = BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
+    print(model2.classifier.weight)
     exit(0)
     # model = my_BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
 

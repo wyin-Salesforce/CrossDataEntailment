@@ -501,20 +501,16 @@ def main():
     # cache_dir = args.cache_dir if args.cache_dir else os.path.join(str(PYTORCH_TRANSFORMERS_CACHE), 'distributed_{}'.format(args.local_rank))
 
     pretrain_model_dir = 'bert-large-uncased' #FineTuneOnCombined'# FineTuneOnMNLI
-    model = BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
-    my_model = my_BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
-    for np1, np2 in zip(list(model.named_parameters()),list(my_model.named_parameters())):
-        if np1[1].data.ne(np2[1].data).sum() > 0:
-            print(np1[0], np2[0])
-            print(np1[1].data)
-            print(np2[1].data)
-    exit(0)
-    flag=True
-    for p1, p2 in zip(model.parameters(), my_model.parameters()):
-        if p1.data.ne(p2.data).sum() > 0:
-            flag = False
-    print(flag)
-    exit(0)
+    # model = BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
+    model = my_BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
+
+    # for np1, np2 in zip(list(model.named_parameters()),list(my_model.named_parameters())):
+    #     if np1[1].data.ne(np2[1].data).sum() > 0:
+    #         print(np1[0], np2[0])
+    #         print(np1[1].data)
+    #         print(np2[1].data)
+    # exit(0)
+
     tokenizer = BertTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
 
     model.to(device)

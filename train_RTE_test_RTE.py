@@ -496,8 +496,8 @@ def main():
 
     pretrain_model_dir = 'bert-large-uncased' #FineTuneOnCombined'# FineTuneOnMNLI
     model = BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
-    # print(model.classifier.weight)
-    # exit(0)
+    print(model.classifier.weight)
+    exit(0)
     tokenizer = BertTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
 
     if args.fp16:
@@ -538,21 +538,6 @@ def main():
         eval_data = TensorDataset(eval_all_input_ids, eval_all_input_mask, eval_all_segment_ids, eval_all_label_ids)
         eval_sampler = SequentialSampler(eval_data)
         eval_dataloader = DataLoader(eval_data, sampler=eval_sampler, batch_size=args.eval_batch_size)
-
-        # '''load test set'''
-        # test_examples, test_label_list, test_hypo_seen_str_indicator, test_hypo_2_type_index = processor.get_examples_situation_test('/export/home/Dataset/LORELEI/zero-shot-split/test.txt', seen_types)
-        # test_features = convert_examples_to_features(
-        #     test_examples, label_list, args.max_seq_length, tokenizer, output_mode)
-        #
-        # test_all_input_ids = torch.tensor([f.input_ids for f in test_features], dtype=torch.long)
-        # test_all_input_mask = torch.tensor([f.input_mask for f in test_features], dtype=torch.long)
-        # test_all_segment_ids = torch.tensor([f.segment_ids for f in test_features], dtype=torch.long)
-        # test_all_label_ids = torch.tensor([f.label_id for f in test_features], dtype=torch.long)
-        #
-        # test_data = TensorDataset(test_all_input_ids, test_all_input_mask, test_all_segment_ids, test_all_label_ids)
-        # test_sampler = SequentialSampler(test_data)
-        # test_dataloader = DataLoader(test_data, sampler=test_sampler, batch_size=args.eval_batch_size)
-
 
         logger.info("***** Running training *****")
         logger.info("  Num examples = %d", len(train_examples))

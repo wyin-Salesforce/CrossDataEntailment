@@ -42,7 +42,7 @@ from pytorch_transformers.modeling_bert import BertConfig, WEIGHTS_NAME, CONFIG_
 from pytorch_transformers.tokenization_bert import BertTokenizer
 from pytorch_transformers.optimization import AdamW
 
-from pytorch-transformers-master.pytorch_transformers.modeling_bert import  BertForSequenceClassification
+from my_pytorch_transformers.modeling_bert import  BertForSequenceClassification
 # from bert_common_functions import BertForSequenceClassification
 
 

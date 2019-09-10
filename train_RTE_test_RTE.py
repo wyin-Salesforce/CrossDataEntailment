@@ -634,7 +634,6 @@ def main():
                             hit_co +=1
                     test_acc = hit_co/len(gold_label_ids)
 
-
                     # test_acc = mean_f1#result.get("f1")
                     if test_acc > max_test_acc:
                         max_test_acc = test_acc

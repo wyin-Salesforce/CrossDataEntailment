@@ -206,20 +206,20 @@ def convert_examples_to_features(examples, label_list, max_seq_length,
         if ex_index % 10000 == 0:
             logger.info("Writing example %d of %d" % (ex_index, len(examples)))
 
-        tokens_a = tokenizer.tokenize(example.text_a)
-
-        tokens_b = None
-        if example.text_b:
-            tokens_b = tokenizer.tokenize(example.text_b)
-            # Modifies `tokens_a` and `tokens_b` in place so that the total
-            # length is less than the specified length.
-            # Account for [CLS], [SEP], [SEP] with "- 3"
-            '''A RoBERTa sequence pair has the following format: <s> A </s></s> B </s>'''
-            _truncate_seq_pair(tokens_a, tokens_b, max_seq_length - 4)
-        else:
-            # Account for [CLS] and [SEP] with "- 2"
-            if len(tokens_a) > max_seq_length - 2:
-                tokens_a = tokens_a[:(max_seq_length - 2)]
+        # tokens_a = tokenizer.tokenize(example.text_a)
+        #
+        # tokens_b = None
+        # if example.text_b:
+        #     tokens_b = tokenizer.tokenize(example.text_b)
+        #     # Modifies `tokens_a` and `tokens_b` in place so that the total
+        #     # length is less than the specified length.
+        #     # Account for [CLS], [SEP], [SEP] with "- 3"
+        #     '''A RoBERTa sequence pair has the following format: <s> A </s></s> B </s>'''
+        #     _truncate_seq_pair(tokens_a, tokens_b, max_seq_length - 4)
+        # else:
+        #     # Account for [CLS] and [SEP] with "- 2"
+        #     if len(tokens_a) > max_seq_length - 2:
+        #         tokens_a = tokens_a[:(max_seq_length - 2)]
 
         # tokens = ["[CLS]"] + tokens_a + ["[SEP]"]
         # segment_ids = [0] * len(tokens)
@@ -239,7 +239,20 @@ def convert_examples_to_features(examples, label_list, max_seq_length,
                 to their model.
             **kwargs: passed to the `self.tokenize()` method
         '''
-        input_ids = tokenizer.encode(' '.join(tokens_a), ' '.join(tokens_b), add_special_tokens=True)
+        input_ids = tokenizer.encode(example.text_a, example.text_b, add_special_tokens=True)
+        split_pos = -1
+        for id, value in enumerate(input_ids):
+            if value == 2 and input_ids[id+1] ==2:
+                split_pos = id
+                break
+
+        text_a_id_parts = input_ids[1:split_pos]
+        text_b_id_parts = input_ids[split_pos+2:-1]
+
+        _truncate_seq_pair(text_a_id_parts, text_b_id_parts, max_seq_length - 4)
+        input_ids = [0]+text_a_id_parts+[2]*2+text_b_id_parts+[2]
+        len_text_a = len(text_a_id_parts)
+        len_text_b = len(text_b_id_parts)
 
         # print('input_ids:', input_ids, len(input_ids))
         # print('tokens_a:', tokens_a, len(tokens_a))
@@ -252,7 +265,7 @@ def convert_examples_to_features(examples, label_list, max_seq_length,
         # The mask has 1 for real tokens and 0 for padding tokens. Only real
         # tokens are attended to.
         input_mask = [1] * len(input_ids)
-        segment_ids = [0]*(len(tokens_a)+2)+[1]*(len(tokens_b)+2)
+        segment_ids = [0]*(len_text_a+2)+[1]*(len_text_b+2)
 
         # Zero-pad up to the sequence length.
         padding = [0] * (max_seq_length - len(input_ids))
@@ -260,8 +273,8 @@ def convert_examples_to_features(examples, label_list, max_seq_length,
         input_mask += padding
         segment_ids += padding
 
-        # print('len(input_ids):', len(input_ids))
-        # print('max_seq_length:', max_seq_length)
+        print('len(input_ids):', len(input_ids))
+        print('max_seq_length:', max_seq_length)
         assert len(input_ids) == max_seq_length
         assert len(input_mask) == max_seq_length
         assert len(segment_ids) == max_seq_length

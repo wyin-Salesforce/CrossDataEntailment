@@ -46,7 +46,7 @@ from my_pytorch_transformers.modeling_bert import BertForSequenceClassification 
 
 from pytorch_transformers.modeling_bert import BertForSequenceClassification
 
-from bert_common_function import store_bert_model
+from bert_common_functions import store_bert_model
 
 logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt = '%m/%d/%Y %H:%M:%S',

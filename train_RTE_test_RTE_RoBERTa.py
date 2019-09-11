@@ -195,10 +195,7 @@ class RteProcessor(DataProcessor):
                 InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
         return examples
 
-'''
-def convert_examples_to_features_old(examples, label_list, max_seq_length,
-                                 tokenizer, output_mode):
-'''
+
 
 def convert_examples_to_features(examples, label_list, max_seq_length,
                                  tokenizer, output_mode,
@@ -322,115 +319,6 @@ def convert_examples_to_features(examples, label_list, max_seq_length,
                               segment_ids=segment_ids,
                               label_id=label_id))
     return features
-
-def convert_examples_to_features_old(examples, label_list, max_seq_length,
-                                 tokenizer, output_mode):
-    """Loads a data file into a list of `InputBatch`s."""
-
-    label_map = {label : i for i, label in enumerate(label_list)}
-
-    features = []
-    for (ex_index, example) in enumerate(examples):
-        if ex_index % 10000 == 0:
-            logger.info("Writing example %d of %d" % (ex_index, len(examples)))
-
-        # tokens_a = tokenizer.tokenize(example.text_a)
-        #
-        # tokens_b = None
-        # if example.text_b:
-        #     tokens_b = tokenizer.tokenize(example.text_b)
-        #     # Modifies `tokens_a` and `tokens_b` in place so that the total
-        #     # length is less than the specified length.
-        #     # Account for [CLS], [SEP], [SEP] with "- 3"
-        #     '''A RoBERTa sequence pair has the following format: <s> A </s></s> B </s>'''
-        #     _truncate_seq_pair(tokens_a, tokens_b, max_seq_length - 4)
-        # else:
-        #     # Account for [CLS] and [SEP] with "- 2"
-        #     if len(tokens_a) > max_seq_length - 2:
-        #         tokens_a = tokens_a[:(max_seq_length - 2)]
-
-        # tokens = ["[CLS]"] + tokens_a + ["[SEP]"]
-        # segment_ids = [0] * len(tokens)
-        #
-        # if tokens_b:
-        #     tokens += tokens_b + ["[SEP]"]
-        #     segment_ids += [1] * (len(tokens_b) + 1)
-
-        # input_ids_a = tokenizer.convert_tokens_to_ids(tokens_a)
-        # input_ids_b = tokenizer.convert_tokens_to_ids(tokens_b)
-        # input_ids = tokenizer.add_special_tokens_sentences_pair(input_ids_a, input_ids_b)
-        '''
-        Args:
-            text: The first sequence to be encoded.
-            text_pair: Optional second sequence to be encoded.
-            add_special_tokens: if set to ``True``, the sequences will be encoded with the special tokens relative
-                to their model.
-            **kwargs: passed to the `self.tokenize()` method
-        '''
-        input_ids = tokenizer.encode(example.text_a, example.text_b, add_special_tokens=True)
-        split_pos = -1
-        for id, value in enumerate(input_ids):
-            if value == 2 and input_ids[id+1] ==2:
-                split_pos = id
-                break
-
-        text_a_id_parts = input_ids[1:split_pos]
-        text_b_id_parts = input_ids[split_pos+2:-1]
-
-        _truncate_seq_pair(text_a_id_parts, text_b_id_parts, max_seq_length - 4)
-        input_ids = [0]+text_a_id_parts+[2]*2+text_b_id_parts+[2]
-        len_text_a = len(text_a_id_parts)
-        len_text_b = len(text_b_id_parts)
-
-        # print('input_ids:', input_ids, len(input_ids))
-        # print('tokens_a:', tokens_a, len(tokens_a))
-        # print('tokens_b:', tokens_b, len(tokens_b))
-        # print(len_text_a, len_text_b)
-        # exit(0)
-
-        # input_ids = tokenizer.convert_tokens_to_ids(tokens)
-
-        # The mask has 1 for real tokens and 0 for padding tokens. Only real
-        # tokens are attended to.
-        input_mask = [1] * len(input_ids)
-        segment_ids = [0]*(len_text_a+2)+[1]*(len_text_b+2)
-
-        # Zero-pad up to the sequence length.
-        padding = [0] * (max_seq_length - len(input_ids))
-        input_ids += padding
-        input_mask += padding
-        segment_ids += padding
-
-        # print('len(input_ids):', len(input_ids))
-        # print('max_seq_length:', max_seq_length)
-        assert len(input_ids) == max_seq_length
-        assert len(input_mask) == max_seq_length
-        assert len(segment_ids) == max_seq_length
-
-        if output_mode == "classification":
-            label_id = label_map[example.label]
-        elif output_mode == "regression":
-            label_id = float(example.label)
-        else:
-            raise KeyError(output_mode)
-
-        if ex_index < 5:
-            logger.info("*** Example ***")
-            logger.info("guid: %s" % (example.guid))
-            # logger.info("tokens: %s" % " ".join([str(x) for x in tokens]))
-            logger.info("input_ids: %s" % " ".join([str(x) for x in input_ids]))
-            logger.info("input_mask: %s" % " ".join([str(x) for x in input_mask]))
-            logger.info(
-                    "segment_ids: %s" % " ".join([str(x) for x in segment_ids]))
-            logger.info("label: %s (id = %d)" % (example.label, label_id))
-
-        features.append(
-                InputFeatures(input_ids=input_ids,
-                              input_mask=input_mask,
-                              segment_ids=segment_ids,
-                              label_id=label_id))
-    return features
-
 
 def _truncate_seq_pair(tokens_a, tokens_b, max_length):
     """Truncates a sequence pair in place to the maximum length."""
@@ -613,7 +501,7 @@ def main():
     # Prepare model
     # cache_dir = args.cache_dir if args.cache_dir else os.path.join(str(PYTORCH_TRANSFORMERS_CACHE), 'distributed_{}'.format(args.local_rank))
 
-    pretrain_model_dir = 'roberta-base' #'bert-large-uncased' #FineTuneOnCombined'# FineTuneOnMNLI
+    pretrain_model_dir = 'oberta-large-mnli' #'roberta-large' , 'roberta-large-mnli'
     model = RobertaForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
 
     # print(model.classifier.weight)

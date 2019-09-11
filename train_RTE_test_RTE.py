@@ -41,12 +41,12 @@ from sklearn.metrics import matthews_corrcoef, f1_score
 
 from my_pytorch_transformers.tokenization_bert import BertTokenizer
 from my_pytorch_transformers.optimization import AdamW
-from pytorch_transformers.modeling_bert import BertForSequenceClassification as st_BertForSequenceClassification
+from my_pytorch_transformers.modeling_bert import BertForSequenceClassification as st_BertForSequenceClassification
 
 
-from my_pytorch_transformers.modeling_bert import BertForSequenceClassification
+from pytorch_transformers.modeling_bert import BertForSequenceClassification
 
-
+from bert_common_function import store_bert_model
 
 logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt = '%m/%d/%Y %H:%M:%S',
@@ -493,6 +493,7 @@ def main():
 
     pretrain_model_dir = 'bert-large-uncased' #FineTuneOnCombined'# FineTuneOnMNLI
     model = BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
+
     print(model.classifier.weight)
     st_model = st_BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
     print(st_model.classifier.weight)
@@ -511,7 +512,8 @@ def main():
     tokenizer = BertTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
 
     model.to(device)
-
+    store_bert_model(model, tokenizer.vocab, '/export/home/workspace/CrossDataEntailment/models', 'try')
+    exit(0)
     # if n_gpu > 1:
     #     model = torch.nn.DataParallel(model)
 

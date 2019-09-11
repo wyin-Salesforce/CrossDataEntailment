@@ -268,6 +268,8 @@ def convert_examples_to_features(examples, label_list, max_seq_length,
         input_mask += padding
         segment_ids += padding
 
+        print('len(input_ids):', len(input_ids))
+        print('max_seq_length:', max_seq_length)
         assert len(input_ids) == max_seq_length
         assert len(input_mask) == max_seq_length
         assert len(segment_ids) == max_seq_length

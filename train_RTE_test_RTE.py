@@ -523,6 +523,8 @@ def main():
         {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
         ]
 
+    print(optimizer_grouped_parameters)
+    exit(0)
     optimizer = AdamW(optimizer_grouped_parameters,
                              lr=args.learning_rate)
     global_step = 0

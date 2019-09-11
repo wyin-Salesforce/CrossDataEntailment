@@ -113,25 +113,27 @@ class DataProcessor(object):
 
 class RteProcessor(DataProcessor):
     """Processor for the RTE data set (GLUE version)."""
-    def get_train_examples_wenpeng(self, filename):
+    def get_MNLI_as_train(self, filename):
+        '''
+        can read the training file, dev and test file
+        '''
+        examples=[]
         readfile = codecs.open(filename, 'r', 'utf-8')
         line_co=0
-        examples=[]
         for row in readfile:
             if line_co>0:
                 line=row.strip().split('\t')
-                guid = "train-"+line[0]
-                text_a = line[1]
-                text_b = line[2]
-                label = line[-1]
+                guid = "train-"+str(line_co-1)
+                text_a = line[8].strip()
+                text_b = line[9].strip()
+                label = line[-1].strip() #["entailment", "neutral", "contradiction"]
                 examples.append(
                     InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
-                line_co+=1
-            else:
-                line_co+=1
-                continue
+            line_co+=1
+            if line_co > 20000:
+                break
         readfile.close()
-        print('loaded training size:', line_co)
+        print('loaded  size:', line_co)
         return examples
 
     def get_RTE_as_train(self, filename):
@@ -168,7 +170,7 @@ class RteProcessor(DataProcessor):
                 text_a = line[1]
                 text_b = line[2]
                 '''for RTE, we currently only choose randomly two labels in the set, in prediction we then decide the predicted labels'''
-                label = 'entailment'  if line[0] == '1' else 'not_entailment'
+                label = 'entailment'  if line[0] == '1' else 'neutral'
                 examples.append(
                     InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
                 line_co+=1
@@ -179,7 +181,7 @@ class RteProcessor(DataProcessor):
 
     def get_labels(self):
         'here we keep the three-way in MNLI training '
-        return ["entailment", "not_entailment"]
+        return ["entailment", "neutral", "contradiction"]
 
     def _create_examples(self, lines, set_type):
         """Creates examples for the training and dev sets."""
@@ -490,7 +492,7 @@ def main():
     train_examples = None
     num_train_optimization_steps = None
     if args.do_train:
-        train_examples = processor.get_RTE_as_train('/export/home/Dataset/glue_data/RTE/train.tsv') #train_pu_half_v1.txt
+        train_examples = processor.get_MNLI_as_train('/export/home/Dataset/glue_data/MNLI/train.tsv') #train_pu_half_v1.txt
         # seen_classes=[0,2,4,6,8]
 
         num_train_optimization_steps = int(
@@ -660,8 +662,10 @@ def main():
                     wenpeng added a softxmax so that each row is a prob vec
                     '''
                     pred_probs = softmax(preds,axis=1)
-                    pred_label_ids = list(np.argmax(pred_probs, axis=1))
-
+                    pred_indices = np.argmax(pred_probs, axis=1)
+                    pred_label_ids = []
+                    for p in pred_indices:
+                        pred_label_ids.append(0 if p == 0 else 1)
                     gold_label_ids = gold_label_ids
                     assert len(pred_label_ids) == len(gold_label_ids)
                     hit_co = 0
@@ -669,6 +673,7 @@ def main():
                         if pred_label_ids[k] == gold_label_ids[k]:
                             hit_co +=1
                     test_acc = hit_co/len(gold_label_ids)
+
 
                     # test_acc = mean_f1#result.get("f1")
                     if test_acc > max_test_acc:

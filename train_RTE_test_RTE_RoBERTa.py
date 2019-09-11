@@ -214,24 +214,31 @@ def convert_examples_to_features(examples, label_list, max_seq_length,
             # Modifies `tokens_a` and `tokens_b` in place so that the total
             # length is less than the specified length.
             # Account for [CLS], [SEP], [SEP] with "- 3"
-            _truncate_seq_pair(tokens_a, tokens_b, max_seq_length - 3)
+            '''A RoBERTa sequence pair has the following format: <s> A </s></s> B </s>'''
+            _truncate_seq_pair(tokens_a, tokens_b, max_seq_length - 4)
         else:
             # Account for [CLS] and [SEP] with "- 2"
             if len(tokens_a) > max_seq_length - 2:
                 tokens_a = tokens_a[:(max_seq_length - 2)]
 
-        tokens = ["[CLS]"] + tokens_a + ["[SEP]"]
-        segment_ids = [0] * len(tokens)
+        # tokens = ["[CLS]"] + tokens_a + ["[SEP]"]
+        # segment_ids = [0] * len(tokens)
+        #
+        # if tokens_b:
+        #     tokens += tokens_b + ["[SEP]"]
+        #     segment_ids += [1] * (len(tokens_b) + 1)
 
-        if tokens_b:
-            tokens += tokens_b + ["[SEP]"]
-            segment_ids += [1] * (len(tokens_b) + 1)
+        input_ids_a = tokenizer.convert_tokens_to_ids(tokens_a)
+        input_ids_b = tokenizer.convert_tokens_to_ids(tokens_b)
+        input_ids = tokenizer.add_special_tokens_sentences_pair(input_ids_a, input_ids_b)
 
-        input_ids = tokenizer.convert_tokens_to_ids(tokens)
+
+        # input_ids = tokenizer.convert_tokens_to_ids(tokens)
 
         # The mask has 1 for real tokens and 0 for padding tokens. Only real
         # tokens are attended to.
         input_mask = [1] * len(input_ids)
+        segment_ids = [0]*(len(tokens_a)+2)+[1]*(len(tokens_b)+2)
 
         # Zero-pad up to the sequence length.
         padding = [0] * (max_seq_length - len(input_ids))

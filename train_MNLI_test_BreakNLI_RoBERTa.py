@@ -136,36 +136,11 @@ class RteProcessor(DataProcessor):
         print('loaded  size:', line_co)
         return examples
 
-    def get_RTE_as_train(self, filename):
-        '''
-        can read the training file, dev and test file
-        '''
-        examples=[]
-        readfile = codecs.open(filename, 'r', 'utf-8')
-        line_co=0
-        for row in readfile:
-            if line_co>0:
-                line=row.strip().split('\t')
-                guid = "train-"+str(line_co-1)
-                text_a = line[1].strip()
-                text_b = line[2].strip()
-                label = line[3].strip() #["entailment", "not_entailment"]
-                examples.append(
-                    InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
-            line_co+=1
-            if line_co > 20000:
-                break
-        readfile.close()
-        print('loaded  size:', line_co)
-        return examples
-
     def get_BreakNLI_as_test(self, filename):
         readfile = jsonlines.open(filename, 'r')
         line_co=0
         examples=[]
         for row2dict in readfile:
-            line=row.strip().split('\t')
-
             guid = "test-"+str(line_co)
             text_a = row2dict.get('sentence1')
             text_b = row2dict.get('sentence2')

@@ -240,9 +240,19 @@ def convert_examples_to_features(examples, label_list, max_seq_length,
             **kwargs: passed to the `self.tokenize()` method
         '''
         input_ids = tokenizer.encode(example.text_a, example.text_b, add_special_tokens=True)
+        split_pos = -1
+        for id, value in enumerate(input_ids):
+            if value == 2 and input_ids[id+1] ==2:
+                split_pos = id
+                break
+
+        len_text_a = split_pos-1
+        len_text_b = len(input_ids)-split_pos-3
+
         print('input_ids:', input_ids, len(input_ids))
         print('tokens_a:', tokens_a, len(tokens_a))
         print('tokens_b:', tokens_b, len(tokens_b))
+        print(len_text_a, len_text_b)
         exit(0)
 
         # input_ids = tokenizer.convert_tokens_to_ids(tokens)

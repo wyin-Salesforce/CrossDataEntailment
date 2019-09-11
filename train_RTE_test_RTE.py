@@ -491,7 +491,7 @@ def main():
     # Prepare model
     # cache_dir = args.cache_dir if args.cache_dir else os.path.join(str(PYTORCH_TRANSFORMERS_CACHE), 'distributed_{}'.format(args.local_rank))
 
-    pretrain_model_dir = '/export/home/workspace/CrossDataEntailment/models/try' #'bert-large-uncased' #FineTuneOnCombined'# FineTuneOnMNLI
+    pretrain_model_dir = 'bert-large-uncased'#'/export/home/workspace/CrossDataEntailment/models/try' #'bert-large-uncased' #FineTuneOnCombined'# FineTuneOnMNLI
     model = BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
 
     print(model.classifier.weight)

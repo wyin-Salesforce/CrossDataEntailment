@@ -228,10 +228,22 @@ def convert_examples_to_features(examples, label_list, max_seq_length,
         #     tokens += tokens_b + ["[SEP]"]
         #     segment_ids += [1] * (len(tokens_b) + 1)
 
-        input_ids_a = tokenizer.convert_tokens_to_ids(tokens_a)
-        input_ids_b = tokenizer.convert_tokens_to_ids(tokens_b)
-        input_ids = tokenizer.add_special_tokens_sentences_pair(input_ids_a, input_ids_b)
-
+        # input_ids_a = tokenizer.convert_tokens_to_ids(tokens_a)
+        # input_ids_b = tokenizer.convert_tokens_to_ids(tokens_b)
+        # input_ids = tokenizer.add_special_tokens_sentences_pair(input_ids_a, input_ids_b)
+        '''
+        Args:
+            text: The first sequence to be encoded.
+            text_pair: Optional second sequence to be encoded.
+            add_special_tokens: if set to ``True``, the sequences will be encoded with the special tokens relative
+                to their model.
+            **kwargs: passed to the `self.tokenize()` method
+        '''
+        input_ids = tokenizer.encode(example.text_a, example.text_b, add_special_tokens=True)
+        print('input_ids:', input_ids, len(input_ids))
+        print('tokens_a:', tokens_a, len(tokens_a))
+        print('tokens_b:', tokens_b, len(tokens_b))
+        exit(0)
 
         # input_ids = tokenizer.convert_tokens_to_ids(tokens)
 

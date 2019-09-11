@@ -512,8 +512,8 @@ def main():
     tokenizer = BertTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
 
     model.to(device)
-    # store_bert_model(model, tokenizer.vocab, '/export/home/workspace/CrossDataEntailment/models', 'try')
-    # exit(0)
+    store_bert_model(model, tokenizer.vocab, '/export/home/workspace/CrossDataEntailment/models', 'try')
+    exit(0)
     # if n_gpu > 1:
     #     model = torch.nn.DataParallel(model)
 

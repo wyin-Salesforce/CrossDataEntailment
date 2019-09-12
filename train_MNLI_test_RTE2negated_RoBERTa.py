@@ -175,8 +175,6 @@ class RteProcessor(DataProcessor):
             examples.append(
                 InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
             line_co+=1
-
-        readfile.close()
         print('loaded test size:', line_co)
         return examples
 

@@ -149,7 +149,7 @@ class RteProcessor(DataProcessor):
                 text_a = line[1].strip()
                 text_b = line[2].strip()
                 label = line[3].strip() #["entailment", "not_entailment"]
-                if class2size.get(label, 0) < 1:
+                if class2size.get(label, 0) < 3:
                     examples.append(
                         InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
                     class2size[label]+=1
@@ -395,7 +395,7 @@ def main():
                         action='store_true',
                         help="Set this flag if you are using an uncased model.")
     parser.add_argument("--train_batch_size",
-                        default=2,
+                        default=6,
                         type=int,
                         help="Total batch size for training.")
     parser.add_argument("--eval_batch_size",

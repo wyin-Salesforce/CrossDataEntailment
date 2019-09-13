@@ -140,6 +140,7 @@ class RteProcessor(DataProcessor):
         '''
         examples=[]
         readfile = codecs.open(filename, 'r', 'utf-8')
+        class2size = defaultdict(int)
         line_co=0
         for row in readfile:
             if line_co>0:
@@ -148,11 +149,15 @@ class RteProcessor(DataProcessor):
                 text_a = line[1].strip()
                 text_b = line[2].strip()
                 label = line[3].strip() #["entailment", "not_entailment"]
-                examples.append(
-                    InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+                if class2size.get(label) < 8:
+                    examples.append(
+                        InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+                    class2size[label]+=1
+                else:
+                    continue
             line_co+=1
-            if line_co > 20000:
-                break
+            # if line_co > 20000:
+            #     break
         readfile.close()
         print('loaded  size:', line_co)
         return examples

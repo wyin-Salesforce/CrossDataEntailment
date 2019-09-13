@@ -140,6 +140,7 @@ class RteProcessor(DataProcessor):
         '''
         examples=[]
         readfile = codecs.open(filename, 'r', 'utf-8')
+        class2size = defaultdict(int)
         line_co=0
         for row in readfile:
             if line_co>0:
@@ -148,8 +149,12 @@ class RteProcessor(DataProcessor):
                 text_a = line[1].strip()
                 text_b = line[2].strip()
                 label = line[3].strip() #["entailment", "not_entailment"]
-                examples.append(
-                    InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+                if class2size.get(label, 0) < 1:
+                    examples.append(
+                        InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+                    class2size[label]+=1
+                else:
+                    continue
             line_co+=1
             # if line_co > 20000:
             #     break
@@ -390,7 +395,7 @@ def main():
                         action='store_true',
                         help="Set this flag if you are using an uncased model.")
     parser.add_argument("--train_batch_size",
-                        default=16,
+                        default=2,
                         type=int,
                         help="Total batch size for training.")
     parser.add_argument("--eval_batch_size",
@@ -402,7 +407,7 @@ def main():
                         type=float,
                         help="The initial learning rate for Adam.")
     parser.add_argument("--num_train_epochs",
-                        default=3.0,
+                        default=100.0,
                         type=float,
                         help="Total number of training epochs to perform.")
     parser.add_argument("--warmup_proportion",
@@ -616,7 +621,7 @@ def main():
                 optimizer.zero_grad()
                 global_step += 1
                 iter_co+=1
-                if iter_co %20==0:
+                if iter_co %1==0:
                     '''
                     start evaluate on dev set after this epoch
                     '''

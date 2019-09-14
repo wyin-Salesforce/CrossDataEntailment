@@ -43,6 +43,8 @@ from pytorch_transformers.tokenization_roberta import RobertaTokenizer
 from pytorch_transformers.optimization import AdamW
 from pytorch_transformers.modeling_roberta import RobertaForSequenceClassification
 
+from bert_common_functions import store_transformers_models
+
 logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt = '%m/%d/%Y %H:%M:%S',
                     level = logging.INFO)
@@ -678,6 +680,8 @@ def main():
                     # test_acc = mean_f1#result.get("f1")
                     if test_acc > max_test_acc:
                         max_test_acc = test_acc
+                        '''store the model'''
+                        store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE', str(max_test_acc))
                     print('\ntest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
 
 

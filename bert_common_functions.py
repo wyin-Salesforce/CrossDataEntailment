@@ -284,7 +284,7 @@ class LogisticRegression(nn.Module):  # inheriting from nn.Module!
         return F.log_softmax(self.linear(feature_vec), dim=1)
 
 
-def store_transformers_models(model, tokenizer, output_dir, flag_str)
+def store_transformers_models(model, tokenizer, output_dir, flag_str):
     '''
     store the model
     '''

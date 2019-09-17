@@ -610,6 +610,7 @@ def main():
         pred_indice_0 = np.argmax(pred_probs_0, axis=1)
         pred_indice_1 = np.argmax(pred_probs_1, axis=1)
         pred_label_ids = []
+        print('pred_probs_0:', pred_probs_0.shape)
         for p in pred_probs_0.shape[0]:
             if pred_indice_0[p] == pred_indice_1[p]:
                 pred_label_ids.append(pred_indice_0[p])

@@ -613,7 +613,7 @@ def main():
         for p in range(pred_probs_0.shape[0]):
             if pred_indice_0[p] == pred_indice_1[p]:
                 pred_label_ids.append(pred_indice_0[p])
-            elif pred_probs_0[pred_indice_0[p]] > pred_probs_1[pred_indice_1[p]]:
+            elif pred_probs_0[p,pred_indice_0[p]] > pred_probs_1[p,pred_indice_1[p]]:
                 pred_label_ids.append(pred_indice_0[p])
             else:
                 pred_label_ids.append(pred_indice_1[p])

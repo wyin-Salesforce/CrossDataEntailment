@@ -603,8 +603,6 @@ def main():
         pred_matrix_1 = model_pred_list[1]
         pred_matrix_0[:,1] = np.max(pred_matrix_0[:,1:],axis=1)
         new_pred_matrix_0 = pred_matrix_0[:,:2]
-        # ensemble_matrix = new_pred_matrix_0+pred_matrix_1
-        # pred_probs = softmax(ensemble_matrix,axis=1)
         pred_probs_0 = softmax(new_pred_matrix_0,axis=1)
         pred_probs_1 = softmax(pred_matrix_1,axis=1)
         pred_indice_0 = np.argmax(pred_probs_0, axis=1)

@@ -601,7 +601,7 @@ def main():
         '''ensemble results'''
         pred_matrix_0 = model_pred_list[0]
         pred_matrix_1 = model_pred_list[1]
-        pred_matrix_0[:,1] = 0.5*(pred_matrix_0[:,1] + pred_matrix_0[:,2])
+        pred_matrix_0[:,1] = 0.5*(pred_matrix_0[:,1] + pred_matrix_0[:,2])/2.0
         new_pred_matrix_0 = pred_matrix_0[:,:2]
         # ensemble_matrix = new_pred_matrix_0+pred_matrix_1
         # pred_probs = softmax(ensemble_matrix,axis=1)

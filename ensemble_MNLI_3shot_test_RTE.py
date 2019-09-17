@@ -601,15 +601,25 @@ def main():
         '''ensemble results'''
         pred_matrix_0 = model_pred_list[0]
         pred_matrix_1 = model_pred_list[1]
-        pred_matrix_0[:,1] = 0.5*(pred_matrix_0[:,1] + pred_matrix_0[:,2])/2.0
+        pred_matrix_0[:,1] = np.max(pred_matrix_0[:,1:],axis=1)
         new_pred_matrix_0 = pred_matrix_0[:,:2]
         # ensemble_matrix = new_pred_matrix_0+pred_matrix_1
         # pred_probs = softmax(ensemble_matrix,axis=1)
-        pred_probs = softmax(new_pred_matrix_0,axis=1)+softmax(pred_matrix_1,axis=1)
-        pred_indices = np.argmax(pred_probs, axis=1)
+        pred_probs_0 = softmax(new_pred_matrix_0,axis=1)
+        pred_probs_1 = softmax(pred_matrix_1,axis=1)
+        pred_indice_0 = np.argmax(pred_probs_0, axis=1)
+        pred_indice_1 = np.argmax(pred_probs_1, axis=1)
         pred_label_ids = []
-        for p in pred_indices:
-            pred_label_ids.append(0 if p == 0 else 1)
+        for p in pred_probs_0.shape[0]:
+            if pred_indice_0[p] == pred_indice_1[p]:
+                pred_label_ids.append(pred_indice_0[p])
+            elif pred_probs_0[pred_indice_0[p]] > pred_probs_1[pred_indice_1[p]]:
+                pred_label_ids.append(pred_indice_0[p])
+            else:
+                pred_label_ids.append(pred_indice_1[p])
+
+
+            # pred_label_ids.append(0 if p == 0 else 1)
         gold_label_ids = gold_label_ids
         assert len(pred_label_ids) == len(gold_label_ids)
         hit_co = 0

@@ -500,16 +500,16 @@ def main():
     tokenizer_2 = RobertaTokenizer.from_pretrained(pretrain_model_dir_2, do_lower_case=args.do_lower_case)
     model_2.to(device)
 
-    # Prepare optimizer
-    param_optimizer = list(model.named_parameters())
-    no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
-    optimizer_grouped_parameters = [
-        {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
-        {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
-        ]
-
-    optimizer = AdamW(optimizer_grouped_parameters,
-                             lr=args.learning_rate)
+    # # Prepare optimizer
+    # param_optimizer = list(model.named_parameters())
+    # no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
+    # optimizer_grouped_parameters = [
+    #     {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
+    #     {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
+    #     ]
+    #
+    # optimizer = AdamW(optimizer_grouped_parameters,
+    #                          lr=args.learning_rate)
     global_step = 0
     nb_tr_steps = 0
     tr_loss = 0
@@ -541,7 +541,7 @@ def main():
         start evaluate on dev set after this epoch
         '''
         model_pred_list = []
-        for model_eval in [model, model_2]:
+        for model_id, model_eval in enumerate([model, model_2]):
             model_eval.eval()
 
             logger.info("***** Running evaluation *****")
@@ -564,17 +564,20 @@ def main():
                     logits = model_eval(input_ids, None, input_mask, labels=None)
                 logits = logits[0]
 
-                loss_fct = CrossEntropyLoss()
-                tmp_eval_loss = loss_fct(logits.view(-1, num_labels), label_ids.view(-1))
+                # loss_fct = CrossEntropyLoss()
+                # if model_id==0:
+                #     tmp_eval_loss = loss_fct(logits.view(-1, num_labels), label_ids.view(-1))
+                # else:
 
-                eval_loss += tmp_eval_loss.mean().item()
-                nb_eval_steps += 1
+
+                # eval_loss += tmp_eval_loss.mean().item()
+                # nb_eval_steps += 1
                 if len(preds) == 0:
                     preds.append(logits.detach().cpu().numpy())
                 else:
                     preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
 
-            eval_loss = eval_loss / nb_eval_steps
+            # eval_loss = eval_loss / nb_eval_steps
             preds = preds[0]
             model_pred_list.append(preds)
 

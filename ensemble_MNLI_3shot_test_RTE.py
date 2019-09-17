@@ -603,8 +603,9 @@ def main():
         pred_matrix_1 = model_pred_list[1]
         pred_matrix_0[:,1] = 0.5*(pred_matrix_0[:,1] + pred_matrix_0[:,2])
         new_pred_matrix_0 = pred_matrix_0[:,:2]
-        ensemble_matrix = new_pred_matrix_0+pred_matrix_1
-        pred_probs = softmax(ensemble_matrix,axis=1)
+        # ensemble_matrix = new_pred_matrix_0+pred_matrix_1
+        # pred_probs = softmax(ensemble_matrix,axis=1)
+        pred_probs = softmax(new_pred_matrix_0,axis=1)+softmax(pred_matrix_1,axis=1)
         pred_indices = np.argmax(pred_probs, axis=1)
         pred_label_ids = []
         for p in pred_indices:

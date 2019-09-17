@@ -490,46 +490,15 @@ def main():
     num_labels = len(label_list)
 
 
-
-    # train_examples = None
-    # num_train_optimization_steps = None
-    # if args.do_train:
-    #     train_examples = processor.get_MNLI_as_train('/export/home/Dataset/glue_data/MNLI/train.tsv') #train_pu_half_v1.txt
-    #     # seen_classes=[0,2,4,6,8]
-    #
-    #     num_train_optimization_steps = int(
-    #         len(train_examples) / args.train_batch_size / args.gradient_accumulation_steps) * args.num_train_epochs
-    #     if args.local_rank != -1:
-    #         num_train_optimization_steps = num_train_optimization_steps // torch.distributed.get_world_size()
-
-    # Prepare model
-    # cache_dir = args.cache_dir if args.cache_dir else os.path.join(str(PYTORCH_TRANSFORMERS_CACHE), 'distributed_{}'.format(args.local_rank))
-
     pretrain_model_dir = '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE/0.8409469823274425' #'roberta-large' , 'roberta-large-mnli'
     model = RobertaForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
-
-    # print(model.classifier.weight)
-    # st_model = st_BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
-    # print(st_model.classifier.weight)
-    # model2 = BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
-    # print(model2.classifier.weight)
-    # exit(0)
-    # model = my_BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
-
-    # for np1, np2 in zip(list(model.named_parameters()),list(st_model.named_parameters())):
-    #     if np1[1].data.ne(np2[1].data).sum() > 0:
-    #         print(np1[0], np2[0])
-    #         print(np1[1].data)
-    #         print(np2[1].data)
-    # exit(0)
-
     tokenizer = RobertaTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
-
     model.to(device)
-    # store_bert_model(model, tokenizer.vocab, '/export/home/workspace/CrossDataEntailment/models', 'try')
-    # exit(0)
-    # if n_gpu > 1:
-    #     model = torch.nn.DataParallel(model)
+
+    pretrain_model_dir_2 = '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/3shotRTE/0.8049349783261087' #'roberta-large' , 'roberta-large-mnli'
+    model_2 = RobertaForSequenceClassification.from_pretrained(pretrain_model_dir_2, num_labels=num_labels-1)
+    tokenizer_2 = RobertaTokenizer.from_pretrained(pretrain_model_dir_2, do_lower_case=args.do_lower_case)
+    model_2.to(device)
 
     # Prepare optimizer
     param_optimizer = list(model.named_parameters())
@@ -546,17 +515,6 @@ def main():
     tr_loss = 0
     max_test_acc = 0.0
     if args.do_train:
-        # train_features = convert_examples_to_features(
-        #     train_examples, label_list, args.max_seq_length, tokenizer, output_mode,
-        #     cls_token_at_end=False,#bool(args.model_type in ['xlnet']),            # xlnet has a cls token at the end
-        #     cls_token=tokenizer.cls_token,
-        #     cls_token_segment_id=0,#2 if args.model_type in ['xlnet'] else 0,
-        #     sep_token=tokenizer.sep_token,
-        #     sep_token_extra=True,#bool(args.model_type in ['roberta']),           # roberta uses an extra separator b/w pairs of sentences, cf. github.com/pytorch/fairseq/commit/1684e166e3da03f5b600dbb7855cb98ddfcd0805
-        #     pad_on_left=False,#bool(args.model_type in ['xlnet']),                 # pad on the left for xlnet
-        #     pad_token=tokenizer.convert_tokens_to_ids([tokenizer.pad_token])[0],
-        #     pad_token_segment_id=0)#4 if args.model_type in ['xlnet'] else 0,)
-
         '''load dev set'''
         eval_examples = processor.get_RTE_as_test('/export/home/Dataset/RTE/test_RTE_1235.txt')
         eval_features = convert_examples_to_features(
@@ -579,91 +537,71 @@ def main():
         eval_sampler = SequentialSampler(eval_data)
         eval_dataloader = DataLoader(eval_data, sampler=eval_sampler, batch_size=args.eval_batch_size)
 
-        # logger.info("***** Running training *****")
-        # logger.info("  Num examples = %d", len(train_examples))
-        # logger.info("  Batch size = %d", args.train_batch_size)
-        # logger.info("  Num steps = %d", num_train_optimization_steps)
-        # all_input_ids = torch.tensor([f.input_ids for f in train_features], dtype=torch.long)
-        # all_input_mask = torch.tensor([f.input_mask for f in train_features], dtype=torch.long)
-        # all_segment_ids = torch.tensor([f.segment_ids for f in train_features], dtype=torch.long)
-        # all_label_ids = torch.tensor([f.label_id for f in train_features], dtype=torch.long)
-        #
-        # train_data = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids)
-        # train_sampler = RandomSampler(train_data)
-        #
-        # train_dataloader = DataLoader(train_data, sampler=train_sampler, batch_size=args.train_batch_size)
-        #
-        # iter_co = 0
-        # for _ in trange(int(args.num_train_epochs), desc="Epoch"):
-        #     tr_loss = 0
-        #     nb_tr_examples, nb_tr_steps = 0, 0
-        #     for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
-        #         model.train()
-        #         batch = tuple(t.to(device) for t in batch)
-        #         input_ids, input_mask, segment_ids, label_ids = batch
-        #         logits = model(input_ids, None, input_mask, labels=None)
-        #         loss_fct = CrossEntropyLoss()
-        #         loss = loss_fct(logits[0].view(-1, num_labels), label_ids.view(-1))
-        #
-        #         if n_gpu > 1:
-        #             loss = loss.mean() # mean() to average on multi-gpu.
-        #         if args.gradient_accumulation_steps > 1:
-        #             loss = loss / args.gradient_accumulation_steps
-        #
-        #         loss.backward()
-        #
-        #         tr_loss += loss.item()
-        #         nb_tr_examples += input_ids.size(0)
-        #         nb_tr_steps += 1
-        #
-        #         optimizer.step()
-        #         optimizer.zero_grad()
-        #         global_step += 1
-        #         iter_co+=1
-        #         if iter_co %20==0:
         '''
         start evaluate on dev set after this epoch
         '''
-        model.eval()
+        model_pred_list = []
+        for model_eval in [model, model_2]:
+            model_eval.eval()
 
-        logger.info("***** Running evaluation *****")
-        logger.info("  Num examples = %d", len(eval_examples))
-        logger.info("  Batch size = %d", args.eval_batch_size)
+            logger.info("***** Running evaluation *****")
+            logger.info("  Num examples = %d", len(eval_examples))
+            logger.info("  Batch size = %d", args.eval_batch_size)
 
-        eval_loss = 0
-        nb_eval_steps = 0
-        preds = []
-        gold_label_ids = []
-        print('Evaluating...')
-        for input_ids, input_mask, segment_ids, label_ids in eval_dataloader:
-            input_ids = input_ids.to(device)
-            input_mask = input_mask.to(device)
-            segment_ids = segment_ids.to(device)
-            label_ids = label_ids.to(device)
-            gold_label_ids+=list(label_ids.detach().cpu().numpy())
+            eval_loss = 0
+            nb_eval_steps = 0
+            preds = []
+            gold_label_ids = []
+            print('Evaluating...')
+            for input_ids, input_mask, segment_ids, label_ids in eval_dataloader:
+                input_ids = input_ids.to(device)
+                input_mask = input_mask.to(device)
+                segment_ids = segment_ids.to(device)
+                label_ids = label_ids.to(device)
+                gold_label_ids+=list(label_ids.detach().cpu().numpy())
 
-            with torch.no_grad():
-                logits = model(input_ids, None, input_mask, labels=None)
-            logits = logits[0]
+                with torch.no_grad():
+                    logits = model_eval(input_ids, None, input_mask, labels=None)
+                logits = logits[0]
 
-            loss_fct = CrossEntropyLoss()
-            tmp_eval_loss = loss_fct(logits.view(-1, num_labels), label_ids.view(-1))
+                loss_fct = CrossEntropyLoss()
+                tmp_eval_loss = loss_fct(logits.view(-1, num_labels), label_ids.view(-1))
 
-            eval_loss += tmp_eval_loss.mean().item()
-            nb_eval_steps += 1
-            if len(preds) == 0:
-                preds.append(logits.detach().cpu().numpy())
-            else:
-                preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
+                eval_loss += tmp_eval_loss.mean().item()
+                nb_eval_steps += 1
+                if len(preds) == 0:
+                    preds.append(logits.detach().cpu().numpy())
+                else:
+                    preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
 
-        eval_loss = eval_loss / nb_eval_steps
-        preds = preds[0]
+            eval_loss = eval_loss / nb_eval_steps
+            preds = preds[0]
+            model_pred_list.append(preds)
 
-        '''
-        preds: size*3 ["entailment", "neutral", "contradiction"]
-        wenpeng added a softxmax so that each row is a prob vec
-        '''
-        pred_probs = softmax(preds,axis=1)
+            '''
+            preds: size*3 ["entailment", "neutral", "contradiction"]
+            wenpeng added a softxmax so that each row is a prob vec
+            '''
+            pred_probs = softmax(preds,axis=1)
+            pred_indices = np.argmax(pred_probs, axis=1)
+            pred_label_ids = []
+            for p in pred_indices:
+                pred_label_ids.append(0 if p == 0 else 1)
+            gold_label_ids = gold_label_ids
+            assert len(pred_label_ids) == len(gold_label_ids)
+            hit_co = 0
+            for k in range(len(pred_label_ids)):
+                if pred_label_ids[k] == gold_label_ids[k]:
+                    hit_co +=1
+            test_acc = hit_co/len(gold_label_ids)
+            print('test_acc:', test_acc)
+        '''ensemble results'''
+        pred_matrix_0 = model_pred_list[0]
+        pred_matrix_1 = model_pred_list[1]
+        pred_matrix_0[:,1] = 0.5*(pred_matrix_0[:,1] + pred_matrix_0[:,2])
+        new_pred_matrix_0 = pred_matrix_0[:,:2]
+        ensemble_matrix = new_pred_matrix_0+pred_matrix_1
+        pred_probs = softmax(ensemble_matrix,axis=1)
         pred_indices = np.argmax(pred_probs, axis=1)
         pred_label_ids = []
         for p in pred_indices:
@@ -675,14 +613,9 @@ def main():
             if pred_label_ids[k] == gold_label_ids[k]:
                 hit_co +=1
         test_acc = hit_co/len(gold_label_ids)
+        print('test_acc:', test_acc)
 
 
-        # test_acc = mean_f1#result.get("f1")
-        if test_acc > max_test_acc:
-            max_test_acc = test_acc
-            '''store the model'''
-            # store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE', str(max_test_acc))
-        print('\ntest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
 
 
 

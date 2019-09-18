@@ -495,8 +495,7 @@ def main():
     tokenizer = RobertaTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
     model.to(device)
 
-    # pretrain_model_dir_2 = '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/3shotRTE/0.8049349783261087' #'roberta-large' , 'roberta-large-mnli'
-    pretrain_model_dir_2 = '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLI+3shotRTE_testRTE_2way/0.8332777592530843'
+    pretrain_model_dir_2 = '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/3shotRTE/0.8049349783261087' #'roberta-large' , 'roberta-large-mnli'
     model_2 = RobertaForSequenceClassification.from_pretrained(pretrain_model_dir_2, num_labels=num_labels-1)
     tokenizer_2 = RobertaTokenizer.from_pretrained(pretrain_model_dir_2, do_lower_case=args.do_lower_case)
     model_2.to(device)

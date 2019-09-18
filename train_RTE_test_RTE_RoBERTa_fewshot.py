@@ -154,6 +154,13 @@ class RteProcessor(DataProcessor):
                 if class2size.get(label, 0) < 3:
                     examples.append(
                         InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+                    '''data aug'''
+                    examples.append(
+                        InputExample(guid=guid, text_a=text_a, text_b=text_a, label='entailment'))
+                    examples.append(
+                        InputExample(guid=guid, text_a=text_b, text_b=text_b, label='entailment'))
+                    examples.append(
+                        InputExample(guid=guid, text_a=text_b, text_b=text_a, label='not_entailment'))
                     class2size[label]+=1
                 else:
                     continue
@@ -681,7 +688,7 @@ def main():
                     if test_acc > max_test_acc:
                         max_test_acc = test_acc
                         '''store the model'''
-                        store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/3shotRTE', str(max_test_acc))
+                        # store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/3shotRTE', str(max_test_acc))
                     print('\ntest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
 
 

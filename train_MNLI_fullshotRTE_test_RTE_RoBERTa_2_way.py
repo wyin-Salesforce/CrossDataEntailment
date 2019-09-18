@@ -505,7 +505,7 @@ def main():
         # seen_classes=[0,2,4,6,8]
         train_examples = processor.get_RTE_as_train('/export/home/Dataset/glue_data/RTE/train.tsv')
         '''we make a bigger datasets'''
-        train_examples=train_examples+train_examples_RTE
+        # train_examples=train_examples+train_examples_RTE
 
         num_train_optimization_steps = int(
             len(train_examples) / args.train_batch_size / args.gradient_accumulation_steps) * args.num_train_epochs

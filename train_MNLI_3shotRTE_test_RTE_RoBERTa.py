@@ -150,7 +150,8 @@ class RteProcessor(DataProcessor):
                 guid = "train-"+str(line_co-1)
                 text_a = line[1].strip()
                 text_b = line[2].strip()
-                label = line[3].strip() #["entailment", "not_entailment"]
+                # label = line[3].strip() #["entailment", "not_entailment"]
+                label = 'entailment'  if line[3].strip() == 'entailment' else 'neutral'
                 if class2size.get(label, 0) < 3:
                     examples.append(
                         InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
@@ -175,7 +176,7 @@ class RteProcessor(DataProcessor):
                 text_a = line[1]
                 text_b = line[2]
                 '''for RTE, we currently only choose randomly two labels in the set, in prediction we then decide the predicted labels'''
-                label = 'entailment'  if line[0] == '1' else 'not_entailment'
+                label = 'entailment'  if line[0] == '1' else 'neutral'
                 examples.append(
                     InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
                 line_co+=1
@@ -186,7 +187,7 @@ class RteProcessor(DataProcessor):
 
     def get_labels(self):
         'here we keep the three-way in MNLI training '
-        return ["entailment", "not_entailment"]
+        return ["entailment", "neutral", "contradiction"]
 
     def _create_examples(self, lines, set_type):
         """Creates examples for the training and dev sets."""

@@ -115,25 +115,27 @@ class DataProcessor(object):
 
 class RteProcessor(DataProcessor):
     """Processor for the RTE data set (GLUE version)."""
-    def get_train_examples_wenpeng(self, filename):
+    def get_MNLI_as_train(self, filename):
+        '''
+        can read the training file, dev and test file
+        '''
+        examples=[]
         readfile = codecs.open(filename, 'r', 'utf-8')
         line_co=0
-        examples=[]
         for row in readfile:
             if line_co>0:
                 line=row.strip().split('\t')
-                guid = "train-"+line[0]
-                text_a = line[1]
-                text_b = line[2]
-                label = line[-1]
+                guid = "train-"+str(line_co-1)
+                text_a = line[8].strip()
+                text_b = line[9].strip()
+                label = "entailment" if line[-1].strip() == "entailment" else 'not_entailment' #["entailment", "neutral", "contradiction"]
                 examples.append(
                     InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
-                line_co+=1
-            else:
-                line_co+=1
-                continue
+            line_co+=1
+            # if line_co > 20000:
+            #     break
         readfile.close()
-        print('loaded training size:', line_co)
+        print('loaded  size:', line_co)
         return examples
 
     def get_RTE_as_train(self, filename):
@@ -150,16 +152,15 @@ class RteProcessor(DataProcessor):
                 guid = "train-"+str(line_co-1)
                 text_a = line[1].strip()
                 text_b = line[2].strip()
-                # label = line[3].strip() #["entailment", "not_entailment"]
+                label = line[3].strip() #["entailment", "not_entailment"]
                 # label = 'entailment'  if line[3].strip() == 'entailment' else 'neutral'
-                if line[3].strip() == 'entailment':
-                    labels = ['entailment']
-                else:
-                    labels = ['neutral', 'contradiction']
-                for label in labels:
-                    examples.append(
-                        InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
 
+                # if class2size.get(label, 0) < 3:
+                examples.append(
+                    InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+                #     class2size[label]+=1
+                # else:
+                #     continue
             line_co+=1
             # if line_co > 20000:
             #     break
@@ -178,7 +179,7 @@ class RteProcessor(DataProcessor):
                 text_a = line[1]
                 text_b = line[2]
                 '''for RTE, we currently only choose randomly two labels in the set, in prediction we then decide the predicted labels'''
-                label = 'entailment'  if line[0] == '1' else 'neutral'
+                label = 'entailment'  if line[0] == '1' else 'not_entailment'
                 examples.append(
                     InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
                 line_co+=1
@@ -189,7 +190,7 @@ class RteProcessor(DataProcessor):
 
     def get_labels(self):
         'here we keep the three-way in MNLI training '
-        return ["entailment", "neutral", "contradiction"]
+        return ["entailment", "not_entailment"]
 
     def _create_examples(self, lines, set_type):
         """Creates examples for the training and dev sets."""
@@ -400,7 +401,7 @@ def main():
                         action='store_true',
                         help="Set this flag if you are using an uncased model.")
     parser.add_argument("--train_batch_size",
-                        default=9,
+                        default=16,
                         type=int,
                         help="Total batch size for training.")
     parser.add_argument("--eval_batch_size",
@@ -412,7 +413,7 @@ def main():
                         type=float,
                         help="The initial learning rate for Adam.")
     parser.add_argument("--num_train_epochs",
-                        default=100.0,
+                        default=3.0,
                         type=float,
                         help="Total number of training epochs to perform.")
     parser.add_argument("--warmup_proportion",
@@ -500,8 +501,11 @@ def main():
     train_examples = None
     num_train_optimization_steps = None
     if args.do_train:
-        train_examples = processor.get_RTE_as_train('/export/home/Dataset/glue_data/RTE/train.tsv') #train_pu_half_v1.txt
+        # train_examples = processor.get_MNLI_as_train('/export/home/Dataset/glue_data/MNLI/train.tsv') #train_pu_half_v1.txt
         # seen_classes=[0,2,4,6,8]
+        train_examples = processor.get_RTE_as_train('/export/home/Dataset/glue_data/RTE/train.tsv')
+        '''we make a bigger datasets'''
+        train_examples=train_examples+train_examples_RTE
 
         num_train_optimization_steps = int(
             len(train_examples) / args.train_batch_size / args.gradient_accumulation_steps) * args.num_train_epochs
@@ -511,7 +515,7 @@ def main():
     # Prepare model
     # cache_dir = args.cache_dir if args.cache_dir else os.path.join(str(PYTORCH_TRANSFORMERS_CACHE), 'distributed_{}'.format(args.local_rank))
 
-    pretrain_model_dir = '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE/0.8409469823274425' #'roberta-large' , 'roberta-large-mnli'
+    pretrain_model_dir = '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLI+3shotRTE_testRTE_2way/0.8332777592530843' #'roberta-large' , 'roberta-large-mnli'
     model = RobertaForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
 
     # print(model.classifier.weight)
@@ -626,7 +630,7 @@ def main():
                 optimizer.zero_grad()
                 global_step += 1
                 iter_co+=1
-                if iter_co %1==0:
+                if iter_co %20==0:
                     '''
                     start evaluate on dev set after this epoch
                     '''
@@ -670,10 +674,8 @@ def main():
                     wenpeng added a softxmax so that each row is a prob vec
                     '''
                     pred_probs = softmax(preds,axis=1)
-                    pred_indices = np.argmax(pred_probs, axis=1)
-                    pred_label_ids = []
-                    for p in pred_indices:
-                        pred_label_ids.append(0 if p == 0 else 1)
+                    pred_label_ids = list(np.argmax(pred_probs, axis=1))
+
                     gold_label_ids = gold_label_ids
                     assert len(pred_label_ids) == len(gold_label_ids)
                     hit_co = 0
@@ -682,11 +684,12 @@ def main():
                             hit_co +=1
                     test_acc = hit_co/len(gold_label_ids)
 
+
                     # test_acc = mean_f1#result.get("f1")
                     if test_acc > max_test_acc:
                         max_test_acc = test_acc
                         '''store the model'''
-                        # store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLI_RTE3shot_RTE', str(max_test_acc))
+                        # store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLI+3shotRTE_testRTE_2way', str(max_test_acc))
                     print('\ntest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
 
 

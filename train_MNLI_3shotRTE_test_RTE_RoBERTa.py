@@ -151,13 +151,18 @@ class RteProcessor(DataProcessor):
                 text_a = line[1].strip()
                 text_b = line[2].strip()
                 # label = line[3].strip() #["entailment", "not_entailment"]
-                label = 'entailment'  if line[3].strip() == 'entailment' else 'neutral'
-                if class2size.get(label, 0) < 3:
-                    examples.append(
-                        InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
-                    class2size[label]+=1
+                # label = 'entailment'  if line[3].strip() == 'entailment' else 'neutral'
+                if line[3].strip() == 'entailment':
+                    labels = ['entailment']
                 else:
-                    continue
+                    labels = ['neutral', 'contradiction']
+                for label in labels:
+                    if class2size.get(label, 0) < 3:
+                        examples.append(
+                            InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+                        class2size[label]+=1
+                    else:
+                        continue
             line_co+=1
             # if line_co > 20000:
             #     break

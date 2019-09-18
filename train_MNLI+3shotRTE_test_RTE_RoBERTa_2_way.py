@@ -689,7 +689,7 @@ def main():
                     if test_acc > max_test_acc:
                         max_test_acc = test_acc
                         '''store the model'''
-                        store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLI+3shotRTE_testRTE', str(max_test_acc))
+                        store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLI+3shotRTE_testRTE_2way', str(max_test_acc))
                     print('\ntest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
 
 

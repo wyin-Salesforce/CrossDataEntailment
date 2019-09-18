@@ -668,8 +668,10 @@ def main():
                     wenpeng added a softxmax so that each row is a prob vec
                     '''
                     pred_probs = softmax(preds,axis=1)
-                    pred_label_ids = list(np.argmax(pred_probs, axis=1))
-
+                    pred_indices = np.argmax(pred_probs, axis=1)
+                    pred_label_ids = []
+                    for p in pred_indices:
+                        pred_label_ids.append(0 if p == 0 else 1)
                     gold_label_ids = gold_label_ids
                     assert len(pred_label_ids) == len(gold_label_ids)
                     hit_co = 0

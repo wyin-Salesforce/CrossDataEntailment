@@ -808,7 +808,7 @@ def main():
                 optimizer.zero_grad()
                 global_step += 1
                 iter_co+=1
-                print('training loss:', tr_loss/iter_co)
+                # print('training loss:', tr_loss/iter_co)
                 if iter_co %20==0:
                     '''
                     start evaluate on dev set after this epoch

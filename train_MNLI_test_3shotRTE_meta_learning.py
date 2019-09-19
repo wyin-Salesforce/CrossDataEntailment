@@ -432,25 +432,58 @@ class RobertaForSequenceClassification(BertPreTrainedModel):
         self.mlp_2 = nn.Linear(config.hidden_size, 1, bias=False)
         # self.init_weights()
         # self.apply(self.init_bert_weights)
-    def forward(self, input_ids, token_type_ids=None, attention_mask=None, labels=None,
-                position_ids=None, head_mask=None):
-        outputs = self.roberta(input_ids, position_ids=position_ids, token_type_ids=token_type_ids,
-                            attention_mask=attention_mask, head_mask=head_mask)
-        sequence_output = outputs[0]
-        logits = self.classifier(sequence_output)
+    def forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None):
+        '''
+        samples: input_ids, token_type_ids, attention_mask; in class order
+        minibatch: input_ids, token_type_ids, attention_mask
+        '''
+        # print('input_ids shape0 :', input_ids.shape[0])
+        outputs = self.roberta(input_ids, token_type_ids, attention_mask) #(batch, max_len, hidden_size)
+        pooled_outputs = outputs[1] #(batch, hidden_size)
+        samples_outputs = pooled_outputs[:sample_size*class_size,:] #(9, hidden_size)
+        batch_outputs = pooled_outputs[sample_size*class_size:,:] #(batch, hidden_size)
 
-        outputs = (logits,) + outputs[2:]
+        batch_size = batch_outputs.shape[0]
+        hidden_size = batch_outputs.shape[1]
+        # print('batch_size:',batch_size, 'hidden_size:', hidden_size)
+
+
+        samples_outputs = samples_outputs.reshape(sample_size, class_size, samples_outputs.shape[1])
+        '''we use average for class embedding'''
+        class_rep = torch.mean(samples_outputs,dim=0) #(class_size, hidden_size)
+        repeat_class_rep = torch.cat([class_rep]*batch_size, dim=0) #(class_size*batch_size, hidden)
+
+
+
+
+        # repeat_batch_outputs = tile(batch_outputs,0,class_size) #(batch*class_size, hidden)
+        repeat_batch_outputs = batch_outputs.repeat(1, class_size).view(-1, hidden_size)
+        '''? add similarity or something similar?'''
+        mlp_input = torch.cat([
+        # repeat_batch_outputs, repeat_class_rep,
+        repeat_batch_outputs*repeat_class_rep
+        ], dim=1) #(batch*class_size, hidden*2)
+        '''??? add drop out here'''
+        # group_scores = torch.tanh(self.mlp_2(torch.tanh(self.mlp_1(mlp_input))))#(batch*class_size, 1)
+        group_scores = torch.tanh(self.mlp_2((mlp_input)))
+        # print('group_scores:',group_scores)
+
+        logits = group_scores.reshape(batch_size, class_size)
+        '''??? add bias here'''
+
+
+
+        # sequence_output = self.dropout(sequence_output)
+        # logits = self.classifier(sequence_output)
+
         if labels is not None:
-            if self.num_labels == 1:
-                #  We are doing regression
-                loss_fct = MSELoss()
-                loss = loss_fct(logits.view(-1), labels.view(-1))
-            else:
-                loss_fct = CrossEntropyLoss()
-                loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
-            outputs = (loss,) + outputs
-
-        return outputs  # (loss), logits, (hidden_states), (attentions)
+            # print('gold labels:', labels)
+            loss_fct = CrossEntropyLoss()
+            '''This criterion combines :func:`nn.LogSoftmax` and :func:`nn.NLLLoss` in one single class.'''
+            loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+            return loss
+        else:
+            return logits
 
 
 

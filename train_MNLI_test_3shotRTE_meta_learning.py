@@ -396,7 +396,8 @@ class Encoder(BertPreTrainedModel):
 
 
         samples_outputs = samples_outputs.reshape(sample_size, class_size, samples_outputs.shape[1])
-        class_rep = torch.sum(samples_outputs,dim=0) #(class_size, hidden_size)
+        '''we use average for class embedding'''
+        class_rep = torch.mean(samples_outputs,dim=0) #(class_size, hidden_size)
         repeat_class_rep = torch.cat([class_rep]*batch_size, dim=0) #(class_size*batch_size, hidden)
 
 
@@ -407,7 +408,7 @@ class Encoder(BertPreTrainedModel):
         '''? add similarity or something similar?'''
         mlp_input = torch.cat([repeat_batch_outputs, repeat_class_rep], dim=1) #(batch*class_size, hidden*2)
         '''??? add drop out here'''
-        group_scores = self.mlp_2(torch.tanh(self.mlp_1(mlp_input)))#(batch*class_size, 1)
+        group_scores = torch.tanh(self.mlp_2(torch.tanh(self.mlp_1(mlp_input))))#(batch*class_size, 1)
 
         logits = group_scores.reshape(batch_size, class_size)
         '''??? add bias here'''

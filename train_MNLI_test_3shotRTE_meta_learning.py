@@ -419,13 +419,13 @@ def _truncate_seq_pair(tokens_a, tokens_b, max_length):
 class Encoder(BertPreTrainedModel):
     config_class = RobertaConfig
     pretrained_model_archive_map = ROBERTA_PRETRAINED_MODEL_ARCHIVE_MAP
-    base_model_prefix = "haha"
+    base_model_prefix = "roberta"
 
     def __init__(self, config):
         super(Encoder, self).__init__(config)
         self.num_labels = config.num_labels
-
-        self.haha = RobertaModel(config)
+        '''??? why a different name will not get initialized'''
+        self.roberta = RobertaModel(config)
         # self.classifier = RobertaClassificationHead(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         # self.mlp_1 = nn.Linear(config.hidden_size*3, config.hidden_size)
@@ -438,7 +438,7 @@ class Encoder(BertPreTrainedModel):
         minibatch: input_ids, token_type_ids, attention_mask
         '''
         # print('input_ids shape0 :', input_ids.shape[0])
-        outputs = self.haha(input_ids, token_type_ids, attention_mask) #(batch, max_len, hidden_size)
+        outputs = self.roberta(input_ids, token_type_ids, attention_mask) #(batch, max_len, hidden_size)
         pooled_outputs = outputs[1] #(batch, hidden_size)
         samples_outputs = pooled_outputs[:sample_size*class_size,:] #(9, hidden_size)
         batch_outputs = pooled_outputs[sample_size*class_size:,:] #(batch, hidden_size)
@@ -646,7 +646,7 @@ def main():
     pretrain_model_dir = 'roberta-large-mnli' #'roberta-large' , 'roberta-large-mnli'
     # model = Encoder.from_pretrained(pretrain_model_dir, num_labels=num_labels)
     model = Encoder.from_pretrained(pretrain_model_dir, num_labels=num_labels)
-    exit(0)
+    # exit(0)
 
 
     tokenizer = RobertaTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)

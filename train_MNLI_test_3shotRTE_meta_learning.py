@@ -397,8 +397,8 @@ class Encoder(BertPreTrainedModel):
         '''
         outputs = self.RobertaModel(input_ids, token_type_ids, attention_mask) #(batch, max_len, hidden_size)
         pooled_outputs = outputs[1] #(batch, hidden_size)
-        samples_outputs = outputs[:sample_size*class_size,:] #(9, hidden_size)
-        batch_outputs = outputs[sample_size*class_size:,:] #(batch, hidden_size)
+        samples_outputs = pooled_outputs[:sample_size*class_size,:] #(9, hidden_size)
+        batch_outputs = pooled_outputs[sample_size*class_size:,:] #(batch, hidden_size)
 
         batch_size = batch_outputs.shape[0]
 

@@ -297,11 +297,15 @@ def store_transformers_models(model, tokenizer, output_dir, flag_str):
     tokenizer.save_pretrained(output_dir)
     print('store succeed')
 
-def get_a_random_batch_from_dataloader(dataloader):
-    ith = randrange(len(dataloader))
-    for step, batch in enumerate(dataloader):
-        if step == ith:
-            return batch
+def get_a_random_batch_from_dataloader(dataloader, size):
+    while True:
+        ith = randrange(len(dataloader))
+        for step, batch in enumerate(dataloader):
+            if step == ith:
+                if len(batch[0]) ==  size:
+                    return batch
+                else:
+                    break
 
 
 def store_bert_model(model, vocab, output_dir, flag_str):

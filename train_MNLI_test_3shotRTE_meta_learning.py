@@ -757,10 +757,7 @@ def main():
                 # loss_fct = CrossEntropyLoss()
                 # loss = loss_fct(logits[0].view(-1, num_labels), label_ids.view(-1))
 
-                # if n_gpu > 1:
-                #     loss = loss.mean() # mean() to average on multi-gpu.
-                # if args.gradient_accumulation_steps > 1:
-                #     loss = loss / args.gradient_accumulation_steps
+
 
                 loss.backward()
 

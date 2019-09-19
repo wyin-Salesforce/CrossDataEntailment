@@ -712,16 +712,17 @@ def main():
                 assert input_ids.shape[0] == args.train_batch_size
 
                 mnli_entail_batch = get_a_random_batch_from_dataloader(MNLI_entail_dataloader)
+                print('random batch len:', len(mnli_entail_batch))
                 mnli_entail_batch_input_ids, mnli_entail_batch_input_mask, mnli_entail_batch_segment_ids, mnli_entail_batch_label_ids = tuple(t.to(device) for t in mnli_entail_batch) #mnli_entail_batch
                 print('sample entail:', mnli_entail_batch_input_ids.shape[0], mnli_entail_batch_label_ids.shape, mnli_entail_batch_label_ids)
 
                 mnli_neutra_batch = get_a_random_batch_from_dataloader(MNLI_neutra_dataloader)
                 mnli_neutra_batch_input_ids, mnli_neutra_batch_input_mask, mnli_neutra_batch_segment_ids, mnli_neutra_batch_label_ids = tuple(t.to(device) for t in mnli_neutra_batch) #mnli_neutra_batch
-                print('sample entail:', mnli_neutra_batch_input_ids.shape[0], mnli_neutra_batch_label_ids.shape, mnli_neutra_batch_label_ids)
+                print('sample neutra:', mnli_neutra_batch_input_ids.shape[0], mnli_neutra_batch_label_ids.shape, mnli_neutra_batch_label_ids)
 
                 mnli_contra_batch = get_a_random_batch_from_dataloader(MNLI_contra_dataloader)
                 mnli_contra_batch_input_ids, mnli_contra_batch_input_mask, mnli_contra_batch_segment_ids, mnli_contra_batch_label_ids = tuple(t.to(device) for t in mnli_contra_batch) #mnli_contra_batch
-                print('sample entail:', mnli_contra_batch_input_ids.shape[0], mnli_contra_batch_label_ids.shape, mnli_contra_batch_label_ids)
+                print('sample contra:', mnli_contra_batch_input_ids.shape[0], mnli_contra_batch_label_ids.shape, mnli_contra_batch_label_ids)
 
                 all_input_ids = torch.cat([mnli_entail_batch_input_ids,mnli_neutra_batch_input_ids,mnli_contra_batch_input_ids,input_ids],dim=0)
                 assert all_input_ids.shape[0] == args.train_batch_size+9

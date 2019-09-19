@@ -393,7 +393,7 @@ class Encoder(BertPreTrainedModel):
         ], dim=1) #(batch*class_size, hidden*2)
         '''??? add drop out here'''
         group_scores = torch.tanh(self.mlp_2(torch.tanh(self.mlp_1(mlp_input))))#(batch*class_size, 1)
-        print('group_scores:',group_scores)
+        # print('group_scores:',group_scores)
 
         logits = group_scores.reshape(batch_size, class_size)
         '''??? add bias here'''
@@ -671,6 +671,7 @@ def main():
 
         logger.info("***** Running training *****")
         iter_co = 0
+        tr_loss = 0
         for _ in trange(int(args.num_train_epochs), desc="Epoch"):
 
             # logger.info("  Num examples = %d", len(train_examples))
@@ -699,7 +700,7 @@ def main():
             MNLI_dataloader = dataloader_list[3]
 
             '''start training'''
-            tr_loss = 0
+
             nb_tr_examples, nb_tr_steps = 0, 0
             for step, batch in enumerate(tqdm(MNLI_dataloader, desc="Iteration")):
                 model.train()
@@ -734,80 +735,80 @@ def main():
                 loss.backward()
 
                 tr_loss += loss.item()
-                # nb_tr_examples += input_ids.size(0)
-                # nb_tr_steps += 1
+
 
                 optimizer.step()
                 optimizer.zero_grad()
                 global_step += 1
                 iter_co+=1
-                if iter_co %20==0:
-                    '''
-                    start evaluate on dev set after this epoch
-                    '''
-                    model.eval()
-
-                    logger.info("***** Running evaluation *****")
-                    logger.info("  Num examples = %d", len(eval_examples))
-                    logger.info("  Batch size = %d", args.eval_batch_size)
-
-                    eval_loss = 0
-                    nb_eval_steps = 0
-                    preds = []
-                    gold_label_ids = []
-                    print('Evaluating...')
-                    for input_ids, input_mask, segment_ids, label_ids in eval_dataloader:
-                        input_ids = input_ids.to(device)
-                        input_mask = input_mask.to(device)
-                        segment_ids = segment_ids.to(device)
-                        label_ids = label_ids.to(device)
-                        gold_label_ids+=list(label_ids.detach().cpu().numpy())
-
-                        all_input_ids = torch.cat([eval_all_input_ids_shot.to(device),input_ids],dim=0)
-                        all_input_mask = torch.cat([eval_all_input_mask_shot.to(device),input_mask], dim=0)
-
-
-                        with torch.no_grad():
-                            logits = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=None)
-                        # logits = logits[0]
-
-                        # loss_fct = CrossEntropyLoss()
-                        # tmp_eval_loss = loss_fct(logits.view(-1, num_labels), label_ids.view(-1))
-
-                        # eval_loss += tmp_eval_loss.mean().item()
-                        nb_eval_steps += 1
-                        if len(preds) == 0:
-                            preds.append(logits.detach().cpu().numpy())
-                        else:
-                            preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
-
-                    # eval_loss = eval_loss / nb_eval_steps
-                    preds = preds[0]
-
-                    '''
-                    preds: size*3 ["entailment", "neutral", "contradiction"]
-                    wenpeng added a softxmax so that each row is a prob vec
-                    '''
-                    pred_probs = softmax(preds,axis=1)
-                    pred_indices = np.argmax(pred_probs, axis=1)
-                    pred_label_ids = []
-                    for p in pred_indices:
-                        pred_label_ids.append(0 if p == 0 else 1)
-                    gold_label_ids = gold_label_ids
-                    assert len(pred_label_ids) == len(gold_label_ids)
-                    hit_co = 0
-                    for k in range(len(pred_label_ids)):
-                        if pred_label_ids[k] == gold_label_ids[k]:
-                            hit_co +=1
-                    test_acc = hit_co/len(gold_label_ids)
-
-
-                    # test_acc = mean_f1#result.get("f1")
-                    if test_acc > max_test_acc:
-                        max_test_acc = test_acc
-                        '''store the model'''
-                        # store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE', str(max_test_acc))
-                    print('\ntest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
+                print('training loss:', tr_loss/iter_co)
+                # if iter_co %20==0:
+                #     '''
+                #     start evaluate on dev set after this epoch
+                #     '''
+                #     model.eval()
+                #
+                #     logger.info("***** Running evaluation *****")
+                #     logger.info("  Num examples = %d", len(eval_examples))
+                #     logger.info("  Batch size = %d", args.eval_batch_size)
+                #
+                #     eval_loss = 0
+                #     nb_eval_steps = 0
+                #     preds = []
+                #     gold_label_ids = []
+                #     print('Evaluating...')
+                #     for input_ids, input_mask, segment_ids, label_ids in eval_dataloader:
+                #         input_ids = input_ids.to(device)
+                #         input_mask = input_mask.to(device)
+                #         segment_ids = segment_ids.to(device)
+                #         label_ids = label_ids.to(device)
+                #         gold_label_ids+=list(label_ids.detach().cpu().numpy())
+                #
+                #         all_input_ids = torch.cat([eval_all_input_ids_shot.to(device),input_ids],dim=0)
+                #         all_input_mask = torch.cat([eval_all_input_mask_shot.to(device),input_mask], dim=0)
+                #
+                #
+                #         with torch.no_grad():
+                #             logits = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=None)
+                #         # logits = logits[0]
+                #
+                #         # loss_fct = CrossEntropyLoss()
+                #         # tmp_eval_loss = loss_fct(logits.view(-1, num_labels), label_ids.view(-1))
+                #
+                #         # eval_loss += tmp_eval_loss.mean().item()
+                #         nb_eval_steps += 1
+                #         if len(preds) == 0:
+                #             preds.append(logits.detach().cpu().numpy())
+                #         else:
+                #             preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
+                #
+                #     # eval_loss = eval_loss / nb_eval_steps
+                #     preds = preds[0]
+                #
+                #     '''
+                #     preds: size*3 ["entailment", "neutral", "contradiction"]
+                #     wenpeng added a softxmax so that each row is a prob vec
+                #     '''
+                #     pred_probs = softmax(preds,axis=1)
+                #     pred_indices = np.argmax(pred_probs, axis=1)
+                #     pred_label_ids = []
+                #     for p in pred_indices:
+                #         pred_label_ids.append(0 if p == 0 else 1)
+                #     gold_label_ids = gold_label_ids
+                #     assert len(pred_label_ids) == len(gold_label_ids)
+                #     hit_co = 0
+                #     for k in range(len(pred_label_ids)):
+                #         if pred_label_ids[k] == gold_label_ids[k]:
+                #             hit_co +=1
+                #     test_acc = hit_co/len(gold_label_ids)
+                #
+                #
+                #     # test_acc = mean_f1#result.get("f1")
+                #     if test_acc > max_test_acc:
+                #         max_test_acc = test_acc
+                #         '''store the model'''
+                #         # store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE', str(max_test_acc))
+                #     print('\ntest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
 
 
 

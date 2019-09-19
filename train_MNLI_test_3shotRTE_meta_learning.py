@@ -380,10 +380,10 @@ class Encoder(BertPreTrainedModel):
     config_class = RobertaConfig
     pretrained_model_archive_map = ROBERTA_PRETRAINED_MODEL_ARCHIVE_MAP
     base_model_prefix = "roberta"
-    def __init__(self, config, num_labels):
+    def __init__(self, config):
         super(Encoder, self).__init__(config)
 
-        self.num_labels = num_labels
+        self.num_labels = config.num_labels
         self.RobertaModel = RobertaModel(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.mlp_1 = nn.Linear(config.hidden_size*2, config.hidden_size)

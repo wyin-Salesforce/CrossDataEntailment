@@ -368,13 +368,13 @@ def _truncate_seq_pair(tokens_a, tokens_b, max_length):
             tokens_b.pop()
 
 
-def tile(a, dim, n_tile):
-    init_dim = a.size(dim)
-    repeat_idx = [1] * a.dim()
-    repeat_idx[dim] = n_tile
-    a = a.repeat(*(repeat_idx))
-    order_index = torch.LongTensor(np.concatenate([init_dim * np.arange(n_tile) + i for i in range(init_dim)]))
-    return torch.index_select(a, dim, order_index.to(device))
+# def tile(a, dim, n_tile):
+#     init_dim = a.size(dim)
+#     repeat_idx = [1] * a.dim()
+#     repeat_idx[dim] = n_tile
+#     a = a.repeat(*(repeat_idx))
+#     order_index = torch.LongTensor(np.concatenate([init_dim * np.arange(n_tile) + i for i in range(init_dim)]))
+#     return torch.index_select(a, dim, order_index.to(device))
 
 class Encoder(BertPreTrainedModel):
     config_class = RobertaConfig
@@ -401,6 +401,7 @@ class Encoder(BertPreTrainedModel):
         batch_outputs = pooled_outputs[sample_size*class_size:,:] #(batch, hidden_size)
 
         batch_size = batch_outputs.shape[0]
+        hidden_size = batch_outputs.shape[1]
 
 
         samples_outputs = samples_outputs.reshape(sample_size, class_size, samples_outputs.shape[1])
@@ -410,7 +411,8 @@ class Encoder(BertPreTrainedModel):
 
 
 
-        repeat_batch_outputs = tile(batch_outputs,0,class_size) #(batch*class_size, hidden)
+        # repeat_batch_outputs = tile(batch_outputs,0,class_size) #(batch*class_size, hidden)
+        repeat_batch_outputs = batch_outputs.repeat(1, class_size).view(-1, hidden_size)
         mlp_input = torch.cat([repeat_batch_outputs, repeat_class_rep], dim=1) #(batch*class_size, hidden*2)
         '''??? add drop out here'''
         group_scores = self.mlp_2(torch.tanh(self.mlp_1(mlp_input)))#(batch*class_size, 1)

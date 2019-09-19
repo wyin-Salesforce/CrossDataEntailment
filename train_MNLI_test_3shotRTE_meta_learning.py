@@ -17,7 +17,7 @@ from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,
                               TensorDataset)
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm, trange
-
+import torch.nn as nn
 from torch.nn import CrossEntropyLoss, MSELoss
 from scipy.special import softmax
 from scipy.stats import pearsonr, spearmanr

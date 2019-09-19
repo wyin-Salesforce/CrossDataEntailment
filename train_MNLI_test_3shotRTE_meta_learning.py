@@ -358,7 +358,7 @@ class Encoder(BertPreTrainedModel):
         self.num_labels = config.num_labels
         self.RobertaModel = RobertaModel(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.mlp_1 = nn.Linear(config.hidden_size*3, config.hidden_size)
+        # self.mlp_1 = nn.Linear(config.hidden_size*3, config.hidden_size)
         self.mlp_2 = nn.Linear(config.hidden_size, 1, bias=False)
         # self.apply(self.init_bert_weights)
 
@@ -367,7 +367,7 @@ class Encoder(BertPreTrainedModel):
         samples: input_ids, token_type_ids, attention_mask; in class order
         minibatch: input_ids, token_type_ids, attention_mask
         '''
-        print('input_ids shape0 :', input_ids.shape[0])
+        # print('input_ids shape0 :', input_ids.shape[0])
         outputs = self.RobertaModel(input_ids, token_type_ids, attention_mask) #(batch, max_len, hidden_size)
         pooled_outputs = outputs[1] #(batch, hidden_size)
         samples_outputs = pooled_outputs[:sample_size*class_size,:] #(9, hidden_size)
@@ -390,11 +390,12 @@ class Encoder(BertPreTrainedModel):
         repeat_batch_outputs = batch_outputs.repeat(1, class_size).view(-1, hidden_size)
         '''? add similarity or something similar?'''
         mlp_input = torch.cat([
-        repeat_batch_outputs, repeat_class_rep,
+        # repeat_batch_outputs, repeat_class_rep,
         repeat_batch_outputs*repeat_class_rep
         ], dim=1) #(batch*class_size, hidden*2)
         '''??? add drop out here'''
-        group_scores = torch.tanh(self.mlp_2(torch.tanh(self.mlp_1(mlp_input))))#(batch*class_size, 1)
+        # group_scores = torch.tanh(self.mlp_2(torch.tanh(self.mlp_1(mlp_input))))#(batch*class_size, 1)
+        group_scores = torch.tanh(self.mlp_2((mlp_input)))
         # print('group_scores:',group_scores)
 
         logits = group_scores.reshape(batch_size, class_size)
@@ -406,7 +407,7 @@ class Encoder(BertPreTrainedModel):
         # logits = self.classifier(sequence_output)
 
         if labels is not None:
-            print('gold labels:', labels)
+            # print('gold labels:', labels)
             loss_fct = CrossEntropyLoss()
             '''This criterion combines :func:`nn.LogSoftmax` and :func:`nn.NLLLoss` in one single class.'''
             loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))

@@ -799,7 +799,7 @@ def main():
 
 
                         with torch.no_grad():
-                            logits = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.Tensor([0,0,0,1,1,1,2,2,2]).to(device))
+                            logits = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]))
                         # logits = logits[0]
 
                         # loss_fct = CrossEntropyLoss()

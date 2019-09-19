@@ -753,7 +753,7 @@ def main():
                 '''
                 forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None):
                 '''
-                loss = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=label_ids, sample_labels = torch.Tensor([0,0,0,1,1,1,2,2,2]).to(device))
+                loss = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]))
                 # loss_fct = CrossEntropyLoss()
                 # loss = loss_fct(logits[0].view(-1, num_labels), label_ids.view(-1))
 

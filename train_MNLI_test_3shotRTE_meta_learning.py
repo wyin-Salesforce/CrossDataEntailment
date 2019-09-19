@@ -396,7 +396,7 @@ class Encoder(BertPreTrainedModel):
         '''? add similarity or something similar?'''
         mlp_input = torch.cat([
         # repeat_batch_outputs, repeat_class_rep,
-        repeat_batch_outputs*repeat_class_rep
+        repeat_batch_outputs*repeat_sample_rep
         ], dim=1) #(batch*class_size, hidden*2)
         '''??? add drop out here'''
         # group_scores = torch.tanh(self.mlp_2(torch.tanh(self.mlp_1(mlp_input))))#(batch*class_size, 1)

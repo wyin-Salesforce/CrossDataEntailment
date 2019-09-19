@@ -361,7 +361,7 @@ class Encoder(BertPreTrainedModel):
         self.roberta = RobertaModel(config)
         self.classifier = RobertaClassificationHead(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        # self.mlp_1 = nn.Linear(config.hidden_size*3, config.hidden_size)
+        self.mlp_1 = nn.Linear(config.hidden_size*3, config.hidden_size)
         self.mlp_2 = nn.Linear(config.hidden_size, 1, bias=False)
         # self.init_weights()
         # self.apply(self.init_bert_weights)
@@ -395,12 +395,12 @@ class Encoder(BertPreTrainedModel):
         repeat_batch_outputs = batch_outputs.repeat(1, class_size*sample_size).view(-1, hidden_size)#(9*batch_size, hidden)
         '''? add similarity or something similar?'''
         mlp_input = torch.cat([
-        # repeat_batch_outputs, repeat_class_rep,
+        repeat_batch_outputs, repeat_sample_rep,
         repeat_batch_outputs*repeat_sample_rep
         ], dim=1) #(batch*class_size, hidden*2)
         '''??? add drop out here'''
-        # group_scores = torch.tanh(self.mlp_2(torch.tanh(self.mlp_1(mlp_input))))#(batch*class_size, 1)
-        group_scores = torch.tanh(self.mlp_2((torch.tanh(mlp_input))))#(9*batch_size, 1)
+        group_scores = torch.tanh(self.mlp_2(torch.tanh(self.mlp_1(torch.tanh(mlp_input)))))#(batch*class_size, 1)
+        # group_scores = torch.tanh(self.mlp_2((torch.tanh(mlp_input))))#(9*batch_size, 1)
         # print('group_scores:',group_scores)
 
         similarity_matrix = group_scores.reshape(batch_size, class_size*sample_size)

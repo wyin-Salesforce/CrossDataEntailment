@@ -270,25 +270,6 @@ def convert_examples_to_features(examples, label_list, max_seq_length,
             special_tokens_count = 3 if sep_token_extra else 2
             if len(tokens_a) > max_seq_length - special_tokens_count:
                 tokens_a = tokens_a[:(max_seq_length - special_tokens_count)]
-
-        # The convention in BERT is:
-        # (a) For sequence pairs:
-        #  tokens:   [CLS] is this jack ##son ##ville ? [SEP] no it is not . [SEP]
-        #  type_ids:   0   0  0    0    0     0       0   0   1  1  1  1   1   1
-        # (b) For single sequences:
-        #  tokens:   [CLS] the dog is hairy . [SEP]
-        #  type_ids:   0   0   0   0  0     0   0
-        #
-        # Where "type_ids" are used to indicate whether this is the first
-        # sequence or the second sequence. The embedding vectors for `type=0` and
-        # `type=1` were learned during pre-training and are added to the wordpiece
-        # embedding vector (and position vector). This is not *strictly* necessary
-        # since the [SEP] token unambiguously separates the sequences, but it makes
-        # it easier for the model to learn the concept of sequences.
-        #
-        # For classification tasks, the first vector (corresponding to [CLS]) is
-        # used as as the "sentence vector". Note that this only makes sense because
-        # the entire model is fine-tuned.
         tokens = tokens_a + [sep_token]
         if sep_token_extra:
             # roberta uses an extra separator b/w pairs of sentences
@@ -377,8 +358,8 @@ class Encoder(BertPreTrainedModel):
         self.num_labels = config.num_labels
         self.RobertaModel = RobertaModel(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.mlp_1 = nn.Linear(config.hidden_size*2, config.hidden_size)
-        self.mlp_2 = nn.Linear(config.hidden_size, 1)
+        self.mlp_1 = nn.Linear(config.hidden_size*3, config.hidden_size)
+        self.mlp_2 = nn.Linear(config.hidden_size, 1, bias=False)
         # self.apply(self.init_bert_weights)
 
     def forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None):
@@ -406,7 +387,10 @@ class Encoder(BertPreTrainedModel):
         # repeat_batch_outputs = tile(batch_outputs,0,class_size) #(batch*class_size, hidden)
         repeat_batch_outputs = batch_outputs.repeat(1, class_size).view(-1, hidden_size)
         '''? add similarity or something similar?'''
-        mlp_input = torch.cat([repeat_batch_outputs, repeat_class_rep], dim=1) #(batch*class_size, hidden*2)
+        mlp_input = torch.cat([
+        repeat_batch_outputs, repeat_class_rep,
+        repeat_batch_outputs*repeat_class_rep
+        ], dim=1) #(batch*class_size, hidden*2)
         '''??? add drop out here'''
         group_scores = torch.tanh(self.mlp_2(torch.tanh(self.mlp_1(mlp_input))))#(batch*class_size, 1)
 
@@ -720,6 +704,7 @@ def main():
                 model.train()
                 batch = tuple(t.to(device) for t in batch)
                 input_ids, input_mask, segment_ids, label_ids = batch
+                assert input_ids.shape[0] == args.train_batch_size
 
                 mnli_entail_batch = get_a_random_batch_from_dataloader(MNLI_entail_dataloader)
                 mnli_entail_batch_input_ids, mnli_entail_batch_input_mask, mnli_entail_batch_segment_ids, mnli_entail_batch_label_ids = tuple(t.to(device) for t in mnli_entail_batch) #mnli_entail_batch

@@ -419,7 +419,7 @@ def _truncate_seq_pair(tokens_a, tokens_b, max_length):
 class Encoder(BertPreTrainedModel):
     config_class = RobertaConfig
     pretrained_model_archive_map = ROBERTA_PRETRAINED_MODEL_ARCHIVE_MAP
-    base_model_prefix = "roberta"
+    base_model_prefix = "haha"
 
     def __init__(self, config):
         super(Encoder, self).__init__(config)

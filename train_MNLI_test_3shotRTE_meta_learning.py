@@ -425,7 +425,7 @@ class Encoder(BertPreTrainedModel):
         super(Encoder, self).__init__(config)
         self.num_labels = config.num_labels
 
-        self.roberta = RobertaModel(config)
+        self.RobertaModel = RobertaModel(config)
         # self.classifier = RobertaClassificationHead(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         # self.mlp_1 = nn.Linear(config.hidden_size*3, config.hidden_size)
@@ -438,7 +438,7 @@ class Encoder(BertPreTrainedModel):
         minibatch: input_ids, token_type_ids, attention_mask
         '''
         # print('input_ids shape0 :', input_ids.shape[0])
-        outputs = self.roberta(input_ids, token_type_ids, attention_mask) #(batch, max_len, hidden_size)
+        outputs = self.RobertaModel(input_ids, token_type_ids, attention_mask) #(batch, max_len, hidden_size)
         pooled_outputs = outputs[1] #(batch, hidden_size)
         samples_outputs = pooled_outputs[:sample_size*class_size,:] #(9, hidden_size)
         batch_outputs = pooled_outputs[sample_size*class_size:,:] #(batch, hidden_size)

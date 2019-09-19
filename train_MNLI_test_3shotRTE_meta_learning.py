@@ -374,7 +374,7 @@ class Encoder(BertPreTrainedModel):
         outputs = self.roberta(input_ids, token_type_ids, attention_mask) #(batch, max_len, hidden_size)
         pooled_outputs = outputs[1] #(batch, hidden_size)
         samples_outputs = pooled_outputs[:sample_size*class_size,:] #(9, hidden_size)
-        print('samples_outputs shaoe:', samples_outputs.shape)
+        # print('samples_outputs shaoe:', samples_outputs.shape)
         sample_logits = self.classifier(samples_outputs) #(9, 3)
         batch_outputs = pooled_outputs[sample_size*class_size:,:] #(batch, hidden_size)
 

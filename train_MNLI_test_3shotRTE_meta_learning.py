@@ -727,13 +727,13 @@ def main():
                 input_ids, input_mask, segment_ids, label_ids = batch
 
                 mnli_entail_batch = get_a_random_batch_from_dataloader(MNLI_entail_dataloader)
-                mnli_entail_batch_input_ids, mnli_entail_batch_input_mask, mnli_entail_batch_segment_ids, mnli_entail_batch_label_ids = mnli_entail_batch
+                mnli_entail_batch_input_ids, mnli_entail_batch_input_mask, mnli_entail_batch_segment_ids, mnli_entail_batch_label_ids = tuple(t.to(device) for t in mnli_entail_batch) #mnli_entail_batch
 
                 mnli_neutra_batch = get_a_random_batch_from_dataloader(MNLI_neutra_dataloader)
-                mnli_neutra_batch_input_ids, mnli_neutra_batch_input_mask, mnli_neutra_batch_segment_ids, mnli_neutra_batch_label_ids = mnli_neutra_batch
+                mnli_neutra_batch_input_ids, mnli_neutra_batch_input_mask, mnli_neutra_batch_segment_ids, mnli_neutra_batch_label_ids = tuple(t.to(device) for t in mnli_neutra_batch) #mnli_neutra_batch
 
                 mnli_contra_batch = get_a_random_batch_from_dataloader(MNLI_contra_dataloader)
-                mnli_contra_batch_input_ids, mnli_contra_batch_input_mask, mnli_contra_batch_segment_ids, mnli_contra_batch_label_ids = mnli_contra_batch
+                mnli_contra_batch_input_ids, mnli_contra_batch_input_mask, mnli_contra_batch_segment_ids, mnli_contra_batch_label_ids = tuple(t.to(device) for t in mnli_contra_batch) #mnli_contra_batch
 
                 all_input_ids = torch.cat([mnli_entail_batch_input_ids,mnli_neutra_batch_input_ids,mnli_contra_batch_input_ids,input_ids],dim=0)
                 all_input_mask = torch.cat([mnli_entail_batch_input_mask,mnli_neutra_batch_input_mask,mnli_contra_batch_input_mask,input_mask], dim=0)
@@ -782,8 +782,8 @@ def main():
                         label_ids = label_ids.to(device)
                         gold_label_ids+=list(label_ids.detach().cpu().numpy())
 
-                        all_input_ids = torch.cat([eval_all_input_ids_shot,input_ids],dim=0)
-                        all_input_mask = torch.cat([eval_all_input_mask_shot,input_mask], dim=0)
+                        all_input_ids = torch.cat([eval_all_input_ids_shot.to(device),input_ids],dim=0)
+                        all_input_mask = torch.cat([eval_all_input_mask_shot.to(device),input_mask], dim=0)
 
 
                         with torch.no_grad():

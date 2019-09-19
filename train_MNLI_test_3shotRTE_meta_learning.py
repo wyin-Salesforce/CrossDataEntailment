@@ -359,13 +359,13 @@ class Encoder(BertPreTrainedModel):
         self.num_labels = config.num_labels
         '''??? why a different name will not get initialized'''
         self.roberta = RobertaModel(config)
-        # self.classifier = RobertaClassificationHead(config)
+        self.classifier = RobertaClassificationHead(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         # self.mlp_1 = nn.Linear(config.hidden_size*3, config.hidden_size)
         self.mlp_2 = nn.Linear(config.hidden_size, 1, bias=False)
         # self.init_weights()
         # self.apply(self.init_bert_weights)
-    def forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None):
+    def forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None, sample_labels=None):
         '''
         samples: input_ids, token_type_ids, attention_mask; in class order
         minibatch: input_ids, token_type_ids, attention_mask
@@ -374,6 +374,7 @@ class Encoder(BertPreTrainedModel):
         outputs = self.roberta(input_ids, token_type_ids, attention_mask) #(batch, max_len, hidden_size)
         pooled_outputs = outputs[1] #(batch, hidden_size)
         samples_outputs = pooled_outputs[:sample_size*class_size,:] #(9, hidden_size)
+        sample_logits = self.classifier(samples_outputs) #(9, 3)
         batch_outputs = pooled_outputs[sample_size*class_size:,:] #(batch, hidden_size)
 
         batch_size = batch_outputs.shape[0]
@@ -381,16 +382,16 @@ class Encoder(BertPreTrainedModel):
         # print('batch_size:',batch_size, 'hidden_size:', hidden_size)
 
 
-        samples_outputs = samples_outputs.reshape(sample_size, class_size, samples_outputs.shape[1])
+        # samples_outputs = samples_outputs.reshape(sample_size, class_size, samples_outputs.shape[1])
         '''we use average for class embedding'''
-        class_rep = torch.mean(samples_outputs,dim=0) #(class_size, hidden_size)
-        repeat_class_rep = torch.cat([class_rep]*batch_size, dim=0) #(class_size*batch_size, hidden)
+        # class_rep = torch.mean(samples_outputs,dim=0) #(class_size, hidden_size)
+        repeat_sample_rep = torch.cat([samples_outputs]*batch_size, dim=0) #(9*batch_size, hidden)
 
 
 
 
         # repeat_batch_outputs = tile(batch_outputs,0,class_size) #(batch*class_size, hidden)
-        repeat_batch_outputs = batch_outputs.repeat(1, class_size).view(-1, hidden_size)
+        repeat_batch_outputs = batch_outputs.repeat(1, class_size*sample_size).view(-1, hidden_size)#(9*batch_size, hidden)
         '''? add similarity or something similar?'''
         mlp_input = torch.cat([
         # repeat_batch_outputs, repeat_class_rep,
@@ -398,10 +399,19 @@ class Encoder(BertPreTrainedModel):
         ], dim=1) #(batch*class_size, hidden*2)
         '''??? add drop out here'''
         # group_scores = torch.tanh(self.mlp_2(torch.tanh(self.mlp_1(mlp_input))))#(batch*class_size, 1)
-        group_scores = torch.tanh(self.mlp_2((torch.tanh(mlp_input))))
+        group_scores = torch.tanh(self.mlp_2((torch.tanh(mlp_input))))#(9*batch_size, 1)
         # print('group_scores:',group_scores)
 
-        logits = group_scores.reshape(batch_size, class_size)
+        similarity_matrix = group_scores.reshape(batch_size, class_size*sample_size)
+        if labels is not None: # training
+            logits = torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits) #(batch, 3)
+        else:
+            '''testing'''
+            sample_logits = torch.cuda.LongTensor(9, 3).fill_(0)
+            sample_logits[torch.arange(0, 9).long(), sample_labels] = 1
+            logits = torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits) #(batch, 3)
+
+
         '''??? add bias here'''
 
 
@@ -414,6 +424,9 @@ class Encoder(BertPreTrainedModel):
             loss_fct = CrossEntropyLoss()
             '''This criterion combines :func:`nn.LogSoftmax` and :func:`nn.NLLLoss` in one single class.'''
             loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+            sample_loss = loss_fct(sample_logits.view(-1, self.num_labels), sample_labels.view(-1))
+
+            loss+=sample_loss
             return loss
         else:
             return logits
@@ -723,7 +736,7 @@ def main():
                 '''
                 forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None):
                 '''
-                loss = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=label_ids)
+                loss = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=label_ids, sample_labels = torch.Tensor([0,0,0,1,1,1,2,2,2]).to(device))
                 # loss_fct = CrossEntropyLoss()
                 # loss = loss_fct(logits[0].view(-1, num_labels), label_ids.view(-1))
 
@@ -769,7 +782,7 @@ def main():
 
 
                         with torch.no_grad():
-                            logits = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=None)
+                            logits = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.Tensor([0,0,0,1,1,1,2,2,2]).to(device))
                         # logits = logits[0]
 
                         # loss_fct = CrossEntropyLoss()

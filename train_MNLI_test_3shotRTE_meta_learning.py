@@ -27,7 +27,7 @@ from sklearn.metrics import matthews_corrcoef, f1_score
 
 from pytorch_transformers.tokenization_roberta import RobertaTokenizer
 from pytorch_transformers.optimization import AdamW
-from pytorch_transformers.modeling_roberta import RobertaModel
+from pytorch_transformers.modeling_roberta import RobertaModel, RobertaConfig
 from pytorch_transformers.modeling_bert import BertPreTrainedModel
 
 from bert_common_functions import store_transformers_models, get_a_random_batch_from_dataloader
@@ -40,6 +40,17 @@ logger = logging.getLogger(__name__)
 # from pytorch_transformers.modeling_bert import BertPreTrainedModel, BertModel
 # import torch.nn as nn
 
+ROBERTA_PRETRAINED_MODEL_ARCHIVE_MAP = {
+    'roberta-base': "https://s3.amazonaws.com/models.huggingface.co/bert/roberta-base-pytorch_model.bin",
+    'roberta-large': "https://s3.amazonaws.com/models.huggingface.co/bert/roberta-large-pytorch_model.bin",
+    'roberta-large-mnli': "https://s3.amazonaws.com/models.huggingface.co/bert/roberta-large-mnli-pytorch_model.bin",
+}
+
+ROBERTA_PRETRAINED_CONFIG_ARCHIVE_MAP = {
+    'roberta-base': "https://s3.amazonaws.com/models.huggingface.co/bert/roberta-base-config.json",
+    'roberta-large': "https://s3.amazonaws.com/models.huggingface.co/bert/roberta-large-config.json",
+    'roberta-large-mnli': "https://s3.amazonaws.com/models.huggingface.co/bert/roberta-large-mnli-config.json",
+}
 
 
 class InputExample(object):
@@ -366,8 +377,12 @@ def tile(a, dim, n_tile):
     return torch.index_select(a, dim, order_index)
 
 class Encoder(BertPreTrainedModel):
-    def __init__(self, config,num_labels):
+    config_class = RobertaConfig
+    pretrained_model_archive_map = ROBERTA_PRETRAINED_MODEL_ARCHIVE_MAP
+    base_model_prefix = "roberta"
+    def __init__(self, config, num_labels):
         super(Encoder, self).__init__(config)
+
         self.num_labels = num_labels
         self.RobertaModel = RobertaModel(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)

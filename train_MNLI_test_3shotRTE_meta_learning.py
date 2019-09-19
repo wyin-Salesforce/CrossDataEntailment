@@ -408,8 +408,8 @@ class Encoder(BertPreTrainedModel):
             logits = torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits) #(batch, 3)
         else:
             '''testing'''
-            sample_logits = torch.cuda.LongTensor(9, 3).fill_(0)
-            sample_logits[torch.arange(0, 9).long(), sample_labels] = 1
+            sample_logits = torch.cuda.FloatTensor(9, 3).fill_(0)
+            sample_logits[torch.arange(0, 9).long(), sample_labels] = 1.0
             logits = torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits) #(batch, 3)
 
 

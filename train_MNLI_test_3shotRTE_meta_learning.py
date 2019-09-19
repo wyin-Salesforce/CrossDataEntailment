@@ -388,7 +388,7 @@ class Encoder(BertPreTrainedModel):
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.mlp_1 = nn.Linear(config.hidden_size*2, config.hidden_size)
         self.mlp_2 = nn.Linear(config.hidden_size, 1)
-        self.apply(self.init_bert_weights)
+        # self.apply(self.init_bert_weights)
 
     def forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None):
         '''

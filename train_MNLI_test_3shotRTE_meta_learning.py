@@ -393,6 +393,7 @@ class Encoder(BertPreTrainedModel):
         ], dim=1) #(batch*class_size, hidden*2)
         '''??? add drop out here'''
         group_scores = torch.tanh(self.mlp_2(torch.tanh(self.mlp_1(mlp_input))))#(batch*class_size, 1)
+        print('group_scores:',group_scores)
 
         logits = group_scores.reshape(batch_size, class_size)
         '''??? add bias here'''

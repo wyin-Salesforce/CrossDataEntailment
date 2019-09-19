@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import os
 from pytorch_transformers.modeling_bert import BertPreTrainedModel, BertModel
+from random import randrange
 
 def convert_examples_to_features(examples, label_list, max_seq_length,
                                  tokenizer, output_mode,
@@ -296,7 +297,11 @@ def store_transformers_models(model, tokenizer, output_dir, flag_str):
     tokenizer.save_pretrained(output_dir)
     print('store succeed')
 
-
+def get_a_random_batch_from_dataloader(dataloader):
+    ith = randrange(len(dataloader))
+    for step, batch in enumerate(dataloader):
+        if step == ith:
+            return batch
 
 
 def store_bert_model(model, vocab, output_dir, flag_str):

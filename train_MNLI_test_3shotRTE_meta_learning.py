@@ -27,7 +27,7 @@ from sklearn.metrics import matthews_corrcoef, f1_score
 
 from pytorch_transformers.tokenization_roberta import RobertaTokenizer
 from pytorch_transformers.optimization import AdamW
-from pytorch_transformers.modeling_roberta import RobertaModel, RobertaConfig
+from pytorch_transformers.modeling_roberta import RobertaModel, RobertaConfig, RobertaClassificationHead
 from pytorch_transformers.modeling_bert import BertPreTrainedModel
 
 from bert_common_functions import store_transformers_models, get_a_random_batch_from_dataloader

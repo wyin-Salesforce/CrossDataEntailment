@@ -934,7 +934,7 @@ def main():
                             preds_ensemble.append(1)
                     hit_co = 0
                     for k in range(len(preds_ensemble)):
-                        if pred_label_ids[k] == gold_label_ids[k]:
+                        if preds_ensemble[k] == gold_label_ids[k]:
                             hit_co +=1
                     test_acc = hit_co/len(gold_label_ids)
                     acc_list.append(test_acc)

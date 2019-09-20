@@ -437,7 +437,8 @@ class Encoder(BertPreTrainedModel):
             '''??? add bias here'''
 
             '''This criterion combines :func:`nn.LogSoftmax` and :func:`nn.NLLLoss` in one single class.'''
-            batch_loss = loss_fct(batch_logits.view(-1, self.num_labels), labels.view(-1))
+            batch_loss = (loss_fct(batch_logits_from_LR.view(-1, self.num_labels), labels.view(-1))+
+                        loss_fct(batch_logits_from_NN.view(-1, self.num_labels), labels.view(-1)))
             loss = sample_loss+batch_loss
             return loss, samples_outputs
 
@@ -915,11 +916,7 @@ def main():
 
                         acc_list.append(test_acc)
 
-                        # if test_acc > max_test_acc:
-                        #     max_test_acc = test_acc
-                        #     '''store the model'''
-                        #     # store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE', str(max_test_acc))
-                        # print('\ntest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
+
                     softmax_LR = array_2_softmax(preds_LR)
                     softmax_NN = array_2_softmax(preds_NN)
                     preds_ensemble = []
@@ -938,7 +935,12 @@ def main():
                             hit_co +=1
                     test_acc = hit_co/len(gold_label_ids)
                     acc_list.append(test_acc)
-                    print('acc_list:', acc_list)
+                    # print('acc_list:', acc_list)
+                    if acc_list[-1] > max_test_acc:
+                        max_test_acc = acc_list[-1]
+                        '''store the model'''
+                        # store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE', str(max_test_acc))
+                    print('\nacc_list:', acc_list, ' max_test_acc:', max_test_acc, '\n')
 
 
 def array_2_softmax(a):

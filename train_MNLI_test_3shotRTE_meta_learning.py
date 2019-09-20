@@ -493,7 +493,8 @@ class Encoder(BertPreTrainedModel):
             sample_logits = sample_logits.repeat(2,1)
             # print('sample_logits:', sample_logits.shape, sample_logits)
             batch_logits_from_NN = torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits) #(batch, 3)
-
+            print('batch_logits_from_LR:',batch_logits_from_LR)
+            print('batch_logits_from_NN:', batch_logits_from_NN)
             logits = batch_logits_from_LR+batch_logits_from_NN
             return logits
 

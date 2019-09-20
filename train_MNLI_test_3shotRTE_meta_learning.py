@@ -377,7 +377,8 @@ class Encoder(BertPreTrainedModel):
         samples_outputs = pooled_outputs[:sample_size*class_size,:] #(9, hidden_size)
         if prior_samples_outputs is not None:
             '''testing'''
-            samples_outputs = (samples_outputs+prior_samples_outputs)*0.5
+            # samples_outputs = (samples_outputs+prior_samples_outputs)*0.5
+            samples_outputs =  torch.cat([prior_samples_outputs, samples_outputs], dim=0)
         # print('samples_outputs shaoe:', samples_outputs.shape)
         sample_logits = self.classifier(samples_outputs) #(9, 3)
         batch_outputs = pooled_outputs[sample_size*class_size:,:] #(batch, hidden_size)
@@ -396,7 +397,7 @@ class Encoder(BertPreTrainedModel):
 
 
         # repeat_batch_outputs = tile(batch_outputs,0,class_size) #(batch*class_size, hidden)
-        repeat_batch_outputs = batch_outputs.repeat(1, class_size*sample_size).view(-1, hidden_size)#(9*batch_size, hidden)
+        repeat_batch_outputs = batch_outputs.repeat(1, samples_outputs.shape[0]).view(-1, hidden_size)#(9*batch_size, hidden)
         '''? add similarity or something similar?'''
         mlp_input = torch.cat([
         repeat_batch_outputs, repeat_sample_rep,
@@ -407,7 +408,7 @@ class Encoder(BertPreTrainedModel):
         # group_scores = torch.tanh(self.mlp_2((torch.tanh(mlp_input))))#(9*batch_size, 1)
         # print('group_scores:',group_scores)
 
-        similarity_matrix = group_scores.reshape(batch_size, class_size*sample_size)
+        similarity_matrix = group_scores.reshape(batch_size, samples_outputs.shape[0])
         if labels is not None: #
             '''training'''
             logits = torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits) #(batch, 3)
@@ -415,7 +416,7 @@ class Encoder(BertPreTrainedModel):
             '''testing'''
             sample_logits = torch.cuda.FloatTensor(9, 3).fill_(0)
             sample_logits[torch.arange(0, 9).long(), sample_labels] = 1.0
-            logits = torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits) #(batch, 3)
+            logits = torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits.repeat(0,2)) #(batch, 3)
 
 
         '''??? add bias here'''

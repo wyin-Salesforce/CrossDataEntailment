@@ -431,7 +431,7 @@ class Encoder(BertPreTrainedModel):
             '''???note that the softmax will make the resulting logits smaller than LR'''
             batch_logits_from_NN = torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits) #(batch, 3)
 
-            batch_logits = batch_logits_from_LR+batch_logits_from_NN
+            batch_logits = nn.Softmax(dim=1)(batch_logits_from_LR)+batch_logits_from_NN
 
 
             '''??? add bias here'''
@@ -493,9 +493,9 @@ class Encoder(BertPreTrainedModel):
             sample_logits = sample_logits.repeat(2,1)
             # print('sample_logits:', sample_logits.shape, sample_logits)
             batch_logits_from_NN = torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits) #(batch, 3)
-            print('batch_logits_from_LR:',batch_logits_from_LR)
-            print('batch_logits_from_NN:', batch_logits_from_NN)
-            logits = batch_logits_from_LR+batch_logits_from_NN
+            # print('batch_logits_from_LR:',batch_logits_from_LR)
+            # print('batch_logits_from_NN:', batch_logits_from_NN)
+            logits = nn.Softmax(dim=1)(batch_logits_from_LR)+batch_logits_from_NN
             return logits
 
 
@@ -916,4 +916,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-# CUDA_VISIBLE_DEVICES=2 python -u train_RTE_test_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 2e-5 --num_train_epochs 3 --data_dir '' --output_dir '' > log.RTE.RTE.batch32.txt 2>&1
+# CUDA_VISIBLE_DEVICES=7 python -u train_MNLI_test_3shotRTE_meta_learning.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 2e-5 --num_train_epochs 3 --data_dir '' --output_dir '' > log.RTE.RTE.batch32.txt 2>&1

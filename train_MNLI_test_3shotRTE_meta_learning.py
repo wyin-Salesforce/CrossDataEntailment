@@ -413,11 +413,11 @@ class Encoder(BertPreTrainedModel):
         ], dim=1) #(batch*class_size, hidden*2)
         '''??? add drop out here'''
         group_scores = torch.tanh(self.mlp_2(torch.tanh(self.mlp_1(torch.tanh(mlp_input)))))#(batch*class_size, 1)
-        group_scores+= cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)
+        group_scores_with_simi = group_scores + cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)
         # group_scores = torch.tanh(self.mlp_2((torch.tanh(mlp_input))))#(9*batch_size, 1)
         # print('group_scores:',group_scores)
 
-        similarity_matrix = group_scores.reshape(batch_size, samples_outputs.shape[0])
+        similarity_matrix = group_scores_with_simi.reshape(batch_size, samples_outputs.shape[0])
         if labels is not None: #
             '''training'''
             logits = torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits) #(batch, 3)

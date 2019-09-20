@@ -866,9 +866,9 @@ def main():
                     sample_input_ids_each_iter = []
                     sample_input_mask_each_iter = []
                     prior_mnli_samples_outputs = torch.cat(mnli_sample_hidden_list,dim=0)
-                    prior_mnli_samples_outputs = torch.mean(prior_mnli_samples_outputs,dim=0)
+                    prior_mnli_samples_outputs = torch.sum(prior_mnli_samples_outputs,dim=0)
                     prior_mnli_samples_logits = torch.cat(mnli_sample_logits_list,dim=0)
-                    prior_mnli_samples_logits = torch.mean(prior_mnli_samples_logits,dim=0)
+                    prior_mnli_samples_logits = torch.sum(prior_mnli_samples_logits,dim=0)
 
                     '''first do few-shot training'''
                     for ff in range(3):
@@ -958,7 +958,7 @@ def main():
                             preds_ensemble.append(0)
                         elif softmax_LR[i][0] < softmax_LR[i][1] and softmax_NN[i][0] < softmax_NN[i][1]:
                             preds_ensemble.append(1)
-                        elif softmax_LR[i][0] > softmax_NN[i][1]:
+                        elif softmax_LR[i][0] > softmax_LR[i][1] and softmax_LR[i][0] > softmax_NN[i][1]:
                             preds_ensemble.append(0)
                         else:
                             preds_ensemble.append(1)

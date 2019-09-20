@@ -858,9 +858,10 @@ def main():
                     mnli_sample_logits_list = []
                     for ff in range(len(sample_input_ids_each_iter)):
                         model.eval()
-                        mnli_sample_hidden_i, mnli_sample_logits_i = model(sample_input_ids_each_iter[ff], None, sample_input_mask_each_iter[ff], sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = None, few_shot_training=False, is_train=False, fetch_hidden_only=True)
-                        mnli_sample_hidden_list.append(mnli_sample_hidden_i[None,:,:])
-                        mnli_sample_logits_list.append(mnli_sample_logits_i[None,:,:])
+                        with torch.no_grad():
+                            mnli_sample_hidden_i, mnli_sample_logits_i = model(sample_input_ids_each_iter[ff], None, sample_input_mask_each_iter[ff], sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = None, few_shot_training=False, is_train=False, fetch_hidden_only=True)
+                            mnli_sample_hidden_list.append(mnli_sample_hidden_i[None,:,:])
+                            mnli_sample_logits_list.append(mnli_sample_logits_i[None,:,:])
                     sample_input_ids_each_iter = []
                     sample_input_mask_each_iter = []
                     prior_mnli_samples_outputs = torch.cat(mnli_sample_hidden_list,dim=0)

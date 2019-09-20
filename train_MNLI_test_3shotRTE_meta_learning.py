@@ -365,7 +365,7 @@ class Encoder(BertPreTrainedModel):
         self.mlp_2 = nn.Linear(config.hidden_size, 1, bias=False)
         # self.init_weights()
         # self.apply(self.init_bert_weights)
-    def forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None, sample_labels=None, prior_samples_outputs=None, few_shot_training=False, is_train = True):
+    def forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None, sample_labels=None, prior_samples_outputs=None, prior_samples_logits = None, few_shot_training=False, is_train = True, fetch_hidden_only=False):
 
         '''
         samples: input_ids, token_type_ids, attention_mask; in class order
@@ -450,8 +450,13 @@ class Encoder(BertPreTrainedModel):
 
 
 
+
             '''??? output samples_outputs for accumulating info for testing phase'''
             samples_outputs = pooled_outputs[:sample_size*class_size,:] #(9, hidden_size)
+            if fetch_hidden_only:
+                return samples_outputs, LR_logits[:sample_size*class_size,:]
+
+
             samples_outputs =  torch.cat([prior_samples_outputs, samples_outputs], dim=0)
             batch_outputs = pooled_outputs[sample_size*class_size:,:] #(batch, hidden_size)
             # print('samples_outputs shaoe:', samples_outputs.shape)
@@ -489,10 +494,12 @@ class Encoder(BertPreTrainedModel):
 
             similarity_matrix = group_scores_with_simi.reshape(batch_size, samples_outputs.shape[0])
 
-            sample_logits = torch.cuda.FloatTensor(9, 3).fill_(0)
-            sample_logits[torch.arange(0, 9).long(), sample_labels] = 1.0
-            # sample_logits = sample_logits.repeat(2,1)
-
+            if prior_samples_logits is None:
+                sample_logits = torch.cuda.FloatTensor(9, 3).fill_(0)
+                sample_logits[torch.arange(0, 9).long(), sample_labels] = 1.0
+                # sample_logits = sample_logits.repeat(2,1)
+            else:
+                sample_logits = prior_samples_logits
             sample_logits = torch.cat([sample_logits, LR_logits[:sample_size*class_size,:]],dim=0)
             batch_logits_from_NN = nn.Softmax(dim=1)(torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits)) #(batch, 3)
             # print('batch_logits_from_LR:',batch_logits_from_LR)
@@ -795,6 +802,9 @@ def main():
             '''start training'''
 
             nb_tr_examples, nb_tr_steps = 0, 0
+            sample_input_ids_each_iter = []
+            sample_input_mask_each_iter = []
+
             for step, batch in enumerate(tqdm(MNLI_dataloader, desc="Iteration")):
                 model.train()
                 batch = tuple(t.to(device) for t in batch)
@@ -814,8 +824,12 @@ def main():
                 mnli_contra_batch_input_ids, mnli_contra_batch_input_mask, mnli_contra_batch_segment_ids, mnli_contra_batch_label_ids = tuple(t.to(device) for t in mnli_contra_batch) #mnli_contra_batch
                 # print('sample contra:', mnli_contra_batch_input_ids.shape[0], mnli_contra_batch_label_ids.shape, mnli_contra_batch_label_ids)
 
-                all_input_ids = torch.cat([mnli_entail_batch_input_ids,mnli_neutra_batch_input_ids,mnli_contra_batch_input_ids,input_ids],dim=0)
+                sample_input_ids_i = torch.cat([mnli_entail_batch_input_ids,mnli_neutra_batch_input_ids,mnli_contra_batch_input_ids],dim=0)
+                sample_input_ids_each_iter.append(sample_input_ids_i)
+                all_input_ids = torch.cat([sample_input_ids_i,input_ids],dim=0)
                 assert all_input_ids.shape[0] == args.train_batch_size+9
+                sample_input_mask_i = torch.cat([mnli_entail_batch_input_mask,mnli_neutra_batch_input_mask,mnli_contra_batch_input_mask], dim=0)
+                sample_input_mask_each_iter.append(sample_input_mask_i)
                 all_input_mask = torch.cat([mnli_entail_batch_input_mask,mnli_neutra_batch_input_mask,mnli_contra_batch_input_mask,input_mask], dim=0)
 
                 '''
@@ -838,6 +852,22 @@ def main():
                 iter_co+=1
                 # print('training loss:', tr_loss/iter_co)
                 if iter_co %20==0:
+                    '''first get info from MNLI by sampling'''
+                    assert len(sample_input_ids_each_iter) == 20
+                    mnli_sample_hidden_list = []
+                    mnli_sample_logits_list = []
+                    for ff in range(len(sample_input_ids_each_iter)):
+                        model.eval()
+                        mnli_sample_hidden_i, mnli_sample_logits_i = model(sample_input_ids_each_iter[ff], None, sample_input_mask_each_iter[ff], sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = None, few_shot_training=False, is_train=False, fetch_hidden_only=True)
+                        mnli_sample_hidden_list.append(mnli_sample_hidden_i[None,:,:])
+                        mnli_sample_logits_list.append(mnli_sample_logits_i[None,:,:])
+                    sample_input_ids_each_iter = []
+                    sample_input_mask_each_iter = []
+                    prior_mnli_samples_outputs = torch.cat(mnli_sample_hidden_list,dim=0)
+                    prior_mnli_samples_outputs = torch.mean(prior_mnli_samples_outputs,dim=0)
+                    prior_mnli_samples_logits = torch.cat(mnli_sample_logits_list,dim=0)
+                    prior_mnli_samples_logits = torch.mean(prior_mnli_samples_logits,dim=0)
+
                     '''first do few-shot training'''
                     for ff in range(3):
                         model.train()
@@ -874,7 +904,7 @@ def main():
 
 
                         with torch.no_grad():
-                            logits_LR, logits_NN, logits = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = mnli_samples_outputs_i, is_train=False)
+                            logits_LR, logits_NN, logits = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = prior_mnli_samples_outputs, prior_samples_logits = prior_mnli_samples_logits, is_train=False)
                         # logits = logits[0]
 
                         # loss_fct = CrossEntropyLoss()

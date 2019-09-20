@@ -139,8 +139,8 @@ class RteProcessor(DataProcessor):
                     examples_contra.append(
                         InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
             line_co+=1
-            if line_co > 20000:
-                break
+            # if line_co > 20000:
+            #     break
         readfile.close()
         print('loaded  size:', line_co)
         return examples_entail, examples_neutral, examples_contra
@@ -494,12 +494,13 @@ class Encoder(BertPreTrainedModel):
 
             similarity_matrix = group_scores_with_simi.reshape(batch_size, samples_outputs.shape[0])
 
-            # if prior_samples_logits is None:
-            sample_logits = torch.cuda.FloatTensor(9, 3).fill_(0)
-            sample_logits[torch.arange(0, 9).long(), sample_labels] = 1.0
+            if prior_samples_logits is None:
+                sample_logits = torch.cuda.FloatTensor(9, 3).fill_(0)
+                sample_logits[torch.arange(0, 9).long(), sample_labels] = 1.0
                 # sample_logits = sample_logits.repeat(2,1)
-            # else:
-            #     sample_logits = prior_samples_logits
+            else:
+                '''the results now that using LR predicted logits is better'''
+                sample_logits = prior_samples_logits
             sample_logits = torch.cat([sample_logits, LR_logits[:sample_size*class_size,:]],dim=0)
             batch_logits_from_NN = nn.Softmax(dim=1)(torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits)) #(batch, 3)
             # print('batch_logits_from_LR:',batch_logits_from_LR)

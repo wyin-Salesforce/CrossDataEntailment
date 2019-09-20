@@ -365,7 +365,7 @@ class Encoder(BertPreTrainedModel):
         self.mlp_2 = nn.Linear(config.hidden_size, 1, bias=False)
         # self.init_weights()
         # self.apply(self.init_bert_weights)
-    def forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None, sample_labels=None, prior_samples_outputs=None):
+    def forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None, sample_labels=None, prior_samples_outputs=None, few_shot_training=False):
         '''
         samples: input_ids, token_type_ids, attention_mask; in class order
         minibatch: input_ids, token_type_ids, attention_mask
@@ -381,6 +381,12 @@ class Encoder(BertPreTrainedModel):
             samples_outputs =  torch.cat([prior_samples_outputs, samples_outputs], dim=0)
         # print('samples_outputs shaoe:', samples_outputs.shape)
         sample_logits = self.classifier(samples_outputs) #(9, 3)
+        if few_shot_training:
+            loss_fct = CrossEntropyLoss()
+            '''This criterion combines :func:`nn.LogSoftmax` and :func:`nn.NLLLoss` in one single class.'''
+            # loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+            sample_loss = loss_fct(sample_logits.view(-1, self.num_labels), sample_labels.view(-1))
+            return sample_loss
         batch_outputs = pooled_outputs[sample_size*class_size:,:] #(batch, hidden_size)
 
         batch_size = batch_outputs.shape[0]
@@ -779,6 +785,11 @@ def main():
                 iter_co+=1
                 # print('training loss:', tr_loss/iter_co)
                 if iter_co %20==0:
+                    '''first do few-shot training'''
+                    for ff in range(3):
+                        model.train()
+                        few_loss = model(eval_all_input_ids_shot.to(device), None, eval_all_input_mask_shot.to(device), sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = None, few_shot_training=True)
+                        print('few_loss:', few_loss)
                     '''
                     start evaluate on dev set after this epoch
                     '''

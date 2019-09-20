@@ -789,6 +789,9 @@ def main():
                     for ff in range(3):
                         model.train()
                         few_loss = model(eval_all_input_ids_shot.to(device), None, eval_all_input_mask_shot.to(device), sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = None, few_shot_training=True)
+                        few_loss.backward()
+                        optimizer.step()
+                        optimizer.zero_grad()
                         print('few_loss:', few_loss)
                     '''
                     start evaluate on dev set after this epoch

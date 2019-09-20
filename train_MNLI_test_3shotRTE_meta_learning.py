@@ -394,7 +394,7 @@ class Encoder(BertPreTrainedModel):
             '''This criterion combines :func:`nn.LogSoftmax` and :func:`nn.NLLLoss` in one single class.'''
             # loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
             sample_loss = loss_fct(sample_logits.view(-1, self.num_labels), sample_labels.view(-1))
-            if few_shot_training
+            if few_shot_training:
                 return sample_loss
             '''nearest neighber'''
             batch_outputs = pooled_outputs[sample_size*class_size:,:] #(batch, hidden_size)

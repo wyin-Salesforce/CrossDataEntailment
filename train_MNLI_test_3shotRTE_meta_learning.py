@@ -958,7 +958,7 @@ def main():
                             preds_ensemble.append(0)
                         elif softmax_LR[i][0] < softmax_LR[i][1] and softmax_NN[i][0] < softmax_NN[i][1]:
                             preds_ensemble.append(1)
-                        elif softmax_LR[i][0] > softmax_LR[i][1] and softmax_LR[i][0] > softmax_NN[i][1]:
+                        elif softmax_LR[i][0] > softmax_NN[i][1]:
                             preds_ensemble.append(0)
                         else:
                             preds_ensemble.append(1)

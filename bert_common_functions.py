@@ -306,6 +306,12 @@ def get_a_random_batch_from_dataloader(dataloader, size):
                     return batch
                 else:
                     break
+def cosine_rowwise_two_matrices(a,b):
+    a_norm = a / a.norm(dim=1)[:, None]
+    b_norm = b / b.norm(dim=1)[:, None]
+    row_size = a_norm.shape[0]
+    col_size = a_norm.shape[1]
+    return torch.bmm(a_norm.view(row_size, 1, col_size), B.view(row_size, col_size, 1)).view(row_size, -1)
 
 
 def store_bert_model(model, vocab, output_dir, flag_str):

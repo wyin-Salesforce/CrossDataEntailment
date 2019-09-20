@@ -30,7 +30,7 @@ from pytorch_transformers.optimization import AdamW
 from pytorch_transformers.modeling_roberta import RobertaModel, RobertaConfig#, RobertaClassificationHead
 from pytorch_transformers.modeling_bert import BertPreTrainedModel
 
-from bert_common_functions import store_transformers_models, get_a_random_batch_from_dataloader
+from bert_common_functions import store_transformers_models, get_a_random_batch_from_dataloader, cosine_rowwise_two_matrices
 
 logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt = '%m/%d/%Y %H:%M:%S',
@@ -361,7 +361,7 @@ class Encoder(BertPreTrainedModel):
         self.roberta = RobertaModel(config)
         self.classifier = RobertaClassificationHead(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.mlp_1 = nn.Linear(config.hidden_size*4, config.hidden_size)
+        self.mlp_1 = nn.Linear(config.hidden_size*4+1, config.hidden_size)
         self.mlp_2 = nn.Linear(config.hidden_size, 1, bias=False)
         # self.init_weights()
         # self.apply(self.init_bert_weights)
@@ -408,6 +408,7 @@ class Encoder(BertPreTrainedModel):
         mlp_input = torch.cat([
         repeat_batch_outputs, repeat_sample_rep,
         repeat_batch_outputs - repeat_sample_rep,
+        cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep),
         repeat_batch_outputs*repeat_sample_rep
         ], dim=1) #(batch*class_size, hidden*2)
         '''??? add drop out here'''

@@ -365,7 +365,7 @@ class Encoder(BertPreTrainedModel):
         self.mlp_2 = nn.Linear(config.hidden_size, 1, bias=False)
         # self.init_weights()
         # self.apply(self.init_bert_weights)
-    def forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None, sample_labels=None):
+    def forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None, sample_labels=None, prior_samples_outputs=None):
         '''
         samples: input_ids, token_type_ids, attention_mask; in class order
         minibatch: input_ids, token_type_ids, attention_mask
@@ -373,7 +373,11 @@ class Encoder(BertPreTrainedModel):
         # print('input_ids shape0 :', input_ids.shape[0])
         outputs = self.roberta(input_ids, token_type_ids, attention_mask) #(batch, max_len, hidden_size)
         pooled_outputs = outputs[1] #(batch, hidden_size)
+        '''??? output samples_outputs for accumulating info for testing phase'''
         samples_outputs = pooled_outputs[:sample_size*class_size,:] #(9, hidden_size)
+        if prior_samples_outputs is not None:
+            '''testing'''
+            samples_outputs = (samples_outputs+prior_samples_outputs)*0.5
         # print('samples_outputs shaoe:', samples_outputs.shape)
         sample_logits = self.classifier(samples_outputs) #(9, 3)
         batch_outputs = pooled_outputs[sample_size*class_size:,:] #(batch, hidden_size)
@@ -404,7 +408,8 @@ class Encoder(BertPreTrainedModel):
         # print('group_scores:',group_scores)
 
         similarity_matrix = group_scores.reshape(batch_size, class_size*sample_size)
-        if labels is not None: # training
+        if labels is not None: #
+            '''training'''
             logits = torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits) #(batch, 3)
         else:
             '''testing'''
@@ -421,15 +426,16 @@ class Encoder(BertPreTrainedModel):
         # logits = self.classifier(sequence_output)
 
         if labels is not None:
-            # print('gold labels:', labels)
+            '''training'''
             loss_fct = CrossEntropyLoss()
             '''This criterion combines :func:`nn.LogSoftmax` and :func:`nn.NLLLoss` in one single class.'''
             loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
             sample_loss = loss_fct(sample_logits.view(-1, self.num_labels), sample_labels.view(-1))
 
             loss+=sample_loss
-            return loss
+            return loss, samples_outputs
         else:
+            '''testing'''
             return logits
 
 
@@ -753,7 +759,7 @@ def main():
                 '''
                 forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None):
                 '''
-                loss = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]))
+                loss, mnli_samples_outputs_i = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs=None)
                 # loss_fct = CrossEntropyLoss()
                 # loss = loss_fct(logits[0].view(-1, num_labels), label_ids.view(-1))
 
@@ -796,7 +802,7 @@ def main():
 
 
                         with torch.no_grad():
-                            logits = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]))
+                            logits = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = mnli_samples_outputs_i)
                         # logits = logits[0]
 
                         # loss_fct = CrossEntropyLoss()

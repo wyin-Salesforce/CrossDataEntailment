@@ -430,7 +430,7 @@ class Encoder(BertPreTrainedModel):
             similarity_matrix = group_scores_with_simi.reshape(batch_size, samples_outputs.shape[0])
             '''???note that the softmax will make the resulting logits smaller than LR'''
             batch_logits_from_NN = torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits) #(batch, 3)
-
+            '''???use each of the logits for loss compute'''
             batch_logits = batch_logits_from_LR+batch_logits_from_NN
 
 
@@ -920,9 +920,33 @@ def main():
                         #     '''store the model'''
                         #     # store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE', str(max_test_acc))
                         # print('\ntest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
+                    softmax_LR = array_2_softmax(preds_LR)
+                    softmax_NN = array_2_softmax(preds_NN)
+                    preds_ensemble = []
+                    for i in range(softmax_LR.shape[0]):
+                        if softmax_LR[0] > softmax_LR[1] and softmax_NN[0] > softmax_NN[1]:
+                            preds_ensemble.append(0)
+                        elif softmax_LR[0] < softmax_LR[1] and softmax_NN[0] < softmax_NN[1]:
+                            preds_ensemble.append(1)
+                        elif softmax_LR[0] > softmax_NN[1]:
+                            preds_ensemble.append(0)
+                        else:
+                            preds_ensemble.append(1)
+                    hit_co = 0
+                    for k in range(len(preds_ensemble)):
+                        if pred_label_ids[k] == gold_label_ids[k]:
+                            hit_co +=1
+                    test_acc = hit_co/len(gold_label_ids)
+                    acc_list.append(test_acc)
                     print('acc_list:', acc_list)
 
 
+def array_2_softmax(a):
+    for i in range(a.shape[0]):
+        if a[i][2]>a[i][1]:
+            a[i][1] = a[i][2]
+    sub_a = a[:,:2]
+    return softmax(sub_a)
 
 if __name__ == "__main__":
     main()

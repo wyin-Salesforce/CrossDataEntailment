@@ -924,11 +924,11 @@ def main():
                     softmax_NN = array_2_softmax(preds_NN)
                     preds_ensemble = []
                     for i in range(softmax_LR.shape[0]):
-                        if softmax_LR[0] > softmax_LR[1] and softmax_NN[0] > softmax_NN[1]:
+                        if softmax_LR[i][0] > softmax_LR[i][1] and softmax_NN[i][0] > softmax_NN[i][1]:
                             preds_ensemble.append(0)
-                        elif softmax_LR[0] < softmax_LR[1] and softmax_NN[0] < softmax_NN[1]:
+                        elif softmax_LR[i][0] < softmax_LR[i][1] and softmax_NN[i][0] < softmax_NN[i][1]:
                             preds_ensemble.append(1)
-                        elif softmax_LR[0] > softmax_NN[1]:
+                        elif softmax_LR[i][0] > softmax_NN[i][1]:
                             preds_ensemble.append(0)
                         else:
                             preds_ensemble.append(1)

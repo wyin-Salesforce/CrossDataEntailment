@@ -361,7 +361,7 @@ class Encoder(BertPreTrainedModel):
         self.roberta = RobertaModel(config)
         self.classifier = RobertaClassificationHead(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.mlp_1 = nn.Linear(config.hidden_size*3, config.hidden_size)
+        self.mlp_1 = nn.Linear(config.hidden_size*3+1, config.hidden_size)
         self.mlp_2 = nn.Linear(config.hidden_size, 1, bias=False)
         # self.init_weights()
         # self.apply(self.init_bert_weights)
@@ -483,12 +483,12 @@ class Encoder(BertPreTrainedModel):
             mlp_input = torch.cat([
             repeat_batch_outputs, repeat_sample_rep,
             # repeat_batch_outputs - repeat_sample_rep,
-            # cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep),
+            cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep),
             repeat_batch_outputs*repeat_sample_rep
             ], dim=1) #(batch*class_size, hidden*2)
             '''??? add drop out here'''
             group_scores = torch.tanh(self.mlp_2(torch.tanh(self.mlp_1(torch.tanh(mlp_input)))))#(batch*class_size, 1)
-            group_scores_with_simi = group_scores + cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)
+            group_scores_with_simi = group_scores# + cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)
             # group_scores = torch.tanh(self.mlp_2((torch.tanh(mlp_input))))#(9*batch_size, 1)
             # print('group_scores:',group_scores)
 
@@ -865,6 +865,7 @@ def main():
                             mnli_sample_logits_list.append(mnli_sample_logits_i[None,:,:])
                     sample_input_ids_each_iter = []
                     sample_input_mask_each_iter = []
+                    '''sum or mean does not make big difference'''
                     prior_mnli_samples_outputs = torch.cat(mnli_sample_hidden_list,dim=0)
                     prior_mnli_samples_outputs = torch.sum(prior_mnli_samples_outputs,dim=0)
                     prior_mnli_samples_logits = torch.cat(mnli_sample_logits_list,dim=0)

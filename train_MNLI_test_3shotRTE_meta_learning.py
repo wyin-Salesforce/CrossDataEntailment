@@ -423,7 +423,7 @@ class Encoder(BertPreTrainedModel):
             ], dim=1) #(batch*class_size, hidden*2)
             '''??? add drop out here'''
             group_scores = torch.tanh(self.mlp_2(torch.tanh(self.mlp_1(torch.tanh(mlp_input)))))#(batch*class_size, 1)
-            group_scores_with_simi = group_scores #+ cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)
+            group_scores_with_simi =  cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)
             # group_scores = torch.tanh(self.mlp_2((torch.tanh(mlp_input))))#(9*batch_size, 1)
             # print('group_scores:',group_scores)
 
@@ -488,7 +488,7 @@ class Encoder(BertPreTrainedModel):
             ], dim=1) #(batch*class_size, hidden*2)
             '''??? add drop out here'''
             group_scores = torch.tanh(self.mlp_2(torch.tanh(self.mlp_1(torch.tanh(mlp_input)))))#(batch*class_size, 1)
-            group_scores_with_simi = group_scores# + cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)
+            group_scores_with_simi =  cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)
             # group_scores = torch.tanh(self.mlp_2((torch.tanh(mlp_input))))#(9*batch_size, 1)
             # print('group_scores:',group_scores)
 

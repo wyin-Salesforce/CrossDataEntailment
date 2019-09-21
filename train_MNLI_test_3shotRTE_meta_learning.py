@@ -28,7 +28,7 @@ from sklearn.metrics import matthews_corrcoef, f1_score
 from pytorch_transformers.tokenization_roberta import RobertaTokenizer
 from pytorch_transformers.optimization import AdamW
 from pytorch_transformers.modeling_roberta import RobertaModel, RobertaConfig#, RobertaClassificationHead
-from pytorch_transformers.modeling_bert import BertPreTrainedModel, gelu
+from pytorch_transformers.modeling_bert import BertPreTrainedModel
 
 from bert_common_functions import store_transformers_models, get_a_random_batch_from_dataloader, cosine_rowwise_two_matrices
 
@@ -422,7 +422,7 @@ class Encoder(BertPreTrainedModel):
             repeat_batch_outputs*repeat_sample_rep
             ], dim=1) #(batch*class_size, hidden*2)
             '''??? add drop out here'''
-            group_scores = gelu(self.mlp_2(gelu(self.mlp_1(gelu(mlp_input)))))#(batch*class_size, 1)
+            group_scores = torch.tanh(self.mlp_2(torch.tanh(self.mlp_1(torch.tanh(mlp_input)))))#(batch*class_size, 1)
             group_scores_with_simi = group_scores + cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)
             # group_scores = torch.tanh(self.mlp_2((torch.tanh(mlp_input))))#(9*batch_size, 1)
             # print('group_scores:',group_scores)
@@ -487,7 +487,7 @@ class Encoder(BertPreTrainedModel):
             repeat_batch_outputs*repeat_sample_rep
             ], dim=1) #(batch*class_size, hidden*2)
             '''??? add drop out here'''
-            group_scores = gelu(self.mlp_2(gelu(self.mlp_1(gelu(mlp_input)))))#(batch*class_size, 1)
+            group_scores = torch.tanh(self.mlp_2(torch.tanh(self.mlp_1(torch.tanh(mlp_input)))))#(batch*class_size, 1)
             group_scores_with_simi = group_scores + cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)
             # group_scores = torch.tanh(self.mlp_2((torch.tanh(mlp_input))))#(9*batch_size, 1)
             # print('group_scores:',group_scores)
@@ -874,7 +874,7 @@ def main():
                     '''first do few-shot training'''
                     for ff in range(3):
                         model.train()
-                        few_loss = model(eval_all_input_ids_shot.to(device), None, eval_all_input_mask_shot.to(device), sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = None, few_shot_training=True, is_train=True)
+                        few_loss = model(eval_all_input_ids_shot.to(device), None, eval_all_input_mask_shot.to(device), sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,1,1,1]), prior_samples_outputs = None, few_shot_training=True, is_train=True)
                         few_loss.backward()
                         optimizer.step()
                         optimizer.zero_grad()

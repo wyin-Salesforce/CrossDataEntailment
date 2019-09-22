@@ -364,7 +364,7 @@ class Encoder(BertPreTrainedModel):
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.mlp_1 = nn.Linear(config.hidden_size*3, config.hidden_size)
         self.mlp_2 = nn.Linear(config.hidden_size, 1, bias=False)
-        self.bias_on_samples = Parameter(torch.Tensor(1,9))
+        self.bias_on_samples = torch.cuda.FloatTensor(1,9).fill_(0)
         # self.init_weights()
         # self.apply(self.init_bert_weights)
     def forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None, sample_labels=None, prior_samples_outputs=None, prior_samples_logits = None, few_shot_training=False, is_train = True, fetch_hidden_only=False):

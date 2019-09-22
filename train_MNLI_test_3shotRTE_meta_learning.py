@@ -361,7 +361,7 @@ class Encoder(BertPreTrainedModel):
         self.roberta = RobertaModel(config)
         self.classifier = RobertaClassificationHead(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.mlp_1 = nn.Linear(config.hidden_size*3, config.hidden_size)
+        self.mlp_1 = nn.Linear(config.hidden_size*3+2, config.hidden_size)
         self.mlp_2 = nn.Linear(config.hidden_size, 1, bias=False)
         # self.init_weights()
         # self.apply(self.init_bert_weights)
@@ -418,7 +418,8 @@ class Encoder(BertPreTrainedModel):
             mlp_input = torch.cat([
             repeat_batch_outputs, repeat_sample_rep,
             # repeat_batch_outputs - repeat_sample_rep,
-            # cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep),
+            cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep),
+            torch.tanh(torch.sum(repeat_batch_outputs*repeat_sample_rep,dim=1, keepdim=True)),
             repeat_batch_outputs*repeat_sample_rep
             ], dim=1) #(batch*class_size, hidden*2)
             '''??? add drop out here'''
@@ -440,7 +441,7 @@ class Encoder(BertPreTrainedModel):
             batch_loss = (loss_fct(batch_logits_from_LR.view(-1, self.num_labels), labels.view(-1))+
                         loss_fct(batch_logits_from_NN.view(-1, self.num_labels), labels.view(-1)))
             loss = sample_loss+batch_loss
-            return loss, samples_outputs, sample_logits
+            return loss, samples_outputs
 
         else:
             '''testing'''
@@ -483,7 +484,8 @@ class Encoder(BertPreTrainedModel):
             mlp_input = torch.cat([
             repeat_batch_outputs, repeat_sample_rep,
             # repeat_batch_outputs - repeat_sample_rep,
-            # cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep),
+            cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep),
+            torch.tanh(torch.sum(repeat_batch_outputs*repeat_sample_rep,dim=1, keepdim=True)),
             repeat_batch_outputs*repeat_sample_rep
             ], dim=1) #(batch*class_size, hidden*2)
             '''??? add drop out here'''
@@ -805,8 +807,7 @@ def main():
             nb_tr_examples, nb_tr_steps = 0, 0
             sample_input_ids_each_iter = []
             sample_input_mask_each_iter = []
-            mnli_sample_hidden_list = []
-            mnli_sample_logits_list = []
+
             for step, batch in enumerate(tqdm(MNLI_dataloader, desc="Iteration")):
                 model.train()
                 batch = tuple(t.to(device) for t in batch)
@@ -837,11 +838,9 @@ def main():
                 '''
                 forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None):
                 '''
-                loss, mnli_samples_outputs_i, mnli_sample_logits_i = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs=None, is_train=True)
+                loss, mnli_samples_outputs_i = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs=None, is_train=True)
                 # loss_fct = CrossEntropyLoss()
                 # loss = loss_fct(logits[0].view(-1, num_labels), label_ids.view(-1))
-                mnli_sample_hidden_list.append(mnli_samples_outputs_i[None,:,:])
-                mnli_sample_logits_list.append(mnli_sample_logits_i[None,:,:])
 
 
 
@@ -858,18 +857,18 @@ def main():
                 check_freq = 20
                 if iter_co %check_freq==0:
                     '''first get info from MNLI by sampling'''
-                    # assert len(sample_input_ids_each_iter) == check_freq
-                    # mnli_sample_hidden_list = []
-                    # mnli_sample_logits_list = []
-                    # for ff in range(len(sample_input_ids_each_iter)):
-                    #     model.eval()
-                    #     with torch.no_grad():
-                    #         mnli_sample_hidden_i, mnli_sample_logits_i = model(sample_input_ids_each_iter[ff], None, sample_input_mask_each_iter[ff], sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = None, few_shot_training=False, is_train=False, fetch_hidden_only=True)
-                    #         mnli_sample_hidden_list.append(mnli_sample_hidden_i[None,:,:])
-                    #         mnli_sample_logits_list.append(mnli_sample_logits_i[None,:,:])
-                    # sample_input_ids_each_iter = []
-                    # sample_input_mask_each_iter = []
-                    # '''sum or mean does not make big difference'''
+                    assert len(sample_input_ids_each_iter) == check_freq
+                    mnli_sample_hidden_list = []
+                    mnli_sample_logits_list = []
+                    for ff in range(len(sample_input_ids_each_iter)):
+                        model.eval()
+                        with torch.no_grad():
+                            mnli_sample_hidden_i, mnli_sample_logits_i = model(sample_input_ids_each_iter[ff], None, sample_input_mask_each_iter[ff], sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = None, few_shot_training=False, is_train=False, fetch_hidden_only=True)
+                            mnli_sample_hidden_list.append(mnli_sample_hidden_i[None,:,:])
+                            mnli_sample_logits_list.append(mnli_sample_logits_i[None,:,:])
+                    sample_input_ids_each_iter = []
+                    sample_input_mask_each_iter = []
+                    '''sum or mean does not make big difference'''
                     prior_mnli_samples_outputs = torch.cat(mnli_sample_hidden_list,dim=0)
                     prior_mnli_samples_outputs = torch.mean(prior_mnli_samples_outputs,dim=0)
                     prior_mnli_samples_logits = torch.cat(mnli_sample_logits_list,dim=0)
@@ -979,8 +978,7 @@ def main():
                         '''store the model'''
                         # store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE', str(max_test_acc))
                     print('\nacc_list:', acc_list, ' max_test_acc:', max_test_acc, '\n')
-                    mnli_sample_hidden_list = []
-                    mnli_sample_logits_list = []
+
 
 def array_2_softmax(a):
     for i in range(a.shape[0]):

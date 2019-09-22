@@ -852,7 +852,7 @@ def main():
                 global_step += 1
                 iter_co+=1
                 # print('training loss:', tr_loss/iter_co)
-                check_freq = 5
+                check_freq = 40
                 if iter_co %check_freq==0:
                     '''first get info from MNLI by sampling'''
                     assert len(sample_input_ids_each_iter) == check_freq

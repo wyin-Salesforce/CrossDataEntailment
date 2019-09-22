@@ -852,9 +852,10 @@ def main():
                 global_step += 1
                 iter_co+=1
                 # print('training loss:', tr_loss/iter_co)
-                if iter_co %5==0:
+                check_freq = 5
+                if iter_co %check_freq==0:
                     '''first get info from MNLI by sampling'''
-                    assert len(sample_input_ids_each_iter) == 20
+                    assert len(sample_input_ids_each_iter) == check_freq
                     mnli_sample_hidden_list = []
                     mnli_sample_logits_list = []
                     for ff in range(len(sample_input_ids_each_iter)):

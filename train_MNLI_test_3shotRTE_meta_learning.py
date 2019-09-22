@@ -139,7 +139,7 @@ class RteProcessor(DataProcessor):
                     examples_contra.append(
                         InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
             line_co+=1
-            if line_co > 10000:
+            if line_co > 20000:
                 break
         readfile.close()
         print('loaded  size:', line_co)
@@ -852,7 +852,7 @@ def main():
                 global_step += 1
                 iter_co+=1
                 # print('training loss:', tr_loss/iter_co)
-                if iter_co %20==0:
+                if iter_co %5==0:
                     '''first get info from MNLI by sampling'''
                     assert len(sample_input_ids_each_iter) == 20
                     mnli_sample_hidden_list = []

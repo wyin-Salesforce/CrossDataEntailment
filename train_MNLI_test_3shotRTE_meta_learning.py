@@ -494,7 +494,7 @@ class Encoder(BertPreTrainedModel):
             # group_scores = torch.tanh(self.mlp_2((torch.tanh(mlp_input))))#(9*batch_size, 1)
             # print('group_scores:',group_scores)
 
-            similarity_matrix = group_scores_with_simi.reshape(batch_size, samples_outputs.shape[0])+self.bias_on_samples
+            similarity_matrix = group_scores_with_simi.reshape(batch_size, samples_outputs.shape[0])+self.bias_on_samples.repeat(1,2)
 
             if prior_samples_logits is None:
                 sample_logits = torch.cuda.FloatTensor(9, 3).fill_(0)

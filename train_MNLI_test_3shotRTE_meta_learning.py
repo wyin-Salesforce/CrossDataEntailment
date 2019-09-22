@@ -19,6 +19,7 @@ from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm, trange
 import torch.nn as nn
 from torch.nn import CrossEntropyLoss, MSELoss
+from torch.nn.parameter import Parameter
 from scipy.special import softmax
 from scipy.stats import pearsonr, spearmanr
 from sklearn.metrics import matthews_corrcoef, f1_score
@@ -362,7 +363,8 @@ class Encoder(BertPreTrainedModel):
         self.classifier = RobertaClassificationHead(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.mlp_1 = nn.Linear(config.hidden_size*3, config.hidden_size)
-        self.mlp_2 = nn.Linear(config.hidden_size, 1, bias=True)
+        self.mlp_2 = nn.Linear(config.hidden_size, 1, bias=False)
+        self.bias_on_samples = Parameter(torch.Tensor(1,9))
         # self.init_weights()
         # self.apply(self.init_bert_weights)
     def forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None, sample_labels=None, prior_samples_outputs=None, prior_samples_logits = None, few_shot_training=False, is_train = True, fetch_hidden_only=False):
@@ -427,7 +429,7 @@ class Encoder(BertPreTrainedModel):
             # group_scores = torch.tanh(self.mlp_2((torch.tanh(mlp_input))))#(9*batch_size, 1)
             # print('group_scores:',group_scores)
 
-            similarity_matrix = group_scores_with_simi.reshape(batch_size, samples_outputs.shape[0])
+            similarity_matrix = group_scores_with_simi.reshape(batch_size, samples_outputs.shape[0])+self.bias_on_samples
             '''???note that the softmax will make the resulting logits smaller than LR'''
             batch_logits_from_NN = torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits) #(batch, 3)
             '''???use each of the logits for loss compute'''
@@ -492,7 +494,7 @@ class Encoder(BertPreTrainedModel):
             # group_scores = torch.tanh(self.mlp_2((torch.tanh(mlp_input))))#(9*batch_size, 1)
             # print('group_scores:',group_scores)
 
-            similarity_matrix = group_scores_with_simi.reshape(batch_size, samples_outputs.shape[0])
+            similarity_matrix = group_scores_with_simi.reshape(batch_size, samples_outputs.shape[0])+self.bias_on_samples
 
             if prior_samples_logits is None:
                 sample_logits = torch.cuda.FloatTensor(9, 3).fill_(0)

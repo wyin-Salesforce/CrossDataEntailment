@@ -188,6 +188,30 @@ class RteProcessor(DataProcessor):
         print('loaded  size:', line_co-1)
         return examples_entail, examples_neutral, examples_contra
 
+    def get_RTE_as_dev(self, filename):
+        '''
+        can read the training file, dev and test file
+        '''
+        examples=[]
+        readfile = codecs.open(filename, 'r', 'utf-8')
+        line_co=0
+        for row in readfile:
+            if line_co>0:
+                line=row.strip().split('\t')
+                guid = "dev-"+str(line_co-1)
+                text_a = line[1].strip()
+                text_b = line[2].strip()
+                # label = line[3].strip() #["entailment", "not_entailment"]
+                label = 'entailment'  if line[3] == 'entailment' else 'neutral'
+                examples.append(
+                    InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+            line_co+=1
+            # if line_co > 20000:
+            #     break
+        readfile.close()
+        print('loaded  size:', line_co-1)
+        return examples
+
     def get_RTE_as_test(self, filename):
         readfile = codecs.open(filename, 'r', 'utf-8')
         line_co=0
@@ -710,6 +734,7 @@ def main():
     nb_tr_steps = 0
     tr_loss = 0
     max_test_acc = 0.0
+    max_dev_acc = 0.0
     if args.do_train:
         train_features = convert_examples_to_features(
             train_examples_entail + train_examples_neutral + train_examples_contra,
@@ -749,6 +774,28 @@ def main():
         eval_all_label_ids_shot = torch.tensor([f.label_id for f in eval_features_shot], dtype=torch.long)
 
         '''load dev set'''
+        dev_examples = processor.get_RTE_as_dev('/export/home/Dataset/glue_data/RTE/dev.tsv')
+        dev_features = convert_examples_to_features(
+            dev_examples, label_list, args.max_seq_length, tokenizer, output_mode,
+            cls_token_at_end=False,#bool(args.model_type in ['xlnet']),            # xlnet has a cls token at the end
+            cls_token=tokenizer.cls_token,
+            cls_token_segment_id=0,#2 if args.model_type in ['xlnet'] else 0,
+            sep_token=tokenizer.sep_token,
+            sep_token_extra=True,#bool(args.model_type in ['roberta']),           # roberta uses an extra separator b/w pairs of sentences, cf. github.com/pytorch/fairseq/commit/1684e166e3da03f5b600dbb7855cb98ddfcd0805
+            pad_on_left=False,#bool(args.model_type in ['xlnet']),                 # pad on the left for xlnet
+            pad_token=tokenizer.convert_tokens_to_ids([tokenizer.pad_token])[0],
+            pad_token_segment_id=0)#4 if args.model_type in ['xlnet'] else 0,)
+
+        dev_all_input_ids = torch.tensor([f.input_ids for f in dev_features], dtype=torch.long)
+        dev_all_input_mask = torch.tensor([f.input_mask for f in dev_features], dtype=torch.long)
+        dev_all_segment_ids = torch.tensor([f.segment_ids for f in dev_features], dtype=torch.long)
+        dev_all_label_ids = torch.tensor([f.label_id for f in dev_features], dtype=torch.long)
+
+        dev_data = TensorDataset(dev_all_input_ids, dev_all_input_mask, dev_all_segment_ids, dev_all_label_ids)
+        dev_sampler = SequentialSampler(dev_data)
+        dev_dataloader = DataLoader(dev_data, sampler=dev_sampler, batch_size=args.eval_batch_size)
+
+        '''load test set'''
         eval_examples = processor.get_RTE_as_test('/export/home/Dataset/RTE/test_RTE_1235.txt')
         eval_features = convert_examples_to_features(
             eval_examples, label_list, args.max_seq_length, tokenizer, output_mode,
@@ -884,98 +931,105 @@ def main():
                     start evaluate on dev set after this epoch
                     '''
                     model.eval()
-
-                    logger.info("***** Running evaluation *****")
-                    logger.info("  Num examples = %d", len(eval_examples))
-                    logger.info("  Batch size = %d", args.eval_batch_size)
-
-                    eval_loss = 0
-                    nb_eval_steps = 0
-                    preds = []
-                    preds_LR= []
-                    preds_NN = []
-                    gold_label_ids = []
-                    print('Evaluating...')
-                    for input_ids, input_mask, segment_ids, label_ids in eval_dataloader:
-                        input_ids = input_ids.to(device)
-                        input_mask = input_mask.to(device)
-                        segment_ids = segment_ids.to(device)
-                        label_ids = label_ids.to(device)
-                        gold_label_ids+=list(label_ids.detach().cpu().numpy())
-
-                        all_input_ids = torch.cat([eval_all_input_ids_shot.to(device),input_ids],dim=0)
-                        all_input_mask = torch.cat([eval_all_input_mask_shot.to(device),input_mask], dim=0)
-
-
-                        with torch.no_grad():
-                            logits_LR, logits_NN, logits = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = prior_mnli_samples_outputs, prior_samples_logits = prior_mnli_samples_logits, is_train=False)
-                        # logits = logits[0]
-
-                        # loss_fct = CrossEntropyLoss()
-                        # tmp_eval_loss = loss_fct(logits.view(-1, num_labels), label_ids.view(-1))
-
-                        # eval_loss += tmp_eval_loss.mean().item()
-                        nb_eval_steps += 1
-                        if len(preds) == 0:
-                            preds.append(logits.detach().cpu().numpy())
-                            preds_LR.append(logits_LR.detach().cpu().numpy())
-                            preds_NN.append(logits_NN.detach().cpu().numpy())
+                    for idd, dev_or_test_dataloader in enumerate([dev_dataloader, eval_dataloader]):
+                        logger.info("***** Running evaluation *****")
+                        if idd == 0:
+                            logger.info("  Num examples = %d", len(dev_examples))
                         else:
-                            preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
-                            preds_LR[0] = np.append(preds_LR[0], logits_LR.detach().cpu().numpy(), axis=0)
-                            preds_NN[0] = np.append(preds_NN[0], logits_NN.detach().cpu().numpy(), axis=0)
+                            logger.info("  Num examples = %d", len(eval_examples))
+                        logger.info("  Batch size = %d", args.eval_batch_size)
 
-                    # eval_loss = eval_loss / nb_eval_steps
-                    preds = preds[0]
-                    preds_LR = preds_LR[0]
-                    preds_NN = preds_NN[0]
+                        eval_loss = 0
+                        nb_eval_steps = 0
+                        preds = []
+                        preds_LR= []
+                        preds_NN = []
+                        gold_label_ids = []
+                        print('Evaluating...')
+                        for input_ids, input_mask, segment_ids, label_ids in dev_or_test_dataloader:
+                            input_ids = input_ids.to(device)
+                            input_mask = input_mask.to(device)
+                            segment_ids = segment_ids.to(device)
+                            label_ids = label_ids.to(device)
+                            gold_label_ids+=list(label_ids.detach().cpu().numpy())
 
-                    '''
-                    preds: size*3 ["entailment", "neutral", "contradiction"]
-                    wenpeng added a softxmax so that each row is a prob vec
-                    '''
-                    acc_list = []
-                    for preds_i in [preds_LR, preds_NN, preds]:
-                        pred_probs = softmax(preds_i,axis=1)
-                        pred_indices = np.argmax(pred_probs, axis=1)
-                        pred_label_ids = []
-                        for p in pred_indices:
-                            pred_label_ids.append(0 if p == 0 else 1)
-                        gold_label_ids = gold_label_ids
-                        assert len(pred_label_ids) == len(gold_label_ids)
+                            all_input_ids = torch.cat([eval_all_input_ids_shot.to(device),input_ids],dim=0)
+                            all_input_mask = torch.cat([eval_all_input_mask_shot.to(device),input_mask], dim=0)
+
+
+                            with torch.no_grad():
+                                logits_LR, logits_NN, logits = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = prior_mnli_samples_outputs, prior_samples_logits = prior_mnli_samples_logits, is_train=False)
+
+                            nb_eval_steps += 1
+                            if len(preds) == 0:
+                                preds.append(logits.detach().cpu().numpy())
+                                preds_LR.append(logits_LR.detach().cpu().numpy())
+                                preds_NN.append(logits_NN.detach().cpu().numpy())
+                            else:
+                                preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
+                                preds_LR[0] = np.append(preds_LR[0], logits_LR.detach().cpu().numpy(), axis=0)
+                                preds_NN[0] = np.append(preds_NN[0], logits_NN.detach().cpu().numpy(), axis=0)
+
+                        preds = preds[0]
+                        preds_LR = preds_LR[0]
+                        preds_NN = preds_NN[0]
+
+                        '''
+                        preds: size*3 ["entailment", "neutral", "contradiction"]
+                        wenpeng added a softxmax so that each row is a prob vec
+                        '''
+                        acc_list = []
+                        for preds_i in [preds_LR, preds_NN, preds]:
+                            pred_probs = softmax(preds_i,axis=1)
+                            pred_indices = np.argmax(pred_probs, axis=1)
+                            pred_label_ids = []
+                            for p in pred_indices:
+                                pred_label_ids.append(0 if p == 0 else 1)
+                            gold_label_ids = gold_label_ids
+                            assert len(pred_label_ids) == len(gold_label_ids)
+                            hit_co = 0
+                            for k in range(len(pred_label_ids)):
+                                if pred_label_ids[k] == gold_label_ids[k]:
+                                    hit_co +=1
+                            test_acc = hit_co/len(gold_label_ids)
+
+                            acc_list.append(test_acc)
+
+
+                        softmax_LR = array_2_softmax(preds_LR)
+                        softmax_NN = array_2_softmax(preds_NN)
+                        preds_ensemble = []
+                        for i in range(softmax_LR.shape[0]):
+                            if softmax_LR[i][0] > softmax_LR[i][1] and softmax_NN[i][0] > softmax_NN[i][1]:
+                                preds_ensemble.append(0)
+                            elif softmax_LR[i][0] < softmax_LR[i][1] and softmax_NN[i][0] < softmax_NN[i][1]:
+                                preds_ensemble.append(1)
+                            elif softmax_LR[i][0] > softmax_LR[i][1] and softmax_LR[i][0] > softmax_NN[i][1]:
+                                preds_ensemble.append(0)
+                            else:
+                                preds_ensemble.append(1)
                         hit_co = 0
-                        for k in range(len(pred_label_ids)):
-                            if pred_label_ids[k] == gold_label_ids[k]:
+                        for k in range(len(preds_ensemble)):
+                            if preds_ensemble[k] == gold_label_ids[k]:
                                 hit_co +=1
                         test_acc = hit_co/len(gold_label_ids)
-
                         acc_list.append(test_acc)
 
 
-                    softmax_LR = array_2_softmax(preds_LR)
-                    softmax_NN = array_2_softmax(preds_NN)
-                    preds_ensemble = []
-                    for i in range(softmax_LR.shape[0]):
-                        if softmax_LR[i][0] > softmax_LR[i][1] and softmax_NN[i][0] > softmax_NN[i][1]:
-                            preds_ensemble.append(0)
-                        elif softmax_LR[i][0] < softmax_LR[i][1] and softmax_NN[i][0] < softmax_NN[i][1]:
-                            preds_ensemble.append(1)
-                        elif softmax_LR[i][0] > softmax_LR[i][1] and softmax_LR[i][0] > softmax_NN[i][1]:
-                            preds_ensemble.append(0)
-                        else:
-                            preds_ensemble.append(1)
-                    hit_co = 0
-                    for k in range(len(preds_ensemble)):
-                        if preds_ensemble[k] == gold_label_ids[k]:
-                            hit_co +=1
-                    test_acc = hit_co/len(gold_label_ids)
-                    acc_list.append(test_acc)
-                    # print('acc_list:', acc_list)
-                    if acc_list[-1] > max_test_acc:
-                        max_test_acc = acc_list[-1]
-                        '''store the model'''
-                        # store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE', str(max_test_acc))
-                    print('\nacc_list:', acc_list, ' max_test_acc:', max_test_acc, '\n')
+                        if idd == 0: # this is dev
+                            if acc_list[-1] > max_dev_acc:
+                                max_dev_acc = acc_list[-1]
+                                print('\nacc_list:', acc_list, ' max_dev_acc:', max_dev_acc, '\n')
+                                '''store the model'''
+                                # store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE', str(max_dev_acc))
+
+                            else:
+                                print('\nacc_list:', acc_list, ' max_dev_acc:', max_dev_acc, '\n')
+                                break
+                        else: # this is test
+                            if acc_list[-1] > max_test_acc:
+                                max_test_acc = acc_list[-1]
+                            print('\nacc_list:', acc_list, ' max_test_acc:', max_test_acc, '\n')
 
 
 def array_2_softmax(a):

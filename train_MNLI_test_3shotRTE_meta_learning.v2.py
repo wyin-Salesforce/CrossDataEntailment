@@ -853,32 +853,32 @@ def main():
             sample_input_ids_each_iter = []
             sample_input_mask_each_iter = []
 
+            mnli_entail_batch = get_a_random_batch_from_dataloader(MNLI_entail_dataloader, 3)
+            mnli_entail_batch_input_ids, mnli_entail_batch_input_mask, mnli_entail_batch_segment_ids, mnli_entail_batch_label_ids = tuple(t.to(device) for t in mnli_entail_batch) #mnli_entail_batch
+
+            mnli_neutra_batch = get_a_random_batch_from_dataloader(MNLI_neutra_dataloader, 3)
+            mnli_neutra_batch_input_ids, mnli_neutra_batch_input_mask, mnli_neutra_batch_segment_ids, mnli_neutra_batch_label_ids = tuple(t.to(device) for t in mnli_neutra_batch) #mnli_neutra_batch
+
+            mnli_contra_batch = get_a_random_batch_from_dataloader(MNLI_contra_dataloader, 3)
+            mnli_contra_batch_input_ids, mnli_contra_batch_input_mask, mnli_contra_batch_segment_ids, mnli_contra_batch_label_ids = tuple(t.to(device) for t in mnli_contra_batch) #mnli_contra_batch
+
+            sample_input_ids_i = torch.cat([mnli_entail_batch_input_ids,mnli_neutra_batch_input_ids,mnli_contra_batch_input_ids],dim=0)
+            sample_input_ids_each_iter.append(sample_input_ids_i)
+
+            sample_input_mask_i = torch.cat([mnli_entail_batch_input_mask,mnli_neutra_batch_input_mask,mnli_contra_batch_input_mask], dim=0)
+            sample_input_mask_each_iter.append(sample_input_mask_i)
+
             for step, batch in enumerate(tqdm(MNLI_dataloader, desc="Iteration")):
                 model.train()
                 batch = tuple(t.to(device) for t in batch)
                 input_ids, input_mask, segment_ids, label_ids = batch
                 assert input_ids.shape[0] == args.train_batch_size
 
-                mnli_entail_batch = get_a_random_batch_from_dataloader(MNLI_entail_dataloader, 3)
-                # print('random batch len:', len(mnli_entail_batch[0]))
-                mnli_entail_batch_input_ids, mnli_entail_batch_input_mask, mnli_entail_batch_segment_ids, mnli_entail_batch_label_ids = tuple(t.to(device) for t in mnli_entail_batch) #mnli_entail_batch
-                # print('sample entail:', mnli_entail_batch_input_ids.shape[0], mnli_entail_batch_label_ids.shape, mnli_entail_batch_label_ids)
 
-                mnli_neutra_batch = get_a_random_batch_from_dataloader(MNLI_neutra_dataloader, 3)
-                mnli_neutra_batch_input_ids, mnli_neutra_batch_input_mask, mnli_neutra_batch_segment_ids, mnli_neutra_batch_label_ids = tuple(t.to(device) for t in mnli_neutra_batch) #mnli_neutra_batch
-                # print('sample neutra:', mnli_neutra_batch_input_ids.shape[0], mnli_neutra_batch_label_ids.shape, mnli_neutra_batch_label_ids)
 
-                mnli_contra_batch = get_a_random_batch_from_dataloader(MNLI_contra_dataloader, 3)
-                mnli_contra_batch_input_ids, mnli_contra_batch_input_mask, mnli_contra_batch_segment_ids, mnli_contra_batch_label_ids = tuple(t.to(device) for t in mnli_contra_batch) #mnli_contra_batch
-                # print('sample contra:', mnli_contra_batch_input_ids.shape[0], mnli_contra_batch_label_ids.shape, mnli_contra_batch_label_ids)
-
-                sample_input_ids_i = torch.cat([mnli_entail_batch_input_ids,mnli_neutra_batch_input_ids,mnli_contra_batch_input_ids],dim=0)
-                sample_input_ids_each_iter.append(sample_input_ids_i)
                 all_input_ids = torch.cat([sample_input_ids_i,input_ids],dim=0)
                 assert all_input_ids.shape[0] == args.train_batch_size+9
-                sample_input_mask_i = torch.cat([mnli_entail_batch_input_mask,mnli_neutra_batch_input_mask,mnli_contra_batch_input_mask], dim=0)
-                sample_input_mask_each_iter.append(sample_input_mask_i)
-                all_input_mask = torch.cat([mnli_entail_batch_input_mask,mnli_neutra_batch_input_mask,mnli_contra_batch_input_mask,input_mask], dim=0)
+                all_input_mask = torch.cat([sample_input_mask_i,input_mask], dim=0)
 
                 '''
                 forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None):

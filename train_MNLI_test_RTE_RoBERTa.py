@@ -560,7 +560,7 @@ def main():
             pad_token_segment_id=0)#4 if args.model_type in ['xlnet'] else 0,)
 
         '''load dev set'''
-        dev_examples = processor.get_RTE_as_dev('/export/home/Dataset/glue_data/RTE/dev.txt')
+        dev_examples = processor.get_RTE_as_dev('/export/home/Dataset/glue_data/RTE/dev.tsv')
         dev_features = convert_examples_to_features(
             dev_examples, label_list, args.max_seq_length, tokenizer, output_mode,
             cls_token_at_end=False,#bool(args.model_type in ['xlnet']),            # xlnet has a cls token at the end

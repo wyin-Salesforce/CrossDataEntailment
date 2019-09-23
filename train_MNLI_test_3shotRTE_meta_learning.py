@@ -902,7 +902,7 @@ def main():
                 check_freq = 20
                 if iter_co %check_freq==0:
                     '''first get info from MNLI by sampling'''
-                    assert len(sample_input_ids_each_iter) == check_freq
+                    # assert len(sample_input_ids_each_iter) == check_freq
                     mnli_sample_hidden_list = []
                     mnli_sample_logits_list = []
                     for ff in range(len(sample_input_ids_each_iter)):
@@ -911,8 +911,8 @@ def main():
                             mnli_sample_hidden_i, mnli_sample_logits_i = model(sample_input_ids_each_iter[ff], None, sample_input_mask_each_iter[ff], sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = None, few_shot_training=False, is_train=False, fetch_hidden_only=True)
                             mnli_sample_hidden_list.append(mnli_sample_hidden_i[None,:,:])
                             mnli_sample_logits_list.append(mnli_sample_logits_i[None,:,:])
-                    sample_input_ids_each_iter = []
-                    sample_input_mask_each_iter = []
+                    # sample_input_ids_each_iter = []
+                    # sample_input_mask_each_iter = []
                     '''sum or mean does not make big difference'''
                     prior_mnli_samples_outputs = torch.cat(mnli_sample_hidden_list,dim=0)
                     prior_mnli_samples_outputs = torch.mean(prior_mnli_samples_outputs,dim=0)

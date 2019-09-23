@@ -139,8 +139,8 @@ class RteProcessor(DataProcessor):
                     examples_contra.append(
                         InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
             line_co+=1
-            if line_co > 20000:
-                break
+            # if line_co > 20000:
+            #     break
         readfile.close()
         print('loaded  size:', line_co)
         return examples_entail, examples_neutral, examples_contra
@@ -1019,17 +1019,17 @@ def main():
                         if idd == 0: # this is dev
                             if acc_list[-1] > max_dev_acc:
                                 max_dev_acc = acc_list[-1]
-                                print('\nacc_list:', acc_list, ' max_dev_acc:', max_dev_acc, '\n')
+                                print('\ndev acc_list:', acc_list, ' max_dev_acc:', max_dev_acc, '\n')
                                 '''store the model'''
                                 # store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE', str(max_dev_acc))
 
                             else:
-                                print('\nacc_list:', acc_list, ' max_dev_acc:', max_dev_acc, '\n')
+                                print('\ndev acc_list:', acc_list, ' max_dev_acc:', max_dev_acc, '\n')
                                 break
                         else: # this is test
                             if acc_list[-1] > max_test_acc:
                                 max_test_acc = acc_list[-1]
-                            print('\nacc_list:', acc_list, ' max_test_acc:', max_test_acc, '\n')
+                            print('\ntest acc_list:', acc_list, ' max_test_acc:', max_test_acc, '\n')
 
 
 def array_2_softmax(a):

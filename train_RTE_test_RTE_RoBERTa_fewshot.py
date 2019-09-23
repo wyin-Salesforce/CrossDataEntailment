@@ -151,7 +151,7 @@ class RteProcessor(DataProcessor):
                 text_a = line[1].strip()
                 text_b = line[2].strip()
                 label = line[3].strip() #["entailment", "not_entailment"]
-                if class2size.get(label, 0) < 1:
+                if class2size.get(label, 0) < 8:
                     examples.append(
                         InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
                     class2size[label]+=1

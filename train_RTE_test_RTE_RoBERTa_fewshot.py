@@ -729,12 +729,20 @@ def main():
                                 hit_co +=1
                         test_acc = hit_co/len(gold_label_ids)
 
-                        # test_acc = mean_f1#result.get("f1")
-                        if test_acc > max_test_acc:
-                            max_test_acc = test_acc
-                            '''store the model'''
-                            store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/3shotRTE', str(max_test_acc))
-                        print('\ntest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
+                        if idd == 0: # this is dev
+                            if test_acc > max_dev_acc:
+                                max_dev_acc = test_acc
+                                print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
+                                '''store the model'''
+                                store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/3shotRTE', str(max_dev_acc))
+
+                            else:
+                                print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
+                                break
+                        else: # this is test
+                            if test_acc > max_test_acc:
+                                max_test_acc = test_acc
+                            print('\ntest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
 
 
 

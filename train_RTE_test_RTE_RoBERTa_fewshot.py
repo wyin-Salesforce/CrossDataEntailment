@@ -734,7 +734,7 @@ def main():
                                 max_dev_acc = test_acc
                                 print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
                                 '''store the model'''
-                                store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/3shotRTE', str(max_dev_acc))
+                                # store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/3shotRTE', str(max_dev_acc))
 
                             else:
                                 print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')

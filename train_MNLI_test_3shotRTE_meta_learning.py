@@ -1017,8 +1017,8 @@ def main():
 
 
                         if idd == 0: # this is dev
-                            if acc_list[1] > max_dev_acc:
-                                max_dev_acc = 0.5*(acc_list[1]+max_dev_acc)
+                            if max(acc_list) > max_dev_acc:
+                                max_dev_acc = 0.5*(max(acc_list)+max_dev_acc)
                                 print('\ndev acc_list:', acc_list, ' max_dev_acc:', max_dev_acc, '\n')
                                 '''store the model'''
                                 # store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE', str(max_dev_acc))
@@ -1027,8 +1027,8 @@ def main():
                                 print('\ndev acc_list:', acc_list, ' max_dev_acc:', max_dev_acc, '\n')
                                 break
                         else: # this is test
-                            if acc_list[1] > max_test_acc:
-                                max_test_acc = acc_list[1]
+                            if acc_list[-1] > max_test_acc:
+                                max_test_acc = acc_list[-1]
                             print('\ntest acc_list:', acc_list, ' max_test_acc:', max_test_acc, '\n')
 
 

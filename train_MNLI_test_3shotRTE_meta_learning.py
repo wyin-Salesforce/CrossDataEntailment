@@ -518,14 +518,14 @@ class Encoder(BertPreTrainedModel):
 
             similarity_matrix = group_scores_with_simi.reshape(batch_size, samples_outputs.shape[0])
 
-            if prior_samples_logits is None:
+            if prior_samples_logits is not None:
                 sample_logits = torch.cuda.FloatTensor(9, 3).fill_(0)
                 sample_logits[torch.arange(0, 9).long(), sample_labels] = 1.0
-                # sample_logits = sample_logits.repeat(2,1)
+                sample_logits = sample_logits.repeat(2,1)
             else:
                 '''the results now that using LR predicted logits is better'''
                 sample_logits = prior_samples_logits
-            sample_logits = torch.cat([sample_logits, LR_logits[:sample_size*class_size,:]],dim=0)
+                sample_logits = torch.cat([sample_logits, LR_logits[:sample_size*class_size,:]],dim=0)
             batch_logits_from_NN = nn.Softmax(dim=1)(torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits)) #(batch, 3)
             # print('batch_logits_from_LR:',batch_logits_from_LR)
             # print('batch_logits_from_NN:', batch_logits_from_NN)

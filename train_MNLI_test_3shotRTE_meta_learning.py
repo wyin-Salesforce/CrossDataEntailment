@@ -464,9 +464,9 @@ class Encoder(BertPreTrainedModel):
             '''??? add bias here'''
 
             '''This criterion combines :func:`nn.LogSoftmax` and :func:`nn.NLLLoss` in one single class.'''
-            # batch_loss = (loss_fct(batch_logits_from_LR.view(-1, self.num_labels), labels.view(-1))+
-            #             loss_fct(batch_logits_from_NN.view(-1, self.num_labels), labels.view(-1)))
-            loss = sample_loss+batch_loss
+            batch_loss_fine_grained = (loss_fct(batch_logits_from_LR.view(-1, self.num_labels), labels.view(-1))+
+                        loss_fct(batch_logits_from_NN.view(-1, self.num_labels), labels.view(-1)))
+            loss = sample_loss+batch_loss+batch_loss_fine_grained
             return loss, samples_outputs
 
         else:

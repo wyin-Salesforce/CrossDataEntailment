@@ -139,8 +139,8 @@ class RteProcessor(DataProcessor):
                     examples_contra.append(
                         InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
             line_co+=1
-            # if line_co > 20000:
-            #     break
+            if line_co > 20000:
+                break
         readfile.close()
         print('loaded  size:', line_co)
         return examples_entail, examples_neutral, examples_contra
@@ -397,7 +397,7 @@ class Encoder(BertPreTrainedModel):
         '''
         # print('input_ids shape0 :', input_ids.shape[0])
         outputs = self.roberta(input_ids, token_type_ids, attention_mask) #(batch, max_len, hidden_size)
-        pooled_outputs = outputs[1] #(batch, hidden_size)
+        pooled_outputs = torch.mean(outputs[0],dim=1)#outputs[1] #(batch, hidden_size)
         LR_logits = self.classifier(pooled_outputs) #(9+batch, 3)
         if is_train:
 
@@ -626,7 +626,7 @@ def main():
                         help="local_rank for distributed training on gpus")
     parser.add_argument('--seed',
                         type=int,
-                        default=64,
+                        default=32,
                         help="random seed for initialization")
     parser.add_argument('--gradient_accumulation_steps',
                         type=int,

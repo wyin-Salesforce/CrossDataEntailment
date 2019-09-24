@@ -387,6 +387,7 @@ class Encoder(BertPreTrainedModel):
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.mlp_1 = nn.Linear(config.hidden_size*3, config.hidden_size)
         self.mlp_2 = nn.Linear(config.hidden_size, 1, bias=False)
+        self.ensemble_classifier = nn.Linear(6,3)
         # self.init_weights()
         # self.apply(self.init_bert_weights)
     def forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None, sample_labels=None, prior_samples_outputs=None, prior_samples_logits = None, few_shot_training=False, is_train = True, fetch_hidden_only=False):
@@ -397,7 +398,7 @@ class Encoder(BertPreTrainedModel):
         '''
         # print('input_ids shape0 :', input_ids.shape[0])
         outputs = self.roberta(input_ids, token_type_ids, attention_mask) #(batch, max_len, hidden_size)
-        pooled_outputs = torch.max(outputs[0],dim=1)[0]+ outputs[1]#outputs[1]#torch.mean(outputs[0],dim=1)#outputs[1] #(batch, hidden_size)
+        pooled_outputs = outputs[1]#torch.max(outputs[0],dim=1)[0]+ outputs[1]#outputs[1]#torch.mean(outputs[0],dim=1)#outputs[1] #(batch, hidden_size)
         LR_logits = self.classifier(pooled_outputs) #(9+batch, 3)
         if is_train:
 
@@ -457,12 +458,13 @@ class Encoder(BertPreTrainedModel):
             '''???use each of the logits for loss compute'''
             batch_logits = batch_logits_from_LR+batch_logits_from_NN
 
-
+            batch_logits = self.ensemble_classifier(torch.cat([batch_logits_from_LR,batch_logits_from_NN],dim=1)) #(batch, 3)
+            batch_loss = loss_fct(batch_logits.view(-1, self.num_labels), labels.view(-1))
             '''??? add bias here'''
 
             '''This criterion combines :func:`nn.LogSoftmax` and :func:`nn.NLLLoss` in one single class.'''
-            batch_loss = (loss_fct(batch_logits_from_LR.view(-1, self.num_labels), labels.view(-1))+
-                        loss_fct(batch_logits_from_NN.view(-1, self.num_labels), labels.view(-1)))
+            # batch_loss = (loss_fct(batch_logits_from_LR.view(-1, self.num_labels), labels.view(-1))+
+            #             loss_fct(batch_logits_from_NN.view(-1, self.num_labels), labels.view(-1)))
             loss = sample_loss+batch_loss
             return loss, samples_outputs
 
@@ -529,7 +531,8 @@ class Encoder(BertPreTrainedModel):
             batch_logits_from_NN = nn.Softmax(dim=1)(torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits)) #(batch, 3)
             # print('batch_logits_from_LR:',batch_logits_from_LR)
             # print('batch_logits_from_NN:', batch_logits_from_NN)
-            logits = batch_logits_from_LR+batch_logits_from_NN
+            # logits = batch_logits_from_LR+batch_logits_from_NN
+            logits = self.ensemble_classifier(torch.cat([batch_logits_from_LR,batch_logits_from_NN],dim=1))
             return batch_logits_from_LR, batch_logits_from_NN, logits
 
 
@@ -626,7 +629,7 @@ def main():
                         help="local_rank for distributed training on gpus")
     parser.add_argument('--seed',
                         type=int,
-                        default=32,
+                        default=42,
                         help="random seed for initialization")
     parser.add_argument('--gradient_accumulation_steps',
                         type=int,

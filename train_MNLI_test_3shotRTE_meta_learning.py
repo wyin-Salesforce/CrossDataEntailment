@@ -454,7 +454,7 @@ class Encoder(BertPreTrainedModel):
 
             similarity_matrix = group_scores_with_simi.reshape(batch_size, samples_outputs.shape[0])
             '''???note that the softmax will make the resulting logits smaller than LR'''
-            batch_logits_from_NN = torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits) #(batch, 3)
+            batch_logits_from_NN = torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits)+self.classifier.out_proj.bias #(batch, 3)
             '''???use each of the logits for loss compute'''
             # batch_logits = batch_logits_from_LR+batch_logits_from_NN
             logits_w = nn.Sigmoid()(self.ensemble_classifier(torch.cat([batch_logits_from_LR,batch_logits_from_NN],dim=1)))
@@ -529,7 +529,7 @@ class Encoder(BertPreTrainedModel):
                 '''the results now that using LR predicted logits is better'''
                 sample_logits = prior_samples_logits
             sample_logits = torch.cat([sample_logits, LR_logits[:sample_size*class_size,:]],dim=0)
-            batch_logits_from_NN = nn.Softmax(dim=1)(torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits)) #(batch, 3)
+            batch_logits_from_NN = nn.Softmax(dim=1)(torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits))+self.classifier.out_proj.bias #(batch, 3)
             # print('batch_logits_from_LR:',batch_logits_from_LR)
             # print('batch_logits_from_NN:', batch_logits_from_NN)
             # logits = batch_logits_from_LR+batch_logits_from_NN

@@ -456,9 +456,10 @@ class Encoder(BertPreTrainedModel):
             '''???note that the softmax will make the resulting logits smaller than LR'''
             batch_logits_from_NN = torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits) #(batch, 3)
             '''???use each of the logits for loss compute'''
-            batch_logits = batch_logits_from_LR+batch_logits_from_NN
+            # batch_logits = batch_logits_from_LR+batch_logits_from_NN
+            logits_w = nn.Sigmoid()(self.ensemble_classifier(torch.cat([batch_logits_from_LR,batch_logits_from_NN],dim=1)))
 
-            batch_logits = batch_logits+self.ensemble_classifier(torch.cat([batch_logits_from_LR,batch_logits_from_NN],dim=1)) #(batch, 3)
+            batch_logits = batch_logits_from_LR*logits_w+(1-logits_w)*batch_logits_from_NN
             batch_loss = loss_fct(batch_logits.view(-1, self.num_labels), labels.view(-1))
             '''??? add bias here'''
 
@@ -531,8 +532,13 @@ class Encoder(BertPreTrainedModel):
             batch_logits_from_NN = nn.Softmax(dim=1)(torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits)) #(batch, 3)
             # print('batch_logits_from_LR:',batch_logits_from_LR)
             # print('batch_logits_from_NN:', batch_logits_from_NN)
-            logits = batch_logits_from_LR+batch_logits_from_NN
-            logits = logits+self.ensemble_classifier(torch.cat([batch_logits_from_LR,batch_logits_from_NN],dim=1))
+            # logits = batch_logits_from_LR+batch_logits_from_NN
+
+            logits_w = nn.Sigmoid()(self.ensemble_classifier(torch.cat([batch_logits_from_LR,batch_logits_from_NN],dim=1)))
+
+            logits = batch_logits_from_LR*logits_w+(1-logits_w)*batch_logits_from_NN
+
+            # logits = logits+self.ensemble_classifier(torch.cat([batch_logits_from_LR,batch_logits_from_NN],dim=1))
             return batch_logits_from_LR, batch_logits_from_NN, logits
 
 

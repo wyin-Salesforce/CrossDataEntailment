@@ -607,7 +607,7 @@ def main():
                         type=int,
                         help="Total batch size for eval.")
     parser.add_argument("--learning_rate",
-                        default=2e-5,
+                        default=1e-5,
                         type=float,
                         help="The initial learning rate for Adam.")
     parser.add_argument("--num_train_epochs",
@@ -862,19 +862,16 @@ def main():
                 input_ids, input_mask, segment_ids, label_ids = batch
                 assert input_ids.shape[0] == args.train_batch_size
 
-                # mnli_entail_batch = get_a_random_batch_from_dataloader(MNLI_entail_dataloader, 3)
-                mnli_entail_batch = MNLI_entail_dataloader[step%(len(MNLI_entail_dataloader))]
+                mnli_entail_batch = get_a_random_batch_from_dataloader(MNLI_entail_dataloader, 3)
                 # print('random batch len:', len(mnli_entail_batch[0]))
                 mnli_entail_batch_input_ids, mnli_entail_batch_input_mask, mnli_entail_batch_segment_ids, mnli_entail_batch_label_ids = tuple(t.to(device) for t in mnli_entail_batch) #mnli_entail_batch
                 # print('sample entail:', mnli_entail_batch_input_ids.shape[0], mnli_entail_batch_label_ids.shape, mnli_entail_batch_label_ids)
 
-                # mnli_neutra_batch = get_a_random_batch_from_dataloader(MNLI_neutra_dataloader, 3)
-                mnli_neutra_batch = MNLI_neutra_dataloader[step%(len(MNLI_neutra_dataloader))]
+                mnli_neutra_batch = get_a_random_batch_from_dataloader(MNLI_neutra_dataloader, 3)
                 mnli_neutra_batch_input_ids, mnli_neutra_batch_input_mask, mnli_neutra_batch_segment_ids, mnli_neutra_batch_label_ids = tuple(t.to(device) for t in mnli_neutra_batch) #mnli_neutra_batch
                 # print('sample neutra:', mnli_neutra_batch_input_ids.shape[0], mnli_neutra_batch_label_ids.shape, mnli_neutra_batch_label_ids)
 
-                # mnli_contra_batch = get_a_random_batch_from_dataloader(MNLI_contra_dataloader, 3)
-                mnli_contra_batch = MNLI_contra_dataloader[step%(len(MNLI_contra_dataloader))]
+                mnli_contra_batch = get_a_random_batch_from_dataloader(MNLI_contra_dataloader, 3)
                 mnli_contra_batch_input_ids, mnli_contra_batch_input_mask, mnli_contra_batch_segment_ids, mnli_contra_batch_label_ids = tuple(t.to(device) for t in mnli_contra_batch) #mnli_contra_batch
                 # print('sample contra:', mnli_contra_batch_input_ids.shape[0], mnli_contra_batch_label_ids.shape, mnli_contra_batch_label_ids)
 

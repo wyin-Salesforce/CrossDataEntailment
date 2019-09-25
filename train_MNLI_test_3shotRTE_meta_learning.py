@@ -139,8 +139,8 @@ class RteProcessor(DataProcessor):
                     examples_contra.append(
                         InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
             line_co+=1
-            if line_co > 20000:
-                break
+            # if line_co > 20000:
+            #     break
         readfile.close()
         print('loaded  size:', line_co)
         return examples_entail, examples_neutral, examples_contra
@@ -161,8 +161,8 @@ class RteProcessor(DataProcessor):
                 guid = "train-"+str(line_co-1)
                 text_a = line[1].strip()
                 text_b = line[2].strip()
-                # if random.uniform(0, 1) < 0.85:
-                #     continue
+                if random.uniform(0, 1) < 0.85:
+                    continue
                 # label = line[3].strip() #["entailment", "not_entailment"]
                 # label = 'entailment'  if line[3].strip() == 'entailment' else 'neutral'
                 if line[3].strip() == 'entailment':
@@ -391,7 +391,7 @@ class Encoder(BertPreTrainedModel):
         self.mlp_2 = nn.Linear(config.hidden_size, 1, bias=False)
         # self.init_weights()
         # self.apply(self.init_bert_weights)
-    def forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None, sample_labels=None, prior_samples_outputs=None, prior_samples_logits = None, few_shot_training=False, is_train = True, fetch_hidden_only=False):
+    def forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None, sample_labels=None, prior_samples_outputs=None, prior_samples_logits = None, few_shot_training=False, is_train = True, fetch_hidden_only=False, loss_fct = None):
 
         '''
         samples: input_ids, token_type_ids, attention_mask; in class order
@@ -416,7 +416,7 @@ class Encoder(BertPreTrainedModel):
             batch_logits_from_LR = nn.Softmax(dim=1)(LR_logits[sample_size*class_size:,:]) #(10,3)
             # if few_shot_training:
 
-            loss_fct = CrossEntropyLoss()
+
             '''This criterion combines :func:`nn.LogSoftmax` and :func:`nn.NLLLoss` in one single class.'''
             # loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
             sample_loss = loss_fct(sample_logits.view(-1, self.num_labels), sample_labels.view(-1))
@@ -822,6 +822,7 @@ def main():
         logger.info("***** Running training *****")
         iter_co = 0
         tr_loss = 0
+        loss_fct = CrossEntropyLoss()
         for _ in trange(int(args.num_train_epochs), desc="Epoch"):
 
             # logger.info("  Num examples = %d", len(train_examples))
@@ -885,7 +886,7 @@ def main():
                 '''
                 forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None):
                 '''
-                loss, mnli_samples_outputs_i = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs=None, is_train=True)
+                loss, mnli_samples_outputs_i = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
                 # loss_fct = CrossEntropyLoss()
                 # loss = loss_fct(logits[0].view(-1, num_labels), label_ids.view(-1))
 
@@ -910,7 +911,7 @@ def main():
                     for ff in range(len(sample_input_ids_each_iter)):
                         model.eval()
                         with torch.no_grad():
-                            mnli_sample_hidden_i, mnli_sample_logits_i = model(sample_input_ids_each_iter[ff], None, sample_input_mask_each_iter[ff], sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = None, few_shot_training=False, is_train=False, fetch_hidden_only=True)
+                            mnli_sample_hidden_i, mnli_sample_logits_i = model(sample_input_ids_each_iter[ff], None, sample_input_mask_each_iter[ff], sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = None, few_shot_training=False, is_train=False, fetch_hidden_only=True, , loss_fct=None)
                             mnli_sample_hidden_list.append(mnli_sample_hidden_i[None,:,:])
                             mnli_sample_logits_list.append(mnli_sample_logits_i[None,:,:])
                     sample_input_ids_each_iter = []
@@ -924,7 +925,7 @@ def main():
                     '''second do few-shot training'''
                     for ff in range(3):
                         model.train()
-                        few_loss = model(eval_all_input_ids_shot.to(device), None, eval_all_input_mask_shot.to(device), sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = None, few_shot_training=True, is_train=True)
+                        few_loss = model(eval_all_input_ids_shot.to(device), None, eval_all_input_mask_shot.to(device), sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = None, few_shot_training=True, is_train=True, , loss_fct=loss_fct)
                         few_loss.backward()
                         optimizer.step()
                         optimizer.zero_grad()
@@ -960,7 +961,7 @@ def main():
 
 
                             with torch.no_grad():
-                                logits_LR, logits_NN, logits = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = prior_mnli_samples_outputs, prior_samples_logits = prior_mnli_samples_logits, is_train=False)
+                                logits_LR, logits_NN, logits = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = prior_mnli_samples_outputs, prior_samples_logits = prior_mnli_samples_logits, is_train=False, , loss_fct=None)
 
                             nb_eval_steps += 1
                             if len(preds) == 0:

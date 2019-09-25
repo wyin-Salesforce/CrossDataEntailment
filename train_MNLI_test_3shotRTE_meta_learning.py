@@ -448,8 +448,8 @@ class Encoder(BertPreTrainedModel):
             ], dim=1) #(batch*class_size, hidden*2)
             '''??? add drop out here'''
             group_scores = torch.tanh(self.mlp_2(self.dropout(torch.tanh(self.mlp_1(self.dropout(mlp_input))))))#(batch*class_size, 1)
-            # group_scores_with_simi = group_scores + cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)
-            group_scores_with_simi = self.mlp_3(torch.cat([group_scores, cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)],dim=1))
+            group_scores_with_simi = group_scores + cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)
+            group_scores_with_simi = group_scores_with_simi+self.mlp_3(torch.cat([group_scores, cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)],dim=1))
             # print('group_scores:',group_scores)
 
             similarity_matrix = group_scores_with_simi.reshape(batch_size, samples_outputs.shape[0])
@@ -513,8 +513,8 @@ class Encoder(BertPreTrainedModel):
             ], dim=1) #(batch*class_size, hidden*2)
             '''??? add drop out here'''
             group_scores = torch.tanh(self.mlp_2(self.dropout(torch.tanh(self.mlp_1(self.dropout(mlp_input))))))#(batch*class_size, 1)
-            # group_scores_with_simi = group_scores + cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)
-            group_scores_with_simi = self.mlp_3(torch.cat([group_scores, cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)],dim=1))
+            group_scores_with_simi = group_scores + cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)
+            group_scores_with_simi = group_scores_with_simi+self.mlp_3(torch.cat([group_scores, cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)],dim=1))
             # print('group_scores:',group_scores)
 
             similarity_matrix = group_scores_with_simi.reshape(batch_size, samples_outputs.shape[0])

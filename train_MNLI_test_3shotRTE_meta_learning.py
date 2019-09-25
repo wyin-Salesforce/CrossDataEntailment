@@ -901,7 +901,7 @@ def main():
                 optimizer.zero_grad()
                 global_step += 1
                 iter_co+=1
-                # print('training loss:', tr_loss/iter_co)
+
                 check_freq = 10
                 if iter_co %check_freq==0:
                     '''first get info from MNLI by sampling'''

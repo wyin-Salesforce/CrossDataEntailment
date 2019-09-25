@@ -911,7 +911,7 @@ def main():
                     for ff in range(len(sample_input_ids_each_iter)):
                         model.eval()
                         with torch.no_grad():
-                            mnli_sample_hidden_i, mnli_sample_logits_i = model(sample_input_ids_each_iter[ff], None, sample_input_mask_each_iter[ff], sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = None, few_shot_training=False, is_train=False, fetch_hidden_only=True, , loss_fct=None)
+                            mnli_sample_hidden_i, mnli_sample_logits_i = model(sample_input_ids_each_iter[ff], None, sample_input_mask_each_iter[ff], sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = None, few_shot_training=False, is_train=False, fetch_hidden_only=True, loss_fct=None)
                             mnli_sample_hidden_list.append(mnli_sample_hidden_i[None,:,:])
                             mnli_sample_logits_list.append(mnli_sample_logits_i[None,:,:])
                     sample_input_ids_each_iter = []
@@ -925,7 +925,7 @@ def main():
                     '''second do few-shot training'''
                     for ff in range(3):
                         model.train()
-                        few_loss = model(eval_all_input_ids_shot.to(device), None, eval_all_input_mask_shot.to(device), sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = None, few_shot_training=True, is_train=True, , loss_fct=loss_fct)
+                        few_loss = model(eval_all_input_ids_shot.to(device), None, eval_all_input_mask_shot.to(device), sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = None, few_shot_training=True, is_train=True, loss_fct=loss_fct)
                         few_loss.backward()
                         optimizer.step()
                         optimizer.zero_grad()
@@ -961,7 +961,7 @@ def main():
 
 
                             with torch.no_grad():
-                                logits_LR, logits_NN, logits = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = prior_mnli_samples_outputs, prior_samples_logits = prior_mnli_samples_logits, is_train=False, , loss_fct=None)
+                                logits_LR, logits_NN, logits = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = prior_mnli_samples_outputs, prior_samples_logits = prior_mnli_samples_logits, is_train=False, loss_fct=None)
 
                             nb_eval_steps += 1
                             if len(preds) == 0:

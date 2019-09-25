@@ -923,7 +923,7 @@ def main():
                     prior_mnli_samples_logits = torch.mean(prior_mnli_samples_logits,dim=0)
 
                     '''second do few-shot training'''
-                    for ff in range(2):
+                    for ff in range(4):
                         model.train()
                         few_loss = model(eval_all_input_ids_shot.to(device), None, eval_all_input_mask_shot.to(device), sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = None, few_shot_training=True, is_train=True, loss_fct=loss_fct)
                         few_loss.backward()
@@ -1020,8 +1020,8 @@ def main():
 
 
                         if idd == 0: # this is dev
-                            # dev_value = 0.5*(np.mean(acc_list)+max(acc_list))
-                            dev_value = np.mean(acc_list)
+                            dev_value = 0.5*(np.mean(acc_list)+max(acc_list))
+                            # dev_value = np.mean(acc_list)
                             if dev_value >= max_dev_acc:
                                 max_dev_acc = dev_value
                                 print('\ndev acc_list:', acc_list, ' max_mean_dev_acc:', max_dev_acc, '\n')

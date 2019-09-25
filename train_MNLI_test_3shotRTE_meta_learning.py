@@ -455,8 +455,6 @@ class Encoder(BertPreTrainedModel):
 
             similarity_matrix = group_scores_with_simi.reshape(batch_size, samples_outputs.shape[0])
             '''???note that the softmax will make the resulting logits smaller than LR'''
-            sample_logits = torch.cuda.FloatTensor(9, 3).fill_(0)
-            sample_logits[torch.arange(0, 9).long(), sample_labels] = 1.0
             batch_logits_from_NN = torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits) #(batch, 3)
             '''???use each of the logits for loss compute'''
             batch_logits = batch_logits_from_LR+batch_logits_from_NN
@@ -522,7 +520,7 @@ class Encoder(BertPreTrainedModel):
 
             similarity_matrix = group_scores_with_simi.reshape(batch_size, samples_outputs.shape[0])
 
-            if prior_samples_logits is not None:
+            if prior_samples_logits is  None:
                 sample_logits = torch.cuda.FloatTensor(9, 3).fill_(0)
                 sample_logits[torch.arange(0, 9).long(), sample_labels] = 1.0
                 sample_logits = sample_logits.repeat(2,1)

@@ -902,7 +902,7 @@ def main():
                 global_step += 1
                 iter_co+=1
 
-                check_freq = 40
+                check_freq = 10
                 if iter_co %check_freq==0:
                     '''first get info from MNLI by sampling'''
                     assert len(sample_input_ids_each_iter) == check_freq
@@ -1020,8 +1020,8 @@ def main():
 
 
                         if idd == 0: # this is dev
-                            if mean(acc_list) >= max_dev_acc:
-                                max_dev_acc = mean(acc_list)
+                            if np.mean(acc_list) >= max_dev_acc:
+                                max_dev_acc = np.mean(acc_list)
                                 print('\ndev acc_list:', acc_list, ' max_mean_dev_acc:', max_dev_acc, '\n')
                                 '''store the model'''
                                 # store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE', str(max_dev_acc))

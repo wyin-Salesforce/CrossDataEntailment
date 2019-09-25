@@ -387,6 +387,7 @@ class Encoder(BertPreTrainedModel):
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.mlp_1 = nn.Linear(config.hidden_size*3, config.hidden_size)
         self.mlp_2 = nn.Linear(config.hidden_size, 1, bias=False)
+        self.mlp_3 = nn.Linear(2, 1, bias=False)
         # self.init_weights()
         # self.apply(self.init_bert_weights)
     def forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None, sample_labels=None, prior_samples_outputs=None, prior_samples_logits = None, few_shot_training=False, is_train = True, fetch_hidden_only=False):
@@ -447,8 +448,8 @@ class Encoder(BertPreTrainedModel):
             ], dim=1) #(batch*class_size, hidden*2)
             '''??? add drop out here'''
             group_scores = torch.tanh(self.mlp_2(self.dropout(torch.tanh(self.mlp_1(self.dropout(mlp_input))))))#(batch*class_size, 1)
-            group_scores_with_simi = group_scores + cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)
-            # group_scores = torch.tanh(self.mlp_2((torch.tanh(mlp_input))))#(9*batch_size, 1)
+            # group_scores_with_simi = group_scores + cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)
+            group_scores_with_simi = self.mlp_3(torch.cat([group_scores, cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)],dim=1))
             # print('group_scores:',group_scores)
 
             similarity_matrix = group_scores_with_simi.reshape(batch_size, samples_outputs.shape[0])
@@ -512,8 +513,8 @@ class Encoder(BertPreTrainedModel):
             ], dim=1) #(batch*class_size, hidden*2)
             '''??? add drop out here'''
             group_scores = torch.tanh(self.mlp_2(self.dropout(torch.tanh(self.mlp_1(self.dropout(mlp_input))))))#(batch*class_size, 1)
-            group_scores_with_simi = group_scores + cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)
-            # group_scores = torch.tanh(self.mlp_2((torch.tanh(mlp_input))))#(9*batch_size, 1)
+            # group_scores_with_simi = group_scores + cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)
+            group_scores_with_simi = self.mlp_3(torch.cat([group_scores, cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)],dim=1))
             # print('group_scores:',group_scores)
 
             similarity_matrix = group_scores_with_simi.reshape(batch_size, samples_outputs.shape[0])
@@ -626,7 +627,7 @@ def main():
                         help="local_rank for distributed training on gpus")
     parser.add_argument('--seed',
                         type=int,
-                        default=32,
+                        default=42,
                         help="random seed for initialization")
     parser.add_argument('--gradient_accumulation_steps',
                         type=int,

@@ -601,7 +601,7 @@ def main():
                         action='store_true',
                         help="Set this flag if you are using an uncased model.")
     parser.add_argument("--train_batch_size",
-                        default=12,
+                        default=10,
                         type=int,
                         help="Total batch size for training.")
     parser.add_argument("--eval_batch_size",
@@ -905,9 +905,9 @@ def main():
                 iter_co+=1
 
                 check_freq = 10
-                if iter_co %check_freq==0:
+                if iter_co %check_freq==0 and iter_co>100:
                     '''first get info from MNLI by sampling'''
-                    assert len(sample_input_ids_each_iter) == check_freq
+                    # assert len(sample_input_ids_each_iter) == check_freq
                     mnli_sample_hidden_list = []
                     mnli_sample_logits_list = []
                     for ff in range(len(sample_input_ids_each_iter)):

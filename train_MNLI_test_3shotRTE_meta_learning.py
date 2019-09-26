@@ -161,7 +161,7 @@ class RteProcessor(DataProcessor):
                 guid = "train-"+str(line_co-1)
                 text_a = line[1].strip()
                 text_b = line[2].strip()
-                if random.uniform(0, 1) < 0.45:
+                if random.uniform(0, 1) < 0.85:
                     continue
                 # label = line[3].strip() #["entailment", "not_entailment"]
                 # label = 'entailment'  if line[3].strip() == 'entailment' else 'neutral'
@@ -519,7 +519,7 @@ class Encoder(BertPreTrainedModel):
 
             similarity_matrix = group_scores_with_simi.reshape(batch_size, samples_outputs.shape[0])
 
-            if prior_samples_logits is not None:
+            if prior_samples_logits is None:
                 sample_logits = torch.cuda.FloatTensor(9, 3).fill_(0)
                 sample_logits[torch.arange(0, 9).long(), sample_labels] = 1.0
                 sample_logits = sample_logits.repeat(2,1)

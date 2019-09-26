@@ -387,8 +387,9 @@ class Encoder(BertPreTrainedModel):
         self.roberta = RobertaModel(config)
         self.classifier = RobertaClassificationHead(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.mlp_1 = nn.Linear(config.hidden_size*3, config.hidden_size)
-        self.mlp_2 = nn.Linear(config.hidden_size, 1, bias=False)
+        self.mlp_1 = nn.Linear(config.hidden_size*3, config.hidden_size*3)
+        self.mlp_2 = nn.Linear(config.hidden_size*3, config.hidden_size)
+        self.mlp_3 = nn.Linear(config.hidden_size, 1, bias=False)
         # self.init_weights()
         # self.apply(self.init_bert_weights)
     def forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None, sample_labels=None, prior_samples_outputs=None, prior_samples_logits = None, few_shot_training=False, is_train = True, fetch_hidden_only=False, loss_fct = None):
@@ -448,7 +449,8 @@ class Encoder(BertPreTrainedModel):
             repeat_batch_outputs*repeat_sample_rep
             ], dim=1) #(batch*class_size, hidden*2)
             '''??? add drop out here'''
-            group_scores = torch.tanh(self.mlp_2(self.dropout(torch.tanh(self.mlp_1(self.dropout(mlp_input))))))#(batch*class_size, 1)
+            # group_scores = torch.tanh(self.mlp_2(self.dropout(torch.tanh(self.mlp_1(self.dropout(mlp_input))))))#(batch*class_size, 1)
+            group_scores = torch.tanh(self.mlp_3(self.dropout(torch.tanh(self.mlp_2(self.dropout(torch.tanh(self.mlp_1(self.dropout(mlp_input)))))))))#(batch*class_size, 1)
             group_scores_with_simi = group_scores + cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)
             # group_scores = torch.tanh(self.mlp_2((torch.tanh(mlp_input))))#(9*batch_size, 1)
             # print('group_scores:',group_scores)
@@ -457,8 +459,7 @@ class Encoder(BertPreTrainedModel):
             '''???note that the softmax will make the resulting logits smaller than LR'''
             # sample_logits = torch.cuda.FloatTensor(9, 3).fill_(0)
             # sample_logits[torch.arange(0, 9).long(), sample_labels] = 1.0
-            # batch_logits_from_NN = torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits) #(batch, 3)
-            batch_logits_from_NN = torch.mm(similarity_matrix/torch.sum(similarity_matrix,dim=1,keepdim=True), sample_logits) #(batch, 3)
+            batch_logits_from_NN = torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits) #(batch, 3)
             '''???use each of the logits for loss compute'''
             batch_logits = batch_logits_from_LR+batch_logits_from_NN
 
@@ -516,7 +517,8 @@ class Encoder(BertPreTrainedModel):
             repeat_batch_outputs*repeat_sample_rep
             ], dim=1) #(batch*class_size, hidden*2)
             '''??? add drop out here'''
-            group_scores = torch.tanh(self.mlp_2(self.dropout(torch.tanh(self.mlp_1(self.dropout(mlp_input))))))#(batch*class_size, 1)
+            # group_scores = torch.tanh(self.mlp_2(self.dropout(torch.tanh(self.mlp_1(self.dropout(mlp_input))))))#(batch*class_size, 1)
+            group_scores = torch.tanh(self.mlp_3(self.dropout(torch.tanh(self.mlp_2(self.dropout(torch.tanh(self.mlp_1(self.dropout(mlp_input)))))))))
             group_scores_with_simi = group_scores + cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)
             # group_scores = torch.tanh(self.mlp_2((torch.tanh(mlp_input))))#(9*batch_size, 1)
             # print('group_scores:',group_scores)
@@ -531,8 +533,7 @@ class Encoder(BertPreTrainedModel):
                 '''the results now that using LR predicted logits is better'''
                 sample_logits = prior_samples_logits
                 sample_logits = torch.cat([sample_logits, LR_logits[:sample_size*class_size,:]],dim=0)
-            # batch_logits_from_NN = nn.Softmax(dim=1)(torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits)) #(batch, 3)
-            batch_logits_from_NN = nn.Softmax(dim=1)(torch.mm(similarity_matrix/torch.sum(similarity_matrix,dim=1,keepdim=True), sample_logits)) #(batch, 3)
+            batch_logits_from_NN = nn.Softmax(dim=1)(torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits)) #(batch, 3)
             # print('batch_logits_from_LR:',batch_logits_from_LR)
             # print('batch_logits_from_NN:', batch_logits_from_NN)
             logits = batch_logits_from_LR+batch_logits_from_NN

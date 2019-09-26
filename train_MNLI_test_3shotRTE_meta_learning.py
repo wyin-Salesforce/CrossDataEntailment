@@ -457,7 +457,8 @@ class Encoder(BertPreTrainedModel):
             '''???note that the softmax will make the resulting logits smaller than LR'''
             # sample_logits = torch.cuda.FloatTensor(9, 3).fill_(0)
             # sample_logits[torch.arange(0, 9).long(), sample_labels] = 1.0
-            batch_logits_from_NN = torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits) #(batch, 3)
+            # batch_logits_from_NN = torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits) #(batch, 3)
+            batch_logits_from_NN = torch.mm(similarity_matrix/torch.sum(similarity_matrix,dim=1,keepdim=True), sample_logits) #(batch, 3)
             '''???use each of the logits for loss compute'''
             batch_logits = batch_logits_from_LR+batch_logits_from_NN
 
@@ -530,7 +531,8 @@ class Encoder(BertPreTrainedModel):
                 '''the results now that using LR predicted logits is better'''
                 sample_logits = prior_samples_logits
                 sample_logits = torch.cat([sample_logits, LR_logits[:sample_size*class_size,:]],dim=0)
-            batch_logits_from_NN = nn.Softmax(dim=1)(torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits)) #(batch, 3)
+            # batch_logits_from_NN = nn.Softmax(dim=1)(torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits)) #(batch, 3)
+            batch_logits_from_NN = nn.Softmax(dim=1)(torch.mm(similarity_matrix/torch.sum(similarity_matrix,dim=1,keepdim=True), sample_logits)) #(batch, 3)
             # print('batch_logits_from_LR:',batch_logits_from_LR)
             # print('batch_logits_from_NN:', batch_logits_from_NN)
             logits = batch_logits_from_LR+batch_logits_from_NN
@@ -905,9 +907,9 @@ def main():
                 iter_co+=1
 
                 check_freq = 10
-                if iter_co %check_freq==0 and iter_co>100:
+                if iter_co %check_freq==0:
                     '''first get info from MNLI by sampling'''
-                    # assert len(sample_input_ids_each_iter) == check_freq
+                    assert len(sample_input_ids_each_iter) == check_freq
                     mnli_sample_hidden_list = []
                     mnli_sample_logits_list = []
                     for ff in range(len(sample_input_ids_each_iter)):

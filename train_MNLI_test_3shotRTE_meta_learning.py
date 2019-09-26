@@ -161,7 +161,7 @@ class RteProcessor(DataProcessor):
                 guid = "train-"+str(line_co-1)
                 text_a = line[1].strip()
                 text_b = line[2].strip()
-                if random.uniform(0, 1) < 0.45:
+                if random.uniform(0, 1) < 0.85:
                     continue
                 # label = line[3].strip() #["entailment", "not_entailment"]
                 # label = 'entailment'  if line[3].strip() == 'entailment' else 'neutral'
@@ -387,8 +387,8 @@ class Encoder(BertPreTrainedModel):
         self.roberta = RobertaModel(config)
         self.classifier = RobertaClassificationHead(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.mlp_1 = nn.Linear(config.hidden_size*3, 1, bias=False)
-        # self.mlp_2 = nn.Linear(config.hidden_size, 1, bias=False)
+        self.mlp_1 = nn.Linear(config.hidden_size*3, config.hidden_size)
+        self.mlp_2 = nn.Linear(config.hidden_size, 1, bias=False)
         # self.init_weights()
         # self.apply(self.init_bert_weights)
     def forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None, sample_labels=None, prior_samples_outputs=None, prior_samples_logits = None, few_shot_training=False, is_train = True, fetch_hidden_only=False, loss_fct = None):
@@ -440,16 +440,18 @@ class Encoder(BertPreTrainedModel):
 
             # repeat_batch_outputs = tile(batch_outputs,0,class_size) #(batch*class_size, hidden)
             repeat_batch_outputs = batch_outputs.repeat(1, samples_outputs.shape[0]).view(-1, hidden_size)#(9*batch_size, hidden)
-
+            '''? add similarity or something similar?'''
             mlp_input = torch.cat([
             repeat_batch_outputs, repeat_sample_rep,
             # repeat_batch_outputs - repeat_sample_rep,
             # cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep),
             repeat_batch_outputs*repeat_sample_rep
             ], dim=1) #(batch*class_size, hidden*2)
-            # group_scores = torch.tanh(self.mlp_2(self.dropout(torch.tanh(self.mlp_1(self.dropout(mlp_input))))))#(batch*class_size, 1)
-            group_scores = torch.tanh(self.mlp_1(self.dropout(mlp_input)))#(batch*class_size, 1)
+            '''??? add drop out here'''
+            group_scores = torch.tanh(self.mlp_2(self.dropout(torch.tanh(self.mlp_1(self.dropout(mlp_input))))))#(batch*class_size, 1)
             group_scores_with_simi = group_scores + cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)
+            # group_scores = torch.tanh(self.mlp_2((torch.tanh(mlp_input))))#(9*batch_size, 1)
+            # print('group_scores:',group_scores)
 
             similarity_matrix = group_scores_with_simi.reshape(batch_size, samples_outputs.shape[0])
             '''???note that the softmax will make the resulting logits smaller than LR'''
@@ -511,15 +513,14 @@ class Encoder(BertPreTrainedModel):
             repeat_batch_outputs*repeat_sample_rep
             ], dim=1) #(batch*class_size, hidden*2)
             '''??? add drop out here'''
-            # group_scores = torch.tanh(self.mlp_2(self.dropout(torch.tanh(self.mlp_1(self.dropout(mlp_input))))))#(batch*class_size, 1)
-            group_scores = torch.tanh(self.mlp_1(self.dropout(mlp_input)))#(batch*class_size, 1)
+            group_scores = torch.tanh(self.mlp_2(self.dropout(torch.tanh(self.mlp_1(self.dropout(mlp_input))))))#(batch*class_size, 1)
             group_scores_with_simi = group_scores + cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)
             # group_scores = torch.tanh(self.mlp_2((torch.tanh(mlp_input))))#(9*batch_size, 1)
-
+            # print('group_scores:',group_scores)
 
             similarity_matrix = group_scores_with_simi.reshape(batch_size, samples_outputs.shape[0])
 
-            if prior_samples_logits is None:
+            if prior_samples_logits is not None:
                 sample_logits = torch.cuda.FloatTensor(9, 3).fill_(0)
                 sample_logits[torch.arange(0, 9).long(), sample_labels] = 1.0
                 sample_logits = sample_logits.repeat(2,1)
@@ -1019,10 +1020,8 @@ def main():
 
 
                         if idd == 0: # this is dev
-                            # dev_value = 0.5*(np.mean(acc_list)+max(acc_list))
-                            dev_value = np.mean(acc_list)
-                            if dev_value >= max_dev_acc:
-                                max_dev_acc = dev_value
+                            if np.mean(acc_list) >= max_dev_acc:
+                                max_dev_acc = np.mean(acc_list)
                                 print('\ndev acc_list:', acc_list, ' max_mean_dev_acc:', max_dev_acc, '\n')
                                 '''store the model'''
                                 # store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE', str(max_dev_acc))

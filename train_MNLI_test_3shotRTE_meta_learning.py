@@ -440,23 +440,18 @@ class Encoder(BertPreTrainedModel):
 
             # repeat_batch_outputs = tile(batch_outputs,0,class_size) #(batch*class_size, hidden)
             repeat_batch_outputs = batch_outputs.repeat(1, samples_outputs.shape[0]).view(-1, hidden_size)#(9*batch_size, hidden)
-            '''? add similarity or something similar?'''
+
             mlp_input = torch.cat([
             repeat_batch_outputs, repeat_sample_rep,
             # repeat_batch_outputs - repeat_sample_rep,
             # cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep),
             repeat_batch_outputs*repeat_sample_rep
             ], dim=1) #(batch*class_size, hidden*2)
-            '''??? add drop out here'''
             group_scores = torch.tanh(self.mlp_2(self.dropout(torch.tanh(self.mlp_1(self.dropout(mlp_input))))))#(batch*class_size, 1)
             group_scores_with_simi = group_scores + cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)
-            # group_scores = torch.tanh(self.mlp_2((torch.tanh(mlp_input))))#(9*batch_size, 1)
-            # print('group_scores:',group_scores)
 
             similarity_matrix = group_scores_with_simi.reshape(batch_size, samples_outputs.shape[0])
             '''???note that the softmax will make the resulting logits smaller than LR'''
-            sample_logits = torch.cuda.FloatTensor(9, 3).fill_(0)
-            sample_logits[torch.arange(0, 9).long(), sample_labels] = 1.0
             batch_logits_from_NN = torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits) #(batch, 3)
             '''???use each of the logits for loss compute'''
             batch_logits = batch_logits_from_LR+batch_logits_from_NN
@@ -466,7 +461,8 @@ class Encoder(BertPreTrainedModel):
 
             '''This criterion combines :func:`nn.LogSoftmax` and :func:`nn.NLLLoss` in one single class.'''
             batch_loss = (loss_fct(batch_logits_from_LR.view(-1, self.num_labels), labels.view(-1))+
-                        loss_fct(batch_logits_from_NN.view(-1, self.num_labels), labels.view(-1)))
+                        loss_fct(batch_logits_from_NN.view(-1, self.num_labels), labels.view(-1))+
+                        loss_fct(batch_logits.view(-1, self.num_labels), labels.view(-1)))
             loss = sample_loss+batch_loss
             return loss, samples_outputs
 

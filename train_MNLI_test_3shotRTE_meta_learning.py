@@ -161,7 +161,7 @@ class RteProcessor(DataProcessor):
                 guid = "train-"+str(line_co-1)
                 text_a = line[1].strip()
                 text_b = line[2].strip()
-                if random.uniform(0, 1) < 0.45:
+                if random.uniform(0, 1) < 0.85:
                     continue
                 # label = line[3].strip() #["entailment", "not_entailment"]
                 # label = 'entailment'  if line[3].strip() == 'entailment' else 'neutral'
@@ -387,8 +387,8 @@ class Encoder(BertPreTrainedModel):
         self.roberta = RobertaModel(config)
         self.classifier = RobertaClassificationHead(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.mlp_1 = nn.Linear(config.hidden_size*3, config.hidden_size)
-        self.mlp_2 = nn.Linear(config.hidden_size, 1, bias=False)
+        self.mlp_1 = nn.Linear(config.hidden_size*3, 1, bias=False)
+        # self.mlp_2 = nn.Linear(config.hidden_size, 1, bias=False)
         # self.init_weights()
         # self.apply(self.init_bert_weights)
     def forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None, sample_labels=None, prior_samples_outputs=None, prior_samples_logits = None, few_shot_training=False, is_train = True, fetch_hidden_only=False, loss_fct = None):
@@ -447,7 +447,8 @@ class Encoder(BertPreTrainedModel):
             # cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep),
             repeat_batch_outputs*repeat_sample_rep
             ], dim=1) #(batch*class_size, hidden*2)
-            group_scores = torch.tanh(self.mlp_2(self.dropout(torch.tanh(self.mlp_1(self.dropout(mlp_input))))))#(batch*class_size, 1)
+            # group_scores = torch.tanh(self.mlp_2(self.dropout(torch.tanh(self.mlp_1(self.dropout(mlp_input))))))#(batch*class_size, 1)
+            group_scores = torch.tanh(self.mlp_1(self.dropout(mlp_input)))#(batch*class_size, 1)
             group_scores_with_simi = group_scores + cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)
 
             similarity_matrix = group_scores_with_simi.reshape(batch_size, samples_outputs.shape[0])
@@ -510,7 +511,8 @@ class Encoder(BertPreTrainedModel):
             repeat_batch_outputs*repeat_sample_rep
             ], dim=1) #(batch*class_size, hidden*2)
             '''??? add drop out here'''
-            group_scores = torch.tanh(self.mlp_2(self.dropout(torch.tanh(self.mlp_1(self.dropout(mlp_input))))))#(batch*class_size, 1)
+            # group_scores = torch.tanh(self.mlp_2(self.dropout(torch.tanh(self.mlp_1(self.dropout(mlp_input))))))#(batch*class_size, 1)
+            group_scores = torch.tanh(self.mlp_1(self.dropout(mlp_input)))#(batch*class_size, 1)
             group_scores_with_simi = group_scores + cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)
             # group_scores = torch.tanh(self.mlp_2((torch.tanh(mlp_input))))#(9*batch_size, 1)
 
@@ -1043,4 +1045,4 @@ def array_2_softmax(a):
 
 if __name__ == "__main__":
     main()
-# CUDA_VISIBLE_DEVICES=7 python -u train_MNLI_test_3shotRTE_meta_learning.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 2e-5 --num_train_epochs 3 --data_dir '' --output_dir '' > log.RTE.RTE.batch32.txt 2>&1
+# CUDA_VISIBLE_DEVICES=7 python -u train_MNLI_test_3shotRTE_meta_learning.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --num_train_epochs 3 --data_dir '' --output_dir '' > log.RTE.RTE.batch32.txt 2>&1

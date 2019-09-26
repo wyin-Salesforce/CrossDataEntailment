@@ -455,8 +455,8 @@ class Encoder(BertPreTrainedModel):
 
             similarity_matrix = group_scores_with_simi.reshape(batch_size, samples_outputs.shape[0])
             '''???note that the softmax will make the resulting logits smaller than LR'''
-            sample_logits = torch.cuda.FloatTensor(9, 3).fill_(0)
-            sample_logits[torch.arange(0, 9).long(), sample_labels] = 1.0
+            # sample_logits = torch.cuda.FloatTensor(9, 3).fill_(0)
+            # sample_logits[torch.arange(0, 9).long(), sample_labels] = 1.0
             batch_logits_from_NN = torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits) #(batch, 3)
             '''???use each of the logits for loss compute'''
             batch_logits = batch_logits_from_LR+batch_logits_from_NN
@@ -905,7 +905,7 @@ def main():
                 iter_co+=1
 
                 check_freq = 10
-                if iter_co %check_freq==0:
+                if iter_co %check_freq==0 and iter_co> 100:
                     '''first get info from MNLI by sampling'''
                     assert len(sample_input_ids_each_iter) == check_freq
                     mnli_sample_hidden_list = []
@@ -1046,4 +1046,4 @@ def array_2_softmax(a):
 
 if __name__ == "__main__":
     main()
-# CUDA_VISIBLE_DEVICES=7 python -u train_MNLI_test_3shotRTE_meta_learning.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 2e-5 --num_train_epochs 3 --data_dir '' --output_dir '' > log.RTE.RTE.batch32.txt 2>&1
+# CUDA_VISIBLE_DEVICES=7 python -u train_MNLI_test_3shotRTE_meta_learning.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --num_train_epochs 3 --data_dir '' --output_dir '' > log.RTE.RTE.batch32.txt 2>&1

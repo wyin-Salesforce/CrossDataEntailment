@@ -461,8 +461,7 @@ class Encoder(BertPreTrainedModel):
 
             '''This criterion combines :func:`nn.LogSoftmax` and :func:`nn.NLLLoss` in one single class.'''
             batch_loss = (loss_fct(batch_logits_from_LR.view(-1, self.num_labels), labels.view(-1))+
-                        loss_fct(batch_logits_from_NN.view(-1, self.num_labels), labels.view(-1))+
-                        loss_fct(batch_logits.view(-1, self.num_labels), labels.view(-1)))
+                        loss_fct(batch_logits_from_NN.view(-1, self.num_labels), labels.view(-1)))
             loss = sample_loss+batch_loss
             return loss, samples_outputs
 
@@ -597,7 +596,7 @@ def main():
                         action='store_true',
                         help="Set this flag if you are using an uncased model.")
     parser.add_argument("--train_batch_size",
-                        default=10,
+                        default=8,
                         type=int,
                         help="Total batch size for training.")
     parser.add_argument("--eval_batch_size",

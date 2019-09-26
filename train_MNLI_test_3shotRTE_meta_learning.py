@@ -399,7 +399,7 @@ class Encoder(BertPreTrainedModel):
         '''
         # print('input_ids shape0 :', input_ids.shape[0])
         outputs = self.roberta(input_ids, token_type_ids, attention_mask) #(batch, max_len, hidden_size)
-        pooled_outputs = torch.max(outputs[0],dim=1)[0]#outputs[1]#torch.max(outputs[0],dim=1)[0]+ outputs[1]#outputs[1]#torch.mean(outputs[0],dim=1)#outputs[1] #(batch, hidden_size)
+        pooled_outputs = outputs[1]#torch.max(outputs[0],dim=1)[0]+ outputs[1]#outputs[1]#torch.mean(outputs[0],dim=1)#outputs[1] #(batch, hidden_size)
         LR_logits = self.classifier(pooled_outputs) #(9+batch, 3)
         if is_train:
 
@@ -625,7 +625,7 @@ def main():
                         help="local_rank for distributed training on gpus")
     parser.add_argument('--seed',
                         type=int,
-                        default=42,
+                        default=16,
                         help="random seed for initialization")
     parser.add_argument('--gradient_accumulation_steps',
                         type=int,

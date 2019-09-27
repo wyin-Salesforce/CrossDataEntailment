@@ -586,7 +586,7 @@ def main():
                         action='store_true',
                         help="Set this flag if you are using an uncased model.")
     parser.add_argument("--train_batch_size",
-                        default=5,
+                        default=10,
                         type=int,
                         help="Total batch size for training.")
     parser.add_argument("--eval_batch_size",
@@ -874,17 +874,15 @@ def main():
                 forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None):
                 '''
                 loss, mnli_samples_outputs_i = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
-                loss_cross_domain, _ = model(torch.cat([eval_all_input_ids_shot.to(device),input_ids],dim=0), None, torch.cat([eval_all_input_mask_shot.to(device),input_mask], dim=0), sample_size=3, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
-                # loss_fct = CrossEntropyLoss()
-                # loss = loss_fct(logits[0].view(-1, num_labels), label_ids.view(-1))
-
-                loss+=loss_cross_domain
-
                 loss.backward()
+                optimizer.step()
+                optimizer.zero_grad()
 
-                tr_loss += loss.item()
+                model.train()
+                loss_cross_domain, _ = model(torch.cat([eval_all_input_ids_shot.to(device),input_ids],dim=0), None, torch.cat([eval_all_input_mask_shot.to(device),input_mask], dim=0), sample_size=3, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
+                loss_cross_domain.backward()
 
-
+                tr_loss += loss_cross_domain.item()
                 optimizer.step()
                 optimizer.zero_grad()
                 global_step += 1

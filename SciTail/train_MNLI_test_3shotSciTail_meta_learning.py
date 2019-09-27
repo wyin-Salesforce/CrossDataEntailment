@@ -189,7 +189,7 @@ class RteProcessor(DataProcessor):
                         continue
                 line_co+=1
         readfile.close()
-        print('loaded  3shot size:', line_co)
+        print('loaded  3shot size:', line_co, len(examples_entail))
         exit(0)
         return examples_entail, examples_neutral, examples_contra
 

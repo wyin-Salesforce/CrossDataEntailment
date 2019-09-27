@@ -139,8 +139,8 @@ class RteProcessor(DataProcessor):
                     examples_contra.append(
                         InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
             line_co+=1
-            # if line_co > 20000:
-            #     break
+            if line_co > 20000:
+                break
         readfile.close()
         print('loaded  size:', line_co)
         return examples_entail, examples_neutral, examples_contra
@@ -188,6 +188,10 @@ class RteProcessor(DataProcessor):
             #     break
         readfile.close()
         print('loaded  size:', line_co-1)
+        assert len(examples_entail) == 3
+        assert len(examples_neutral) == 3
+        assert len(examples_contra) == 3
+        exit(0)
         return examples_entail, examples_neutral, examples_contra
 
     def get_RTE_as_dev(self, filename):

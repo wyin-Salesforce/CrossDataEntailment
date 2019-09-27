@@ -190,6 +190,7 @@ class RteProcessor(DataProcessor):
                 line_co+=1
         readfile.close()
         print('loaded  3shot size:', line_co)
+        exit(0)
         return examples_entail, examples_neutral, examples_contra
 
     def get_SciTail_as_dev_or_test(self, filename, prefix):
@@ -203,7 +204,7 @@ class RteProcessor(DataProcessor):
 
             line=row.strip().split('\t')
             if len(line) == 3:
-                guid = prefix+str(line_co-1)
+                guid = prefix+'-'+str(line_co-1)
                 text_a = line[0].strip()
                 text_b = line[1].strip()
                 # label = line[3].strip() #["entailment", "not_entailment"]

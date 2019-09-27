@@ -183,6 +183,8 @@ class RteProcessor(DataProcessor):
                         class2size[label]+=1
                     else:
                         continue
+                if len(class2size.keys()) == 3 and sum(class2size.values()) == 9:
+                    break
             line_co+=1
             # if line_co > 20000:
             #     break

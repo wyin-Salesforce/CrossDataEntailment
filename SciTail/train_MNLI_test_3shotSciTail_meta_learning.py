@@ -145,7 +145,10 @@ class RteProcessor(DataProcessor):
         print('loaded  size:', line_co)
         return examples_entail, examples_neutral, examples_contra
 
-    def get_RTE_as_train(self, filename):
+
+
+
+    def get_SciTail_as_train(self, filename):
         '''
         can read the training file, dev and test file
         '''
@@ -156,16 +159,17 @@ class RteProcessor(DataProcessor):
         class2size = defaultdict(int)
         line_co=0
         for row in readfile:
-            if line_co>0:
-                line=row.strip().split('\t')
-                guid = "train-"+str(line_co-1)
-                text_a = line[1].strip()
-                text_b = line[2].strip()
+
+            line=row.strip().split('\t')
+            if len(line) == 3:
+                guid = "train-"+str(line_co)
+                text_a = line[0].strip()
+                text_b = line[1].strip()
                 if random.uniform(0, 1) < 0.85:
                     continue
                 # label = line[3].strip() #["entailment", "not_entailment"]
                 # label = 'entailment'  if line[3].strip() == 'entailment' else 'neutral'
-                if line[3].strip() == 'entailment':
+                if line[2].strip() == 'entails':
                     labels = ['entailment']
                 else:
                     labels = ['neutral', 'contradiction']
@@ -183,14 +187,12 @@ class RteProcessor(DataProcessor):
                         class2size[label]+=1
                     else:
                         continue
-            line_co+=1
-            # if line_co > 20000:
-            #     break
+                line_co+=1
         readfile.close()
         print('loaded  size:', line_co-1)
         return examples_entail, examples_neutral, examples_contra
 
-    def get_RTE_as_dev(self, filename):
+    def get_SciTail_as_dev_or_test(self, filename, prefix):
         '''
         can read the training file, dev and test file
         '''
@@ -198,13 +200,14 @@ class RteProcessor(DataProcessor):
         readfile = codecs.open(filename, 'r', 'utf-8')
         line_co=0
         for row in readfile:
-            if line_co>0:
-                line=row.strip().split('\t')
-                guid = "dev-"+str(line_co-1)
-                text_a = line[1].strip()
-                text_b = line[2].strip()
+
+            line=row.strip().split('\t')
+            if len(line) == 3:
+                guid = prefix+str(line_co-1)
+                text_a = line[0].strip()
+                text_b = line[1].strip()
                 # label = line[3].strip() #["entailment", "not_entailment"]
-                label = 'entailment'  if line[3] == 'entailment' else 'neutral'
+                label = 'entailment'  if line[2] == 'entails' else 'neutral'
                 examples.append(
                     InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
             line_co+=1
@@ -214,25 +217,6 @@ class RteProcessor(DataProcessor):
         print('loaded  size:', line_co-1)
         return examples
 
-    def get_RTE_as_test(self, filename):
-        readfile = codecs.open(filename, 'r', 'utf-8')
-        line_co=0
-        examples=[]
-        for row in readfile:
-            line=row.strip().split('\t')
-            if len(line)==3:
-                guid = "test-"+str(line_co)
-                text_a = line[1]
-                text_b = line[2]
-                '''for RTE, we currently only choose randomly two labels in the set, in prediction we then decide the predicted labels'''
-                label = 'entailment'  if line[0] == '1' else 'neutral'
-                examples.append(
-                    InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
-                line_co+=1
-
-        readfile.close()
-        print('loaded test size:', line_co)
-        return examples
 
     def get_labels(self):
         'here we keep the three-way in MNLI training '
@@ -697,7 +681,7 @@ def main():
 
 
     train_examples_entail, train_examples_neutral, train_examples_contra = processor.get_MNLI_as_train('/export/home/Dataset/glue_data/MNLI/train.tsv') #train_pu_half_v1.txt
-    train_examples_entail_RTE, train_examples_neutral_RTE, train_examples_contra_RTE = processor.get_RTE_as_train('/export/home/Dataset/glue_data/RTE/train.tsv')
+    train_examples_entail_RTE, train_examples_neutral_RTE, train_examples_contra_RTE = processor.get_SciTail_as_train('/export/home/Dataset/SciTailV1/tsv_format/scitail_1.0_train.tsv')
         # seen_classes=[0,2,4,6,8]
 
         # num_train_optimization_steps = int(
@@ -776,7 +760,7 @@ def main():
         eval_all_label_ids_shot = torch.tensor([f.label_id for f in eval_features_shot], dtype=torch.long)
 
         '''load dev set'''
-        dev_examples = processor.get_RTE_as_dev('/export/home/Dataset/glue_data/RTE/dev.tsv')
+        dev_examples = processor.get_RTE_as_dev('/export/home/Dataset/SciTailV1/tsv_format/scitail_1.0_dev.tsv')
         dev_features = convert_examples_to_features(
             dev_examples, label_list, args.max_seq_length, tokenizer, output_mode,
             cls_token_at_end=False,#bool(args.model_type in ['xlnet']),            # xlnet has a cls token at the end
@@ -798,7 +782,7 @@ def main():
         dev_dataloader = DataLoader(dev_data, sampler=dev_sampler, batch_size=args.eval_batch_size)
 
         '''load test set'''
-        eval_examples = processor.get_RTE_as_test('/export/home/Dataset/RTE/test_RTE_1235.txt')
+        eval_examples = processor.get_RTE_as_test('/export/home/Dataset/SciTailV1/tsv_format/scitail_1.0_test.tsv')
         eval_features = convert_examples_to_features(
             eval_examples, label_list, args.max_seq_length, tokenizer, output_mode,
             cls_token_at_end=False,#bool(args.model_type in ['xlnet']),            # xlnet has a cls token at the end

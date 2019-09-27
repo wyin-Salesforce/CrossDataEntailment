@@ -888,7 +888,7 @@ def main():
                 # optimizer.zero_grad()
                 '''MNLI samples --> SciTail samples'''
                 # model.train()
-                loss_cross_sample, mnli_samples_outputs_i = model(torch.cat([sample_input_ids_i,eval_all_input_ids_shot.to(device)],dim=0), None, torch.cat([sample_input_mask_i,eval_all_input_mask_shot.to(device)], dim=0), sample_size=3, class_size =num_labels, labels=torch.cuda.LongTensor([0,0,0,2,2,2,2,2,2]), sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
+                loss_cross_sample, mnli_samples_outputs_i = model(torch.cat([sample_input_ids_i,eval_all_input_ids_shot.to(device)],dim=0), None, torch.cat([sample_input_mask_i,eval_all_input_mask_shot.to(device)], dim=0), sample_size=3, class_size =num_labels, labels=torch.cuda.LongTensor([0,0,0,1,1,1,1,1,1]), sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
                 loss_cross_sample.backward()
                 optimizer.step()
                 optimizer.zero_grad()
@@ -919,13 +919,13 @@ def main():
                     prior_mnli_samples_logits = torch.mean(prior_mnli_samples_logits,dim=0)
 
                     '''second do few-shot training'''
-                    # for ff in range(2):
-                    #     model.train()
-                    #     few_loss = model(eval_all_input_ids_shot.to(device), None, eval_all_input_mask_shot.to(device), sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = None, few_shot_training=True, is_train=True, loss_fct=loss_fct)
-                    #     few_loss.backward()
-                    #     optimizer.step()
-                    #     optimizer.zero_grad()
-                    #     print('few_loss:', few_loss)
+                    for ff in range(2):
+                        model.train()
+                        few_loss = model(eval_all_input_ids_shot.to(device), None, eval_all_input_mask_shot.to(device), sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,1,1,1]), prior_samples_outputs = None, few_shot_training=True, is_train=True, loss_fct=loss_fct)
+                        few_loss.backward()
+                        optimizer.step()
+                        optimizer.zero_grad()
+                        print('few_loss:', few_loss)
                     '''
                     start evaluate on dev set after this epoch
                     '''

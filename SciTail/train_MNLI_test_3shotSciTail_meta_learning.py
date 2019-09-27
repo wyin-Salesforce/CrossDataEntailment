@@ -162,7 +162,7 @@ class RteProcessor(DataProcessor):
 
             line=row.strip().split('\t')
             if len(line) == 3:
-                guid = "train-"+str(line_co)
+                guid = "3shot-"+str(line_co)
                 text_a = line[0].strip()
                 text_b = line[1].strip()
                 if random.uniform(0, 1) < 0.85:
@@ -189,7 +189,7 @@ class RteProcessor(DataProcessor):
                         continue
                 line_co+=1
         readfile.close()
-        print('loaded  size:', line_co-1)
+        print('loaded  3shot size:', line_co)
         return examples_entail, examples_neutral, examples_contra
 
     def get_SciTail_as_dev_or_test(self, filename, prefix):
@@ -1028,4 +1028,4 @@ def array_2_softmax(a):
 
 if __name__ == "__main__":
     main()
-# CUDA_VISIBLE_DEVICES=7 python -u train_MNLI_test_3shotRTE_meta_learning.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --num_train_epochs 3 --data_dir '' --output_dir '' > log.RTE.RTE.batch32.txt 2>&1
+# CUDA_VISIBLE_DEVICES=2 python -u train_MNLI_test_3shotSciTail_meta_learning.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --num_train_epochs 3 --data_dir '' --output_dir ''

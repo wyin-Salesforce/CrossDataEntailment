@@ -30,7 +30,7 @@ from pytorch_transformers.optimization import AdamW
 from pytorch_transformers.modeling_roberta import RobertaModel, RobertaConfig#, RobertaClassificationHead
 from pytorch_transformers.modeling_bert import BertPreTrainedModel
 
-from ../bert_common_functions import store_transformers_models, get_a_random_batch_from_dataloader, cosine_rowwise_two_matrices
+from /export/home/workspace/CrossDataEntailment/bert_common_functions import store_transformers_models, get_a_random_batch_from_dataloader, cosine_rowwise_two_matrices
 
 logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt = '%m/%d/%Y %H:%M:%S',

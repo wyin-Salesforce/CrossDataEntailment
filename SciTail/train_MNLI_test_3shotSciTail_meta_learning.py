@@ -190,6 +190,8 @@ class RteProcessor(DataProcessor):
                         class2size[label]+=1
                     else:
                         continue
+                if len(class2size.keys()) == 3 and sum(class2size.values()) == 9:
+                    break
                 line_co+=1
         readfile.close()
         print('loaded  3shot size:', line_co, len(examples_entail))

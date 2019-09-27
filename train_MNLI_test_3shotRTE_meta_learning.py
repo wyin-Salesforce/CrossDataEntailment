@@ -189,11 +189,10 @@ class RteProcessor(DataProcessor):
             # if line_co > 20000:
             #     break
         readfile.close()
-        print('loaded  size:', line_co-1)
+        print('loaded  size:', line_co)
         assert len(examples_entail) == 3
         assert len(examples_neutral) == 3
         assert len(examples_contra) == 3
-        exit(0)
         return examples_entail, examples_neutral, examples_contra
 
     def get_RTE_as_dev(self, filename):

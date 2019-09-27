@@ -159,7 +159,6 @@ class RteProcessor(DataProcessor):
         class2size = defaultdict(int)
         line_co=0
         for row in readfile:
-            print('line_co:', line_co)
             line=row.strip().split('\t')
             if len(line) == 3:
                 guid = "3shot-"+str(line_co)
@@ -167,8 +166,6 @@ class RteProcessor(DataProcessor):
                 text_b = line[1].strip()
                 random_value = random.uniform(0, 1)
                 if  random_value < 0.85:
-                    print('random_value:', random_value)
-                    print('line_co inside:', line_co)
                     continue
                 # label = line[3].strip() #["entailment", "not_entailment"]
                 # label = 'entailment'  if line[3].strip() == 'entailment' else 'neutral'
@@ -194,8 +191,10 @@ class RteProcessor(DataProcessor):
                     break
                 line_co+=1
         readfile.close()
-        print('loaded  3shot size:', line_co, len(examples_entail))
-        exit(0)
+        print('loaded  3shot size:', line_co)
+        assert len(examples_entail) == 3
+        assert len(examples_neutral) == 3
+        assert len(examples_contra) == 3
         return examples_entail, examples_neutral, examples_contra
 
     def get_SciTail_as_dev_or_test(self, filename, prefix):

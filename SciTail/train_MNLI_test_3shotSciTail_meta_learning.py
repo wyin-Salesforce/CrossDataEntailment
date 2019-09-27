@@ -868,7 +868,7 @@ def main():
                 assert all_input_ids.shape[0] == args.train_batch_size+9
                 sample_input_mask_i = torch.cat([mnli_entail_batch_input_mask,mnli_neutra_batch_input_mask,mnli_contra_batch_input_mask], dim=0)
                 sample_input_mask_each_iter.append(sample_input_mask_i)
-                all_input_mask = torch.cat([mnli_entail_batch_input_mask,mnli_neutra_batch_input_mask,mnli_contra_batch_input_mask,input_mask], dim=0)
+                all_input_mask = torch.cat([sample_input_mask_i,input_mask], dim=0)
 
                 '''
                 forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None):
@@ -884,6 +884,12 @@ def main():
                 model.train()
                 loss, mnli_samples_outputs_i = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
                 loss.backward()
+                optimizer.step()
+                optimizer.zero_grad()
+
+                model.train()
+                loss_cross_sample, _ = model(torch.cat([sample_input_ids_i,eval_all_input_ids_shot.to(device)],dim=0), None, torch.cat([sample_input_mask_i,eval_all_input_mask_shot.to(device)], dim=0), sample_size=3, class_size =num_labels, labels=torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
+                loss_cross_sample.backward()
                 optimizer.step()
                 optimizer.zero_grad()
 

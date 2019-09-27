@@ -39,9 +39,9 @@ from sklearn.metrics import matthews_corrcoef, f1_score
 
 
 
-from pytorch_transformers.tokenization_roberta import RobertaTokenizer
-from pytorch_transformers.optimization import AdamW
-from pytorch_transformers.modeling_roberta import RobertaForSequenceClassification
+from transformers.tokenization_roberta import RobertaTokenizer
+from transformers.optimization import AdamW
+from transformers.modeling_roberta import RobertaForSequenceClassification
 
 logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt = '%m/%d/%Y %H:%M:%S',
@@ -521,7 +521,7 @@ def main():
     # Prepare model
     # cache_dir = args.cache_dir if args.cache_dir else os.path.join(str(PYTORCH_TRANSFORMERS_CACHE), 'distributed_{}'.format(args.local_rank))
 
-    pretrain_model_dir = '/root/.cache/torch/pytorch_transformers/1c2e185bc053ae7261ce2289653438a4c05b871ff7f30eaee1cdb787154410e0.c1823b934e18e923174ff260ba955eef25b2205f48fe2655c432a5fb805f8c8a' #'roberta-large' , 'roberta-large-mnli'
+    pretrain_model_dir = 'roberta-large-mnli' #'roberta-large' , 'roberta-large-mnli'
     model = RobertaForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
 
     # print(model.classifier.weight)

@@ -760,7 +760,7 @@ def main():
         eval_all_label_ids_shot = torch.tensor([f.label_id for f in eval_features_shot], dtype=torch.long)
 
         '''load dev set'''
-        dev_examples = processor.get_RTE_as_dev('/export/home/Dataset/SciTailV1/tsv_format/scitail_1.0_dev.tsv')
+        dev_examples = processor.get_SciTail_as_dev_or_test('/export/home/Dataset/SciTailV1/tsv_format/scitail_1.0_dev.tsv', 'dev')
         dev_features = convert_examples_to_features(
             dev_examples, label_list, args.max_seq_length, tokenizer, output_mode,
             cls_token_at_end=False,#bool(args.model_type in ['xlnet']),            # xlnet has a cls token at the end
@@ -782,7 +782,7 @@ def main():
         dev_dataloader = DataLoader(dev_data, sampler=dev_sampler, batch_size=args.eval_batch_size)
 
         '''load test set'''
-        eval_examples = processor.get_RTE_as_test('/export/home/Dataset/SciTailV1/tsv_format/scitail_1.0_test.tsv')
+        eval_examples = processor.get_SciTail_as_dev_or_test('/export/home/Dataset/SciTailV1/tsv_format/scitail_1.0_test.tsv', 'test')
         eval_features = convert_examples_to_features(
             eval_examples, label_list, args.max_seq_length, tokenizer, output_mode,
             cls_token_at_end=False,#bool(args.model_type in ['xlnet']),            # xlnet has a cls token at the end

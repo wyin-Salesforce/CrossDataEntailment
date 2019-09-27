@@ -159,7 +159,7 @@ class RteProcessor(DataProcessor):
         class2size = defaultdict(int)
         line_co=0
         for row in readfile:
-
+            print('line_co:', line_co)
             line=row.strip().split('\t')
             if len(line) == 3:
                 guid = "3shot-"+str(line_co)

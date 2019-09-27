@@ -811,10 +811,6 @@ def main():
         tr_loss = 0
         loss_fct = CrossEntropyLoss()
         for _ in trange(int(args.num_train_epochs), desc="Epoch"):
-
-            # logger.info("  Num examples = %d", len(train_examples))
-            # logger.info("  Batch size = %d", args.train_batch_size)
-            # logger.info("  Num steps = %d", num_train_optimization_steps)
             dataloader_list = []
             for idd, train_features in enumerate([train_features_entail, train_features_neutral, train_features_contra,
             train_features_entail + train_features_neutral + train_features_contra]):

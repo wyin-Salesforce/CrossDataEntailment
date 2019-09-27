@@ -165,7 +165,10 @@ class RteProcessor(DataProcessor):
                 guid = "3shot-"+str(line_co)
                 text_a = line[0].strip()
                 text_b = line[1].strip()
-                if random.uniform(0, 1) < 0.85:
+                random_value = random.uniform(0, 1)
+                if  random_value < 0.85:
+                    print('random_value:', random_value)
+                    print('line_co inside:', line_co)
                     continue
                 # label = line[3].strip() #["entailment", "not_entailment"]
                 # label = 'entailment'  if line[3].strip() == 'entailment' else 'neutral'

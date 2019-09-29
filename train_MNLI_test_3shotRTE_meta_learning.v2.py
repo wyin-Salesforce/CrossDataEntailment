@@ -132,9 +132,9 @@ class RteProcessor(DataProcessor):
                 if label == 'entailment':
                     examples_entail.append(
                         InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
-                # elif label == 'neutral':
-                #     examples_neutral.append(
-                #         InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+                elif label == 'neutral':
+                    examples_neutral.append(
+                        InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
                 else:
                     examples_contra.append(
                         InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
@@ -143,7 +143,10 @@ class RteProcessor(DataProcessor):
                 break
         readfile.close()
         print('loaded  size:', line_co)
-        return examples_entail, examples_contra
+        return examples_entail, examples_neutral, examples_contra
+
+
+
 
     def get_RTE_as_train(self, filename):
         '''
@@ -168,7 +171,7 @@ class RteProcessor(DataProcessor):
                 if line[3].strip() == 'entailment':
                     labels = ['entailment']
                 else:
-                    labels = ['not_entailment']
+                    labels = ['neutral', 'contradiction']
                 for label in labels:
                     if class2size.get(label, 0) < 3:
                         if label == 'entailment':
@@ -183,12 +186,17 @@ class RteProcessor(DataProcessor):
                         class2size[label]+=1
                     else:
                         continue
+                if len(class2size.keys()) == 3 and sum(class2size.values()) == 9:
+                    break
             line_co+=1
             # if line_co > 20000:
             #     break
         readfile.close()
-        print('loaded  size:', line_co-1)
-        return examples_entail, examples_contra
+        print('loaded  size:', line_co)
+        assert len(examples_entail) == 3
+        assert len(examples_neutral) == 3
+        assert len(examples_contra) == 3
+        return examples_entail, examples_neutral, examples_contra
 
     def get_RTE_as_dev(self, filename):
         '''
@@ -204,7 +212,7 @@ class RteProcessor(DataProcessor):
                 text_a = line[1].strip()
                 text_b = line[2].strip()
                 # label = line[3].strip() #["entailment", "not_entailment"]
-                label = 'entailment'  if line[3] == 'entailment' else 'not_entailment'
+                label = 'entailment'  if line[3] == 'entailment' else 'neutral'
                 examples.append(
                     InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
             line_co+=1
@@ -225,7 +233,7 @@ class RteProcessor(DataProcessor):
                 text_a = line[1]
                 text_b = line[2]
                 '''for RTE, we currently only choose randomly two labels in the set, in prediction we then decide the predicted labels'''
-                label = 'entailment'  if line[0] == '1' else 'not_entailment'
+                label = 'entailment'  if line[0] == '1' else 'neutral'
                 examples.append(
                     InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
                 line_co+=1
@@ -234,9 +242,10 @@ class RteProcessor(DataProcessor):
         print('loaded test size:', line_co)
         return examples
 
+
     def get_labels(self):
         'here we keep the three-way in MNLI training '
-        return ["entailment", "not_entailment"]
+        return ["entailment", "neutral", "contradiction"]
 
     def _create_examples(self, lines, set_type):
         """Creates examples for the training and dev sets."""
@@ -440,15 +449,18 @@ class Encoder(BertPreTrainedModel):
 
             # repeat_batch_outputs = tile(batch_outputs,0,class_size) #(batch*class_size, hidden)
             repeat_batch_outputs = batch_outputs.repeat(1, samples_outputs.shape[0]).view(-1, hidden_size)#(9*batch_size, hidden)
-
+            '''? add similarity or something similar?'''
             mlp_input = torch.cat([
             repeat_batch_outputs, repeat_sample_rep,
             # repeat_batch_outputs - repeat_sample_rep,
             # cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep),
             repeat_batch_outputs*repeat_sample_rep
             ], dim=1) #(batch*class_size, hidden*2)
+            '''??? add drop out here'''
             group_scores = torch.tanh(self.mlp_2(self.dropout(torch.tanh(self.mlp_1(self.dropout(mlp_input))))))#(batch*class_size, 1)
             group_scores_with_simi = group_scores + cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)
+            # group_scores = torch.tanh(self.mlp_2((torch.tanh(mlp_input))))#(9*batch_size, 1)
+            # print('group_scores:',group_scores)
 
             similarity_matrix = group_scores_with_simi.reshape(batch_size, samples_outputs.shape[0])
             '''???note that the softmax will make the resulting logits smaller than LR'''
@@ -518,8 +530,8 @@ class Encoder(BertPreTrainedModel):
             similarity_matrix = group_scores_with_simi.reshape(batch_size, samples_outputs.shape[0])
 
             if prior_samples_logits is not None:
-                sample_logits = torch.cuda.FloatTensor(6, 3).fill_(0)
-                sample_logits[torch.arange(0, 6).long(), sample_labels] = 1.0
+                sample_logits = torch.cuda.FloatTensor(9, 3).fill_(0)
+                sample_logits[torch.arange(0, 9).long(), sample_labels] = 1.0
                 sample_logits = sample_logits.repeat(2,1)
             else:
                 '''the results now that using LR predicted logits is better'''
@@ -693,8 +705,8 @@ def main():
 
 
 
-    train_examples_entail, train_examples_contra = processor.get_MNLI_as_train('/export/home/Dataset/glue_data/MNLI/train.tsv') #train_pu_half_v1.txt
-    train_examples_entail_RTE, train_examples_contra_RTE = processor.get_RTE_as_train('/export/home/Dataset/glue_data/RTE/train.tsv')
+    train_examples_entail, train_examples_neutral, train_examples_contra = processor.get_MNLI_as_train('/export/home/Dataset/glue_data/MNLI/train.tsv') #train_pu_half_v1.txt
+    train_examples_entail_RTE, train_examples_neutral_RTE, train_examples_contra_RTE = processor.get_RTE_as_train('/export/home/Dataset/glue_data/RTE/train.tsv')
         # seen_classes=[0,2,4,6,8]
 
         # num_train_optimization_steps = int(
@@ -736,7 +748,7 @@ def main():
     max_dev_acc = 0.0
     if args.do_train:
         train_features = convert_examples_to_features(
-            train_examples_entail + train_examples_contra,
+            train_examples_entail + train_examples_neutral + train_examples_contra,
             label_list, args.max_seq_length, tokenizer, output_mode,
             cls_token_at_end=False,#bool(args.model_type in ['xlnet']),            # xlnet has a cls token at the end
             cls_token=tokenizer.cls_token,
@@ -748,15 +760,15 @@ def main():
             pad_token_segment_id=0)#4 if args.model_type in ['xlnet'] else 0,)
 
         train_features_entail = train_features[:len(train_examples_entail)]
-        # train_features_neutral = train_features[len(train_examples_entail):(len(train_examples_entail)+len(train_examples_neutral))]
-        train_features_contra = train_features[len(train_examples_entail):]
+        train_features_neutral = train_features[len(train_examples_entail):(len(train_examples_entail)+len(train_examples_neutral))]
+        train_features_contra = train_features[(len(train_examples_entail)+len(train_examples_neutral)):]
         assert len(train_features_entail) == len(train_examples_entail)
-        # assert len(train_features_neutral) == len(train_examples_neutral)
+        assert len(train_features_neutral) == len(train_examples_neutral)
         assert len(train_features_contra) == len(train_examples_contra)
 
         '''load 3-shot data'''
         eval_features_shot = convert_examples_to_features(
-            train_examples_entail_RTE + train_examples_contra_RTE,
+            train_examples_entail_RTE+train_examples_neutral_RTE + train_examples_contra_RTE,
             label_list, args.max_seq_length, tokenizer, output_mode,
             cls_token_at_end=False,#bool(args.model_type in ['xlnet']),            # xlnet has a cls token at the end
             cls_token=tokenizer.cls_token,
@@ -821,13 +833,9 @@ def main():
         tr_loss = 0
         loss_fct = CrossEntropyLoss()
         for _ in trange(int(args.num_train_epochs), desc="Epoch"):
-
-            # logger.info("  Num examples = %d", len(train_examples))
-            # logger.info("  Batch size = %d", args.train_batch_size)
-            # logger.info("  Num steps = %d", num_train_optimization_steps)
             dataloader_list = []
-            for idd, train_features in enumerate([train_features_entail, train_features_contra,
-            train_features_entail  + train_features_contra]):
+            for idd, train_features in enumerate([train_features_entail, train_features_neutral, train_features_contra,
+            train_features_entail + train_features_neutral + train_features_contra]):
                 all_input_ids = torch.tensor([f.input_ids for f in train_features], dtype=torch.long)
                 all_input_mask = torch.tensor([f.input_mask for f in train_features], dtype=torch.long)
                 all_segment_ids = torch.tensor([f.segment_ids for f in train_features], dtype=torch.long)
@@ -836,16 +844,16 @@ def main():
                 train_data = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids)
                 train_sampler = RandomSampler(train_data)
                 '''create 3 samples per class'''
-                if idd < 2:
+                if idd < 3:
                     train_dataloader = DataLoader(train_data, sampler=train_sampler, batch_size=3)
                 else:
                     train_dataloader = DataLoader(train_data, sampler=train_sampler, batch_size=args.train_batch_size)
                 dataloader_list.append(train_dataloader)
 
             MNLI_entail_dataloader = dataloader_list[0]
-            # MNLI_neutra_dataloader = dataloader_list[1]
-            MNLI_contra_dataloader = dataloader_list[1]
-            MNLI_dataloader = dataloader_list[2]
+            MNLI_neutra_dataloader = dataloader_list[1]
+            MNLI_contra_dataloader = dataloader_list[2]
+            MNLI_dataloader = dataloader_list[3]
 
             '''start training'''
 
@@ -854,7 +862,7 @@ def main():
             sample_input_mask_each_iter = []
 
             for step, batch in enumerate(tqdm(MNLI_dataloader, desc="Iteration")):
-                model.train()
+
                 batch = tuple(t.to(device) for t in batch)
                 input_ids, input_mask, segment_ids, label_ids = batch
                 assert input_ids.shape[0] == args.train_batch_size
@@ -864,38 +872,46 @@ def main():
                 mnli_entail_batch_input_ids, mnli_entail_batch_input_mask, mnli_entail_batch_segment_ids, mnli_entail_batch_label_ids = tuple(t.to(device) for t in mnli_entail_batch) #mnli_entail_batch
                 # print('sample entail:', mnli_entail_batch_input_ids.shape[0], mnli_entail_batch_label_ids.shape, mnli_entail_batch_label_ids)
 
-                # mnli_neutra_batch = get_a_random_batch_from_dataloader(MNLI_neutra_dataloader, 3)
-                # mnli_neutra_batch_input_ids, mnli_neutra_batch_input_mask, mnli_neutra_batch_segment_ids, mnli_neutra_batch_label_ids = tuple(t.to(device) for t in mnli_neutra_batch) #mnli_neutra_batch
+                mnli_neutra_batch = get_a_random_batch_from_dataloader(MNLI_neutra_dataloader, 3)
+                mnli_neutra_batch_input_ids, mnli_neutra_batch_input_mask, mnli_neutra_batch_segment_ids, mnli_neutra_batch_label_ids = tuple(t.to(device) for t in mnli_neutra_batch) #mnli_neutra_batch
                 # print('sample neutra:', mnli_neutra_batch_input_ids.shape[0], mnli_neutra_batch_label_ids.shape, mnli_neutra_batch_label_ids)
 
                 mnli_contra_batch = get_a_random_batch_from_dataloader(MNLI_contra_dataloader, 3)
                 mnli_contra_batch_input_ids, mnli_contra_batch_input_mask, mnli_contra_batch_segment_ids, mnli_contra_batch_label_ids = tuple(t.to(device) for t in mnli_contra_batch) #mnli_contra_batch
                 # print('sample contra:', mnli_contra_batch_input_ids.shape[0], mnli_contra_batch_label_ids.shape, mnli_contra_batch_label_ids)
 
-                sample_input_ids_i = torch.cat([mnli_entail_batch_input_ids,mnli_contra_batch_input_ids],dim=0)
+                sample_input_ids_i = torch.cat([mnli_entail_batch_input_ids,mnli_neutra_batch_input_ids,mnli_contra_batch_input_ids],dim=0)
                 sample_input_ids_each_iter.append(sample_input_ids_i)
                 all_input_ids = torch.cat([sample_input_ids_i,input_ids],dim=0)
                 assert all_input_ids.shape[0] == args.train_batch_size+9
-                sample_input_mask_i = torch.cat([mnli_entail_batch_input_mask,mnli_contra_batch_input_mask], dim=0)
+                sample_input_mask_i = torch.cat([mnli_entail_batch_input_mask,mnli_neutra_batch_input_mask,mnli_contra_batch_input_mask], dim=0)
                 sample_input_mask_each_iter.append(sample_input_mask_i)
-                all_input_mask = torch.cat([mnli_entail_batch_input_mask,mnli_contra_batch_input_mask,input_mask], dim=0)
+                all_input_mask = torch.cat([sample_input_mask_i,input_mask], dim=0)
 
                 '''
                 forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None):
                 '''
-                loss, mnli_samples_outputs_i = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
-                # loss_fct = CrossEntropyLoss()
-                # loss = loss_fct(logits[0].view(-1, num_labels), label_ids.view(-1))
 
 
-
-                loss.backward()
-
-                tr_loss += loss.item()
-
-
+                '''SciTail samples --> MNLI batch'''
+                # model.train()
+                # loss_cross_domain, _ = model(torch.cat([eval_all_input_ids_shot.to(device),input_ids],dim=0), None, torch.cat([eval_all_input_mask_shot.to(device),input_mask], dim=0), sample_size=3, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,1,1,1]), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
+                # loss_cross_domain.backward()
+                # optimizer.step()
+                # optimizer.zero_grad()
+                '''MNLI samples --> MNLI batch'''
+                # model.train()
+                # loss, mnli_samples_outputs_i = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
+                # loss.backward()
+                # optimizer.step()
+                # optimizer.zero_grad()
+                '''MNLI samples --> SciTail samples'''
+                model.train()
+                loss_cross_sample, mnli_samples_outputs_i = model(torch.cat([sample_input_ids_i,eval_all_input_ids_shot.to(device)],dim=0), None, torch.cat([sample_input_mask_i,eval_all_input_mask_shot.to(device)], dim=0), sample_size=3, class_size =num_labels, labels=torch.cuda.LongTensor([0,0,0,1,1,1,1,1,1]), sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
+                loss_cross_sample.backward()
                 optimizer.step()
                 optimizer.zero_grad()
+
                 global_step += 1
                 iter_co+=1
 
@@ -922,7 +938,7 @@ def main():
                     '''second do few-shot training'''
                     for ff in range(2):
                         model.train()
-                        few_loss = model(eval_all_input_ids_shot.to(device), None, eval_all_input_mask_shot.to(device), sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = None, few_shot_training=True, is_train=True, loss_fct=loss_fct)
+                        few_loss = model(eval_all_input_ids_shot.to(device), None, eval_all_input_mask_shot.to(device), sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,1,1,1]), prior_samples_outputs = None, few_shot_training=True, is_train=True, loss_fct=loss_fct)
                         few_loss.backward()
                         optimizer.step()
                         optimizer.zero_grad()
@@ -1017,10 +1033,8 @@ def main():
 
 
                         if idd == 0: # this is dev
-                            # dev_value = 0.5*(np.mean(acc_list)+max(acc_list))
-                            dev_value = np.mean(acc_list)
-                            if dev_value >= max_dev_acc:
-                                max_dev_acc = dev_value
+                            if np.mean(acc_list) >= max_dev_acc:
+                                max_dev_acc = np.mean(acc_list)
                                 print('\ndev acc_list:', acc_list, ' max_mean_dev_acc:', max_dev_acc, '\n')
                                 '''store the model'''
                                 # store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE', str(max_dev_acc))
@@ -1043,4 +1057,4 @@ def array_2_softmax(a):
 
 if __name__ == "__main__":
     main()
-# CUDA_VISIBLE_DEVICES=7 python -u train_MNLI_test_3shotRTE_meta_learning.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 2e-5 --num_train_epochs 3 --data_dir '' --output_dir '' > log.RTE.RTE.batch32.txt 2>&1
+# CUDA_VISIBLE_DEVICES=7 python -u train_MNLI_test_3shotSciTail_meta_learning.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --num_train_epochs 3 --data_dir '' --output_dir ''

@@ -443,17 +443,15 @@ class Encoder(BertPreTrainedModel):
             similarity_matrix = group_scores_with_simi.reshape(batch_size, samples_outputs.shape[0])
             '''???note that the softmax will make the resulting logits smaller than LR'''
             batch_logits_from_NN = torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits) #(batch, 3)
-            batch_logits_from_NN[:,1] = torch.max(batch_logits_from_NN[:,1:],dim=1)[0]
-            batch_logits_from_NN = batch_logits_from_NN[:,:2]
             '''???use each of the logits for loss compute'''
-            # batch_logits = batch_logits_from_LR+batch_logits_from_NN
+            batch_logits = batch_logits_from_LR+batch_logits_from_NN
 
 
             '''??? add bias here'''
 
             '''This criterion combines :func:`nn.LogSoftmax` and :func:`nn.NLLLoss` in one single class.'''
             batch_loss = (loss_fct(batch_logits_from_LR.view(-1, self.num_labels), labels.view(-1))+
-                        loss_fct(batch_logits_from_NN.view(-1, self.num_labels-1), labels.view(-1)))
+                        loss_fct(batch_logits_from_NN.view(-1, self.num_labels), labels.view(-1)))
             loss = sample_loss+batch_loss
             return loss, samples_outputs
 

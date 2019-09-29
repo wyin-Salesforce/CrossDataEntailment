@@ -893,7 +893,7 @@ def main():
                 global_step += 1
                 iter_co+=1
 
-                check_freq = 10
+                check_freq = 15
                 if iter_co %check_freq==0:
                     '''first get info from MNLI by sampling'''
                     assert len(sample_input_ids_each_iter) == check_freq
@@ -914,7 +914,7 @@ def main():
                     prior_mnli_samples_logits = torch.mean(prior_mnli_samples_logits,dim=0)
 
                     '''second do few-shot training'''
-                    for ff in range(3):
+                    for ff in range(2):
                         model.train()
                         few_loss = model(eval_all_input_ids_shot.to(device), None, eval_all_input_mask_shot.to(device), sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,1,1,1]), prior_samples_outputs = None, few_shot_training=True, is_train=True, loss_fct=loss_fct)
                         few_loss.backward()
@@ -1035,4 +1035,4 @@ def array_2_softmax(a):
 
 if __name__ == "__main__":
     main()
-# CUDA_VISIBLE_DEVICES=2 python -u train_MNLI_test_3shotSciTail_meta_learning.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --num_train_epochs 3 --data_dir '' --output_dir ''
+# CUDA_VISIBLE_DEVICES=7 python -u train_MNLI_test_3shotSciTail_meta_learning.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --num_train_epochs 3 --data_dir '' --output_dir ''

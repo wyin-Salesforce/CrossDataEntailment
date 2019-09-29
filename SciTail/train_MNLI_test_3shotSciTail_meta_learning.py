@@ -890,8 +890,6 @@ def main():
                 optimizer.step()
                 optimizer.zero_grad()
 
-
-
                 global_step += 1
                 iter_co+=1
 

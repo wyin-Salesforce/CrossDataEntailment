@@ -165,7 +165,7 @@ class RteProcessor(DataProcessor):
                 text_a = line[0].strip()
                 text_b = line[1].strip()
                 random_value = random.uniform(0, 1)
-                if  random_value < 0.85:
+                if  random_value < 0.45:
                     continue
                 # label = line[3].strip() #["entailment", "not_entailment"]
                 # label = 'entailment'  if line[3].strip() == 'entailment' else 'neutral'
@@ -878,11 +878,11 @@ def main():
                 # optimizer.step()
                 # optimizer.zero_grad()
                 '''MNLI samples --> MNLI batch'''
-                # model.train()
-                # loss, mnli_samples_outputs_i = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
-                # loss.backward()
-                # optimizer.step()
-                # optimizer.zero_grad()
+                model.train()
+                loss, mnli_samples_outputs_i = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
+                loss.backward()
+                optimizer.step()
+                optimizer.zero_grad()
                 '''MNLI samples --> SciTail samples'''
                 model.train()
                 loss_cross_sample, mnli_samples_outputs_i = model(torch.cat([sample_input_ids_i,eval_all_input_ids_shot.to(device)],dim=0), None, torch.cat([sample_input_mask_i,eval_all_input_mask_shot.to(device)], dim=0), sample_size=3, class_size =num_labels, labels=torch.cuda.LongTensor([0,0,0,1,1,1,1,1,1]), sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
@@ -908,6 +908,7 @@ def main():
                             mnli_sample_hidden_list.append(mnli_sample_hidden_i[None,:,:])
                             mnli_sample_logits_list.append(mnli_sample_logits_i[None,:,:])
                     sample_input_ids_each_iter = []
+
                     sample_input_mask_each_iter = []
                     '''sum or mean does not make big difference'''
                     prior_mnli_samples_outputs = torch.cat(mnli_sample_hidden_list,dim=0)

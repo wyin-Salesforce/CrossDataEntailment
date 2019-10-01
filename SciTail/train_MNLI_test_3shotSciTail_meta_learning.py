@@ -871,12 +871,7 @@ def main():
                 '''
 
 
-                '''SciTail samples --> MNLI batch'''
-                # model.train()
-                # loss_cross_domain, _ = model(torch.cat([eval_all_input_ids_shot.to(device),input_ids],dim=0), None, torch.cat([eval_all_input_mask_shot.to(device),input_mask], dim=0), sample_size=3, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,1,1,1]), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
-                # loss_cross_domain.backward()
-                # optimizer.step()
-                # optimizer.zero_grad()
+
                 '''MNLI samples --> MNLI batch'''
                 model.train()
                 loss, _ = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
@@ -889,7 +884,12 @@ def main():
                 loss_cross_sample.backward()
                 optimizer.step()
                 optimizer.zero_grad()
-
+                '''SciTail samples --> MNLI batch'''
+                model.train()
+                loss_cross_domain, _ = model(torch.cat([eval_all_input_ids_shot.to(device),input_ids],dim=0), None, torch.cat([eval_all_input_mask_shot.to(device),input_mask], dim=0), sample_size=3, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,1,1,1]), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
+                loss_cross_domain.backward()
+                optimizer.step()
+                optimizer.zero_grad()
 
 
                 global_step += 1

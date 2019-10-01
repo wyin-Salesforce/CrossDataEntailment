@@ -392,11 +392,11 @@ class Encoder(BertPreTrainedModel):
 
             '''??? output samples_outputs for accumulating info for testing phase'''
             samples_outputs = pooled_outputs[:sample_size*class_size,:] #(9, hidden_size)
-            # if prior_samples_outputs is not None:
-            #     '''testing'''
-            #     # samples_outputs = (samples_outputs+prior_samples_outputs)*0.5
-            #     samples_outputs =  torch.cat([prior_samples_outputs, samples_outputs], dim=0)
-            # print('samples_outputs shaoe:', samples_outputs.shape)
+            '''make the dot prod between samples to zero'''
+            samples_outputs_2_class_rep = samples_outputs.reshape(3,3,samples_outputs.shape[1])
+            samples_outputs_2_class_rep = torch.sum(samples_outputs_2_class_rep,dim=1) #(3, hidden)
+            class_dot_prod = nn.Sigmoid()(torch.mm(samples_outputs_2_class_rep, samples_outputs_2_class_rep.t()) )#(3,3)
+            loss_cmu = torch.sum((class_dot_prod - torch.cuda.eye(3))**2)
             '''we use all into LR'''
 
             sample_logits = LR_logits[:sample_size*class_size,:] #(9,3)
@@ -452,7 +452,7 @@ class Encoder(BertPreTrainedModel):
             '''This criterion combines :func:`nn.LogSoftmax` and :func:`nn.NLLLoss` in one single class.'''
             batch_loss = (loss_fct(batch_logits_from_LR.view(-1, self.num_labels), labels.view(-1))+
                         loss_fct(batch_logits_from_NN.view(-1, self.num_labels), labels.view(-1)))
-            loss = sample_loss+batch_loss
+            loss = sample_loss+batch_loss+loss_cmu
             return loss, samples_outputs
 
         else:

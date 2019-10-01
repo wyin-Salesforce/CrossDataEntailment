@@ -460,10 +460,6 @@ class Encoder(BertPreTrainedModel):
             batch_logits_from_LR = nn.Softmax(dim=1)(LR_logits[sample_size*class_size:,:]) #(10,3)
 
 
-
-
-
-
             '''??? output samples_outputs for accumulating info for testing phase'''
             samples_outputs = pooled_outputs[:sample_size*class_size,:] #(9, hidden_size)
             if fetch_hidden_only:

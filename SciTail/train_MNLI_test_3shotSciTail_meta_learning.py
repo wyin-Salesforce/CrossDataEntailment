@@ -165,7 +165,7 @@ class RteProcessor(DataProcessor):
                 text_a = line[0].strip()
                 text_b = line[1].strip()
                 random_value = random.uniform(0, 1)
-                if  random_value < 0.55:
+                if  random_value < 0.7:
                     continue
                 # label = line[3].strip() #["entailment", "not_entailment"]
                 # label = 'entailment'  if line[3].strip() == 'entailment' else 'neutral'
@@ -872,11 +872,11 @@ def main():
 
 
                 '''SciTail samples --> MNLI batch'''
-                model.train()
-                loss_cross_domain, _ = model(torch.cat([eval_all_input_ids_shot.to(device),input_ids],dim=0), None, torch.cat([eval_all_input_mask_shot.to(device),input_mask], dim=0), sample_size=3, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,1,1,1]), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
-                loss_cross_domain.backward()
-                optimizer.step()
-                optimizer.zero_grad()
+                # model.train()
+                # loss_cross_domain, _ = model(torch.cat([eval_all_input_ids_shot.to(device),input_ids],dim=0), None, torch.cat([eval_all_input_mask_shot.to(device),input_mask], dim=0), sample_size=3, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,1,1,1]), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
+                # loss_cross_domain.backward()
+                # optimizer.step()
+                # optimizer.zero_grad()
                 '''MNLI samples --> MNLI batch'''
                 model.train()
                 loss, _ = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
@@ -917,13 +917,13 @@ def main():
                     prior_mnli_samples_logits = torch.mean(prior_mnli_samples_logits,dim=0)
 
                     '''second do few-shot training'''
-                    # for ff in range(3):
-                    #     model.train()
-                    #     few_loss = model(eval_all_input_ids_shot.to(device), None, eval_all_input_mask_shot.to(device), sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,1,1,1]), prior_samples_outputs = None, few_shot_training=True, is_train=True, loss_fct=loss_fct)
-                    #     few_loss.backward()
-                    #     optimizer.step()
-                    #     optimizer.zero_grad()
-                    #     print('few_loss:', few_loss)
+                    for ff in range(3):
+                        model.train()
+                        few_loss = model(eval_all_input_ids_shot.to(device), None, eval_all_input_mask_shot.to(device), sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,1,1,1]), prior_samples_outputs = None, few_shot_training=True, is_train=True, loss_fct=loss_fct)
+                        few_loss.backward()
+                        optimizer.step()
+                        optimizer.zero_grad()
+                        print('few_loss:', few_loss)
                     '''
                     start evaluate on dev set after this epoch
                     '''

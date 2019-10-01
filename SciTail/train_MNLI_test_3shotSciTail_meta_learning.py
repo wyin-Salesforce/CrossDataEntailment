@@ -25,10 +25,10 @@ from sklearn.metrics import matthews_corrcoef, f1_score
 
 
 
-from transformers.tokenization_roberta import RobertaTokenizer
-from transformers.optimization import AdamW
-from transformers.modeling_roberta import RobertaModel, RobertaConfig#, RobertaClassificationHead
-from transformers.modeling_bert import BertPreTrainedModel
+from pytorch_transformers.tokenization_roberta import RobertaTokenizer
+from pytorch_transformers.optimization import AdamW
+from pytorch_transformers.modeling_roberta import RobertaModel, RobertaConfig#, RobertaClassificationHead
+from pytorch_transformers.modeling_bert import BertPreTrainedModel
 
 from bert_common_functions import store_transformers_models, get_a_random_batch_from_dataloader, cosine_rowwise_two_matrices
 
@@ -165,7 +165,7 @@ class RteProcessor(DataProcessor):
                 text_a = line[0].strip()
                 text_b = line[1].strip()
                 random_value = random.uniform(0, 1)
-                if  random_value < 0.7:
+                if  random_value < 0.45:
                     continue
                 # label = line[3].strip() #["entailment", "not_entailment"]
                 # label = 'entailment'  if line[3].strip() == 'entailment' else 'neutral'
@@ -392,11 +392,11 @@ class Encoder(BertPreTrainedModel):
 
             '''??? output samples_outputs for accumulating info for testing phase'''
             samples_outputs = pooled_outputs[:sample_size*class_size,:] #(9, hidden_size)
-            '''make the dot prod between samples to zero'''
-            # samples_outputs_2_class_rep = samples_outputs.reshape(3,3,samples_outputs.shape[1])
-            # samples_outputs_2_class_rep = torch.sum(samples_outputs_2_class_rep,dim=1) #(3, hidden)
-            # class_dot_prod = nn.Sigmoid()(torch.mm(samples_outputs_2_class_rep, samples_outputs_2_class_rep.t()) )#(3,3)
-            # loss_cmu = torch.sum((class_dot_prod - torch.cuda.eye(3))**2)
+            # if prior_samples_outputs is not None:
+            #     '''testing'''
+            #     # samples_outputs = (samples_outputs+prior_samples_outputs)*0.5
+            #     samples_outputs =  torch.cat([prior_samples_outputs, samples_outputs], dim=0)
+            # print('samples_outputs shaoe:', samples_outputs.shape)
             '''we use all into LR'''
 
             sample_logits = LR_logits[:sample_size*class_size,:] #(9,3)
@@ -452,12 +452,16 @@ class Encoder(BertPreTrainedModel):
             '''This criterion combines :func:`nn.LogSoftmax` and :func:`nn.NLLLoss` in one single class.'''
             batch_loss = (loss_fct(batch_logits_from_LR.view(-1, self.num_labels), labels.view(-1))+
                         loss_fct(batch_logits_from_NN.view(-1, self.num_labels), labels.view(-1)))
-            loss = sample_loss+batch_loss#+loss_cmu
+            loss = sample_loss+batch_loss
             return loss, samples_outputs
 
         else:
             '''testing'''
             batch_logits_from_LR = nn.Softmax(dim=1)(LR_logits[sample_size*class_size:,:]) #(10,3)
+
+
+
+
 
 
             '''??? output samples_outputs for accumulating info for testing phase'''

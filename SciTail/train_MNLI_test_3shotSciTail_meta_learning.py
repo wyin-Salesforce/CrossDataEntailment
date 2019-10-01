@@ -1027,7 +1027,6 @@ def main():
                                 max_test_acc = acc_list[-2]
                             print('\ntest acc_list:', acc_list, ' max_test_acc:', max_test_acc, '\n')
 
-
 def array_2_softmax(a):
     for i in range(a.shape[0]):
         if a[i][2]>a[i][1]:

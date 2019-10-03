@@ -401,7 +401,7 @@ def main():
                         help="local_rank for distributed training on gpus")
     parser.add_argument('--seed',
                         type=int,
-                        default=16,
+                        default=42,
                         help="random seed for initialization")
     parser.add_argument('--gradient_accumulation_steps',
                         type=int,
@@ -472,7 +472,7 @@ def main():
     train_examples = None
     num_train_optimization_steps = None
     if args.do_train:
-        train_examples = processor.get_SciTail_as_dev_or_test('/export/home/Dataset/SciTailV1/tsv_format/scitail_1.0_test.tsv', 'train') #train_pu_half_v1.txt
+        train_examples = processor.get_SciTail_as_dev_or_test('/export/home/Dataset/SciTailV1/tsv_format/scitail_1.0_train.tsv', 'train') #train_pu_half_v1.txt
         # seen_classes=[0,2,4,6,8]
 
         num_train_optimization_steps = int(

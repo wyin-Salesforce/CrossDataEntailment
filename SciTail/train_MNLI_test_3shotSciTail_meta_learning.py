@@ -1038,3 +1038,4 @@ def array_2_softmax(a):
 if __name__ == "__main__":
     main()
 # CUDA_VISIBLE_DEVICES=6 python -u train_MNLI_test_3shotSciTail_meta_learning.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --num_train_epochs 3 --data_dir '' --output_dir ''
+#kubectl exec -it sfr-pod-wyin bash

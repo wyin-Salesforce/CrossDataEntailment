@@ -123,71 +123,7 @@ class DataProcessor(object):
 
 class RteProcessor(DataProcessor):
     """Processor for the RTE data set (GLUE version)."""
-    def get_train_examples_wenpeng(self, filename):
-        readfile = codecs.open(filename, 'r', 'utf-8')
-        line_co=0
-        examples=[]
-        for row in readfile:
-            if line_co>0:
-                line=row.strip().split('\t')
-                guid = "train-"+line[0]
-                text_a = line[1]
-                text_b = line[2]
-                label = line[-1]
-                examples.append(
-                    InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
-                line_co+=1
-            else:
-                line_co+=1
-                continue
-        readfile.close()
-        print('loaded training size:', line_co)
-        return examples
-
-    def get_SciTail_as_train_or_test(self, filename):
-        readfile = codecs.open(filename, 'r', 'utf-8')
-        line_co=0
-        examples=[]
-        for row in readfile:
-            line=row.strip().split('\t')
-            if len(line)==3:
-                guid = "test-"+str(line_co)
-                text_a = line[0].strip()
-                text_b = line[1].strip()
-                '''for RTE, we currently only choose randomly two labels in the set, in prediction we then decide the predicted labels'''
-                label = line[2].strip()#[ 'entails','neutral']
-                examples.append(
-                    InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
-                line_co+=1
-
-        readfile.close()
-        print('loaded test size:', line_co)
-        return examples
-
-    # def get_RTE_as_train(self, filename):
-    #     '''
-    #     can read the training file, dev and test file
-    #     '''
-    #     examples=[]
-    #     readfile = codecs.open(filename, 'r', 'utf-8')
-    #     line_co=0
-    #     for row in readfile:
-    #         if line_co>0:
-    #             line=row.strip().split('\t')
-    #             guid = "train-"+str(line_co-1)
-    #             text_a = line[1].strip()
-    #             text_b = line[2].strip()
-    #             label = line[3].strip() #["entailment", "not_entailment"]
-    #             examples.append(
-    #                 InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
-    #         line_co+=1
-    #         if line_co > 20000:
-    #             break
-    #     readfile.close()
-    #     print('loaded  size:', line_co)
-    #     return examples
-
-    # def get_RTE_as_test(self, filename):
+    # def get_SciTail_as_train_or_test(self, filename):
     #     readfile = codecs.open(filename, 'r', 'utf-8')
     #     line_co=0
     #     examples=[]
@@ -195,10 +131,10 @@ class RteProcessor(DataProcessor):
     #         line=row.strip().split('\t')
     #         if len(line)==3:
     #             guid = "test-"+str(line_co)
-    #             text_a = line[1]
-    #             text_b = line[2]
+    #             text_a = line[0].strip()
+    #             text_b = line[1].strip()
     #             '''for RTE, we currently only choose randomly two labels in the set, in prediction we then decide the predicted labels'''
-    #             label = 'entailment'  if line[0] == '1' else 'not_entailment'
+    #             label = line[2].strip()#[ 'entails','neutral']
     #             examples.append(
     #                 InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
     #             line_co+=1
@@ -207,9 +143,32 @@ class RteProcessor(DataProcessor):
     #     print('loaded test size:', line_co)
     #     return examples
 
+    def get_SciTail(self, filename, prefix):
+        '''
+        can read the training file, dev and test file
+        '''
+        examples=[]
+        readfile = codecs.open(filename, 'r', 'utf-8')
+        line_co=0
+        for row in readfile:
+
+            line=row.strip().split('\t')
+            if len(line) == 3:
+                guid = prefix+'-'+str(line_co-1)
+                text_a = line[0].strip()
+                text_b = line[1].strip()
+                # label = line[3].strip() #["entailment", "not_entailment"]
+                label = 'entailment'  if line[2] == 'entails' else 'neutral'
+                examples.append(
+                    InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+            line_co+=1
+        readfile.close()
+        print('loaded  size:', line_co-1)
+        return examples
+
     def get_labels(self):
         'here we keep the three-way in MNLI training '
-        return ["entails", "neutral"]
+        return ["entailment", "neutral", "contradiction"]
 
     def _create_examples(self, lines, set_type):
         """Creates examples for the training and dev sets."""
@@ -520,7 +479,7 @@ def main():
     train_examples = None
     num_train_optimization_steps = None
     if args.do_train:
-        train_examples = processor.get_SciTail_as_train_or_test('/export/home/Dataset/SciTailV1/tsv_format/scitail_1.0_train.tsv') #train_pu_half_v1.txt
+        train_examples = processor.get_SciTail('/export/home/Dataset/SciTailV1/tsv_format/scitail_1.0_train.tsv', 'train') #train_pu_half_v1.txt
         # seen_classes=[0,2,4,6,8]
 
         num_train_optimization_steps = int(
@@ -571,6 +530,7 @@ def main():
     nb_tr_steps = 0
     tr_loss = 0
     max_test_acc = 0.0
+    max_dev_acc = 0.0
     if args.do_train:
         train_features = convert_examples_to_features(
             train_examples, label_list, args.max_seq_length, tokenizer, output_mode,
@@ -584,7 +544,29 @@ def main():
             pad_token_segment_id=0)#4 if args.model_type in ['xlnet'] else 0,)
 
         '''load dev set'''
-        eval_examples = processor.get_SciTail_as_train_or_test('/export/home/Dataset/SciTailV1/tsv_format/scitail_1.0_test.tsv')
+        dev_examples = processor.get_SciTail('/export/home/Dataset/SciTailV1/tsv_format/scitail_1.0_dev.tsv', 'dev')
+        dev_features = convert_examples_to_features(
+            dev_examples, label_list, args.max_seq_length, tokenizer, output_mode,
+            cls_token_at_end=False,#bool(args.model_type in ['xlnet']),            # xlnet has a cls token at the end
+            cls_token=tokenizer.cls_token,
+            cls_token_segment_id=0,#2 if args.model_type in ['xlnet'] else 0,
+            sep_token=tokenizer.sep_token,
+            sep_token_extra=True,#bool(args.model_type in ['roberta']),           # roberta uses an extra separator b/w pairs of sentences, cf. github.com/pytorch/fairseq/commit/1684e166e3da03f5b600dbb7855cb98ddfcd0805
+            pad_on_left=False,#bool(args.model_type in ['xlnet']),                 # pad on the left for xlnet
+            pad_token=tokenizer.convert_tokens_to_ids([tokenizer.pad_token])[0],
+            pad_token_segment_id=0)#4 if args.model_type in ['xlnet'] else 0,)
+
+        dev_all_input_ids = torch.tensor([f.input_ids for f in dev_features], dtype=torch.long)
+        dev_all_input_mask = torch.tensor([f.input_mask for f in dev_features], dtype=torch.long)
+        dev_all_segment_ids = torch.tensor([f.segment_ids for f in dev_features], dtype=torch.long)
+        dev_all_label_ids = torch.tensor([f.label_id for f in dev_features], dtype=torch.long)
+
+        dev_data = TensorDataset(dev_all_input_ids, dev_all_input_mask, dev_all_segment_ids, dev_all_label_ids)
+        dev_sampler = SequentialSampler(dev_data)
+        dev_dataloader = DataLoader(dev_data, sampler=dev_sampler, batch_size=args.eval_batch_size)
+
+        '''load test set'''
+        eval_examples = processor.get_SciTail('/export/home/Dataset/SciTailV1/tsv_format/scitail_1.0_test.tsv', 'test')
         eval_features = convert_examples_to_features(
             eval_examples, label_list, args.max_seq_length, tokenizer, output_mode,
             cls_token_at_end=False,#bool(args.model_type in ['xlnet']),            # xlnet has a cls token at the end
@@ -652,61 +634,76 @@ def main():
                     '''
                     model.eval()
 
-                    logger.info("***** Running evaluation *****")
-                    logger.info("  Num examples = %d", len(eval_examples))
-                    logger.info("  Batch size = %d", args.eval_batch_size)
+                    for idd, dev_or_test_dataloader in enumerate([dev_dataloader, eval_dataloader]):
 
-                    eval_loss = 0
-                    nb_eval_steps = 0
-                    preds = []
-                    gold_label_ids = []
-                    print('Evaluating...')
-                    for input_ids, input_mask, segment_ids, label_ids in eval_dataloader:
-                        input_ids = input_ids.to(device)
-                        input_mask = input_mask.to(device)
-                        segment_ids = segment_ids.to(device)
-                        label_ids = label_ids.to(device)
-                        gold_label_ids+=list(label_ids.detach().cpu().numpy())
-
-                        with torch.no_grad():
-                            logits = model(input_ids, None, input_mask, labels=None)
-                        logits = logits[0]
-
-                        loss_fct = CrossEntropyLoss()
-                        tmp_eval_loss = loss_fct(logits.view(-1, num_labels), label_ids.view(-1))
-
-                        eval_loss += tmp_eval_loss.mean().item()
-                        nb_eval_steps += 1
-                        if len(preds) == 0:
-                            preds.append(logits.detach().cpu().numpy())
+                        logger.info("***** Running evaluation *****")
+                        if idd == 0:
+                            logger.info("  Num examples = %d", len(dev_examples))
                         else:
-                            preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
+                            logger.info("  Num examples = %d", len(eval_examples))
+                        logger.info("  Batch size = %d", args.eval_batch_size)
 
-                    eval_loss = eval_loss / nb_eval_steps
-                    preds = preds[0]
+                        eval_loss = 0
+                        nb_eval_steps = 0
+                        preds = []
+                        gold_label_ids = []
+                        print('Evaluating...')
+                        for input_ids, input_mask, segment_ids, label_ids in dev_or_test_dataloader:
+                            input_ids = input_ids.to(device)
+                            input_mask = input_mask.to(device)
+                            segment_ids = segment_ids.to(device)
+                            label_ids = label_ids.to(device)
+                            gold_label_ids+=list(label_ids.detach().cpu().numpy())
 
-                    '''
-                    preds: size*3 ["entailment", "neutral", "contradiction"]
-                    wenpeng added a softxmax so that each row is a prob vec
-                    '''
-                    pred_probs = softmax(preds,axis=1)
-                    pred_label_ids = list(np.argmax(pred_probs, axis=1))
+                            with torch.no_grad():
+                                logits = model(input_ids, None, input_mask, labels=None)
+                            logits = logits[0]
 
-                    gold_label_ids = gold_label_ids
-                    assert len(pred_label_ids) == len(gold_label_ids)
-                    hit_co = 0
-                    for k in range(len(pred_label_ids)):
-                        if pred_label_ids[k] == gold_label_ids[k]:
-                            hit_co +=1
-                    test_acc = hit_co/len(gold_label_ids)
+                            loss_fct = CrossEntropyLoss()
+                            tmp_eval_loss = loss_fct(logits.view(-1, num_labels), label_ids.view(-1))
 
-                    # test_acc = mean_f1#result.get("f1")
-                    if test_acc > max_test_acc:
-                        max_test_acc = test_acc
-                    print('\ntest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
+                            eval_loss += tmp_eval_loss.mean().item()
+                            nb_eval_steps += 1
+                            if len(preds) == 0:
+                                preds.append(logits.detach().cpu().numpy())
+                            else:
+                                preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
+
+                        eval_loss = eval_loss / nb_eval_steps
+                        preds = preds[0]
+
+                        '''
+                        preds: size*3 ["entailment", "neutral", "contradiction"]
+                        wenpeng added a softxmax so that each row is a prob vec
+                        '''
+                        pred_probs = softmax(preds,axis=1)
+                        pred_indices = np.argmax(pred_probs, axis=1)
+                        pred_label_ids = []
+                        for p in pred_indices:
+                            pred_label_ids.append(0 if p == 0 else 1)
+                        gold_label_ids = gold_label_ids
+                        assert len(pred_label_ids) == len(gold_label_ids)
+                        hit_co = 0
+                        for k in range(len(pred_label_ids)):
+                            if pred_label_ids[k] == gold_label_ids[k]:
+                                hit_co +=1
+                        test_acc = hit_co/len(gold_label_ids)
 
 
+                        if idd == 0: # this is dev
+                            if test_acc > max_dev_acc:
+                                max_dev_acc = test_acc
+                                print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
+                                '''store the model'''
+                                # store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE', str(max_dev_acc))
 
+                            else:
+                                print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
+                                break
+                        else: # this is test
+                            if test_acc > max_test_acc:
+                                max_test_acc = test_acc
+                            print('\ntest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
 
 if __name__ == "__main__":
     main()

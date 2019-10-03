@@ -136,11 +136,12 @@ class RteProcessor(DataProcessor):
         print('loaded  size:', line_co)
         return examples
 
-    def get_SciTail_as_dev_or_test(self, filename, prefix):
+    def get_SciTail_as_dev_or_test(self, filename, prefix, sample_size=10000000000):
         '''
         can read the training file, dev and test file
         '''
         examples=[]
+        class2size = defaultdict(int)
         readfile = codecs.open(filename, 'r', 'utf-8')
         line_co=0
         for row in readfile:
@@ -152,8 +153,12 @@ class RteProcessor(DataProcessor):
                 text_b = line[1].strip()
                 # label = line[3].strip() #["entailment", "not_entailment"]
                 label = 'entailment'  if line[2] == 'entails' else 'neutral'
-                examples.append(
-                    InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+                if class2size.get(label, 0) < sample_size:
+                    examples.append(
+                        InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+                    class2size[label]+=1
+                if prefix == 'train' and (len(class2size.keys()) == 2 and sum(class2size.values()) == sample_size*2):
+                    break
             line_co+=1
         readfile.close()
         print('loaded  size:', line_co-1)
@@ -372,7 +377,7 @@ def main():
                         action='store_true',
                         help="Set this flag if you are using an uncased model.")
     parser.add_argument("--train_batch_size",
-                        default=16,
+                        default=6,
                         type=int,
                         help="Total batch size for training.")
     parser.add_argument("--eval_batch_size",
@@ -472,7 +477,7 @@ def main():
     train_examples = None
     num_train_optimization_steps = None
     if args.do_train:
-        train_examples = processor.get_SciTail_as_dev_or_test('/export/home/Dataset/SciTailV1/tsv_format/scitail_1.0_train.tsv', 'train') #train_pu_half_v1.txt
+        train_examples = processor.get_SciTail_as_dev_or_test('/export/home/Dataset/SciTailV1/tsv_format/scitail_1.0_train.tsv', 'train', sample_size=3) #train_pu_half_v1.txt
         # seen_classes=[0,2,4,6,8]
 
         num_train_optimization_steps = int(

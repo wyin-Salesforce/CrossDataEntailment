@@ -870,13 +870,6 @@ def main():
                 forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None):
                 '''
 
-
-                '''(0) SciTail samples --> MNLI batch'''
-                model.train()
-                loss_cross_domain, _ = model(torch.cat([eval_all_input_ids_shot.to(device),input_ids],dim=0), None, torch.cat([eval_all_input_mask_shot.to(device),input_mask], dim=0), sample_size=3, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor([0,0,0,2,2,2,2,2,2]), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
-                loss_cross_domain.backward()
-                optimizer.step()
-                optimizer.zero_grad()
                 '''(1) SciTail samples --> MNLI batch'''
                 model.train()
                 loss_cross_domain, _ = model(torch.cat([eval_all_input_ids_shot.to(device),input_ids],dim=0), None, torch.cat([eval_all_input_mask_shot.to(device),input_mask], dim=0), sample_size=3, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,1,1,1]), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
@@ -1044,4 +1037,4 @@ def array_2_softmax(a):
 
 if __name__ == "__main__":
     main()
-# CUDA_VISIBLE_DEVICES=2 python -u train_MNLI_test_3shotSciTail_meta_learning.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --num_train_epochs 3 --data_dir '' --output_dir ''
+# CUDA_VISIBLE_DEVICES=6 python -u train_MNLI_test_3shotSciTail_meta_learning.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --num_train_epochs 3 --data_dir '' --output_dir ''

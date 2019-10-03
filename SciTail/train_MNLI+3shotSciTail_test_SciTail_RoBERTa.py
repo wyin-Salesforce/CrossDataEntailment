@@ -136,11 +136,47 @@ class RteProcessor(DataProcessor):
         print('loaded  size:', line_co)
         return examples
 
-    def get_SciTail_as_dev_or_test(self, filename, prefix):
+    def get_SciTail_as_train(self, filename, sample_size=3):
         '''
         can read the training file, dev and test file
         '''
         examples=[]
+        readfile = codecs.open(filename, 'r', 'utf-8')
+        class2size = defaultdict(int)
+        line_co=0
+        for row in readfile:
+            line=row.strip().split('\t')
+            if len(line) == 3:
+                guid = "3shot-"+str(line_co)
+                text_a = line[0].strip()
+                text_b = line[1].strip()
+                random_value = random.uniform(0, 1)
+                if  random_value < 0.45:
+                    continue
+                label = 'entailment'  if line[2] == 'entails' else 'neutral'
+
+                if class2size.get(label, 0) < 3:
+
+                    examples.append(
+                        InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+                    class2size[label]+=1
+                else:
+                    continue
+                if len(class2size.keys()) == sample_size and sum(class2size.values()) == sample_size*2:
+                    break
+                line_co+=1
+        readfile.close()
+        print('loaded  3shot size:', line_co)
+        assert len(examples) == sample_size*2
+
+        return examples
+
+    def get_SciTail_as_dev_or_test(self, filename, prefix, sample_size=10000000000):
+        '''
+        can read the training file, dev and test file
+        '''
+        examples=[]
+        class2size = defaultdict(int)
         readfile = codecs.open(filename, 'r', 'utf-8')
         line_co=0
         for row in readfile:
@@ -152,8 +188,12 @@ class RteProcessor(DataProcessor):
                 text_b = line[1].strip()
                 # label = line[3].strip() #["entailment", "not_entailment"]
                 label = 'entailment'  if line[2] == 'entails' else 'neutral'
-                examples.append(
-                    InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+                if class2size.get(label, 0) < sample_size:
+                    examples.append(
+                        InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+                    class2size[label]+=1
+                if prefix == 'train' and (len(class2size.keys()) == 2 and sum(class2size.values()) == sample_size*2):
+                    break
             line_co+=1
         readfile.close()
         print('loaded  size:', line_co-1)
@@ -372,7 +412,7 @@ def main():
                         action='store_true',
                         help="Set this flag if you are using an uncased model.")
     parser.add_argument("--train_batch_size",
-                        default=16,
+                        default=6,
                         type=int,
                         help="Total batch size for training.")
     parser.add_argument("--eval_batch_size",
@@ -401,7 +441,7 @@ def main():
                         help="local_rank for distributed training on gpus")
     parser.add_argument('--seed',
                         type=int,
-                        default=16,
+                        default=32,
                         help="random seed for initialization")
     parser.add_argument('--gradient_accumulation_steps',
                         type=int,
@@ -472,7 +512,7 @@ def main():
     train_examples = None
     num_train_optimization_steps = None
     if args.do_train:
-        train_examples = processor.get_SciTail_as_dev_or_test('/export/home/Dataset/SciTailV1/tsv_format/scitail_1.0_train.tsv', 'train') #train_pu_half_v1.txt
+        train_examples = processor.get_SciTail_as_train('/export/home/Dataset/SciTailV1/tsv_format/scitail_1.0_train.tsv', 'train', sample_size=3) #train_pu_half_v1.txt
         # seen_classes=[0,2,4,6,8]
 
         num_train_optimization_steps = int(
@@ -621,7 +661,7 @@ def main():
                 optimizer.zero_grad()
                 global_step += 1
                 iter_co+=1
-                if iter_co %20==0:
+                if iter_co %1==0:
                     '''
                     start evaluate on dev set after this epoch
                     '''

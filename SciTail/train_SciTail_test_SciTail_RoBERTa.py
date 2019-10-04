@@ -407,7 +407,7 @@ def main():
                         action='store_true',
                         help="Set this flag if you are using an uncased model.")
     parser.add_argument("--train_batch_size",
-                        default=2,
+                        default=16,
                         type=int,
                         help="Total batch size for training.")
     parser.add_argument("--eval_batch_size",
@@ -507,7 +507,8 @@ def main():
     train_examples = None
     num_train_optimization_steps = None
     if args.do_train:
-        train_examples = processor.get_SciTail_as_train('/export/home/Dataset/SciTailV1/tsv_format/scitail_1.0_train.tsv', sample_size=1) #train_pu_half_v1.txt
+        # train_examples = processor.get_SciTail_as_train('/export/home/Dataset/SciTailV1/tsv_format/scitail_1.0_train.tsv', sample_size=1) #train_pu_half_v1.txt
+        train_examples = processor.get_SciTail_as_dev_or_test('/export/home/Dataset/SciTailV1/tsv_format/scitail_1.0_train.tsv', 'train')
         # seen_classes=[0,2,4,6,8]
 
         num_train_optimization_steps = int(

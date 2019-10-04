@@ -679,7 +679,6 @@ def main():
     if not args.do_train and not args.do_eval:
         raise ValueError("At least one of `do_train` or `do_eval` must be True.")
 
-
     task_name = args.task_name.lower()
 
     if task_name not in processors:

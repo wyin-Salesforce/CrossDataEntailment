@@ -148,7 +148,7 @@ class RteProcessor(DataProcessor):
 
 
 
-    def get_SciTail_as_train(self, filename, sample_size = 3):
+    def get_SciTail_as_train(self, filename, sample_size = 3, sample_prob=0.85):
         '''
         can read the training file, dev and test file
         '''
@@ -165,7 +165,7 @@ class RteProcessor(DataProcessor):
                 text_a = line[0].strip()
                 text_b = line[1].strip()
                 random_value = random.uniform(0, 1)
-                if  random_value < 0.85:
+                if  random_value < sample_prob:
                     continue
                 if line[2].strip() == 'entails':
                     labels = ['entailment']
@@ -567,6 +567,13 @@ def main():
                         type=int,
                         required=True,
                         help="shot size.")
+    parser.add_argument("--sample_prob",
+                        default=0.85,
+                        type=float,
+                        required=True,
+                        help="sample selection probability.")
+
+
 
     ## Other parameters
     parser.add_argument("--cache_dir",
@@ -618,7 +625,7 @@ def main():
                         help="local_rank for distributed training on gpus")
     parser.add_argument('--seed',
                         type=int,
-                        default=42,
+                        default=16,
                         help="random seed for initialization")
     parser.add_argument('--gradient_accumulation_steps',
                         type=int,
@@ -687,7 +694,7 @@ def main():
 
 
     train_examples_entail, train_examples_neutral, train_examples_contra = processor.get_MNLI_as_train('/export/home/Dataset/glue_data/MNLI/train.tsv') #train_pu_half_v1.txt
-    train_examples_entail_RTE, train_examples_neutral_RTE, train_examples_contra_RTE = processor.get_SciTail_as_train('/export/home/Dataset/SciTailV1/tsv_format/scitail_1.0_train.tsv', sample_size=args.sample_size)
+    train_examples_entail_RTE, train_examples_neutral_RTE, train_examples_contra_RTE = processor.get_SciTail_as_train('/export/home/Dataset/SciTailV1/tsv_format/scitail_1.0_train.tsv', sample_size=args.sample_size, sample_prob = args.sample_prob)
         # seen_classes=[0,2,4,6,8]
 
         # num_train_optimization_steps = int(
@@ -1043,5 +1050,5 @@ def array_2_softmax(a):
 
 if __name__ == "__main__":
     main()
-# CUDA_VISIBLE_DEVICES=6 python -u train_MNLI_test_3shotSciTail_meta_learning.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --num_train_epochs 3 --data_dir '' --output_dir '' --sample_size 3
+# CUDA_VISIBLE_DEVICES=6 python -u train_MNLI_test_3shotSciTail_meta_learning.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --num_train_epochs 3 --data_dir '' --output_dir '' --sample_size 3 --sample_prob 0.85
 #kubectl exec -it sfr-pod-wyin bash

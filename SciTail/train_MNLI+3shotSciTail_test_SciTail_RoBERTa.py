@@ -151,11 +151,11 @@ class RteProcessor(DataProcessor):
                 text_a = line[0].strip()
                 text_b = line[1].strip()
                 random_value = random.uniform(0, 1)
-                if  random_value < 0.55:
+                if  random_value < 0.45:
                     continue
                 label = 'entailment'  if line[2] == 'entails' else 'neutral'
 
-                if class2size.get(label, 0) < 3:
+                if class2size.get(label, 0) < sample_size:
 
                     examples.append(
                         InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
@@ -523,7 +523,7 @@ def main():
     # Prepare model
     # cache_dir = args.cache_dir if args.cache_dir else os.path.join(str(PYTORCH_TRANSFORMERS_CACHE), 'distributed_{}'.format(args.local_rank))
 
-    pretrain_model_dir = '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestSciTail/0.8343558282208589' #'roberta-large' , 'roberta-large-mnli'
+    pretrain_model_dir = '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestSciTail/0.8243865030674846' #'roberta-large' , 'roberta-large-mnli'
     model = RobertaForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
 
     # print(model.classifier.weight)

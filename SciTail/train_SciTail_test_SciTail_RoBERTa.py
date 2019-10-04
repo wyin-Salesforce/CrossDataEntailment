@@ -151,7 +151,7 @@ class RteProcessor(DataProcessor):
                 text_a = line[0].strip()
                 text_b = line[1].strip()
                 random_value = random.uniform(0, 1)
-                if  random_value < 0.85:
+                if  random_value < 0.55:
                     continue
                 label = 'entailment'  if line[2] == 'entails' else 'neutral'
 
@@ -436,7 +436,7 @@ def main():
                         help="local_rank for distributed training on gpus")
     parser.add_argument('--seed',
                         type=int,
-                        default=16,
+                        default=42,
                         help="random seed for initialization")
     parser.add_argument('--gradient_accumulation_steps',
                         type=int,

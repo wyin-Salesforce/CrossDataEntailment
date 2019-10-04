@@ -165,7 +165,7 @@ class RteProcessor(DataProcessor):
                 text_a = line[0].strip()
                 text_b = line[1].strip()
                 random_value = random.uniform(0, 1)
-                if  random_value < 0.55:
+                if  random_value < 0.85:
                     continue
                 if line[2].strip() == 'entails':
                     labels = ['entailment']

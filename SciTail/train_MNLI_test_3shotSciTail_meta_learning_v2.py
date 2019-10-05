@@ -833,7 +833,7 @@ def main():
                 train_sampler = RandomSampler(train_data)
                 '''create 3 samples per class'''
                 if idd < 3:
-                    train_dataloader = DataLoader(train_data, sampler=train_sampler, batch_size=1)
+                    train_dataloader = DataLoader(train_data, sampler=train_sampler, batch_size=3)
                 else:
                     train_dataloader = DataLoader(train_data, sampler=train_sampler, batch_size=args.train_batch_size)
                 dataloader_list.append(train_dataloader)

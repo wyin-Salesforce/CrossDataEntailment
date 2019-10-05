@@ -139,8 +139,8 @@ class RteProcessor(DataProcessor):
                     examples_contra.append(
                         InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
             line_co+=1
-            if line_co > 20000:
-                break
+            # if line_co > 20000:
+            #     break
         readfile.close()
         print('loaded  size:', line_co)
         return examples_entail, examples_neutral, examples_contra
@@ -919,7 +919,7 @@ def main():
                 global_step += 1
                 iter_co+=1
 
-                check_freq = 3
+                check_freq = 10
                 if iter_co %check_freq==0:
                     '''first get info from MNLI by sampling'''
                     assert len(sample_input_ids_each_iter) == check_freq
@@ -956,7 +956,7 @@ def main():
                             few_loss.backward()
                             optimizer.step()
                             optimizer.zero_grad()
-                            print('few_loss:', few_loss)
+                            # print('few_loss:', few_loss)
                     '''
                     start evaluate on dev set after this epoch
                     '''

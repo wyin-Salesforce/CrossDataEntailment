@@ -880,6 +880,7 @@ def main():
                 '''
                 '''[0,0,0,1,1,1,1,1,1]'''
                 scitail_sample_labellist = [0,1,1]#[0]*args.sample_size+[1]*args.sample_size+[1]*args.sample_size
+                full_scitail_sample_labellist = [0]*args.sample_size+[1]*args.sample_size+[1]*args.sample_size
                 '''[0,0,0,1,1,1,2,2,2]'''
                 mnli_sample_labellist = [0,0,0,1,1,1,1,1,1]#[0]*args.sample_size+[1]*args.sample_size+[2]*args.sample_size
 
@@ -917,7 +918,7 @@ def main():
                 global_step += 1
                 iter_co+=1
 
-                check_freq = 10
+                check_freq = 3
                 if iter_co %check_freq==0:
                     '''first get info from MNLI by sampling'''
                     assert len(sample_input_ids_each_iter) == check_freq
@@ -986,7 +987,7 @@ def main():
 
 
                             with torch.no_grad():
-                                logits_LR, logits_NN, logits = model(all_input_ids, None, all_input_mask, sample_size=args.sample_size, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor(mnli_sample_labellist), prior_samples_outputs = prior_mnli_samples_outputs, prior_samples_logits = prior_mnli_samples_logits, is_train=False, loss_fct=None)
+                                logits_LR, logits_NN, logits = model(all_input_ids, None, all_input_mask, sample_size=args.sample_size, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor(full_scitail_sample_labellist), prior_samples_outputs = prior_mnli_samples_outputs, prior_samples_logits = prior_mnli_samples_logits, is_train=False, loss_fct=None)
 
                             nb_eval_steps += 1
                             if len(preds) == 0:

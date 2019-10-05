@@ -967,7 +967,7 @@ def main():
 
 
                             with torch.no_grad():
-                                logits_LR, logits_NN, logits = model(all_input_ids, None, all_input_mask, sample_size=args.sample_size, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor(mnli_sample_labellist), prior_samples_outputs = prior_mnli_samples_outputs, prior_samples_logits = prior_mnli_samples_logits, is_train=False, loss_fct=None)
+                                logits_LR, logits_NN, logits = model(all_input_ids, None, all_input_mask, sample_size=args.sample_size, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor(scitail_sample_labellist), prior_samples_outputs = prior_mnli_samples_outputs, prior_samples_logits = prior_mnli_samples_logits, is_train=False, loss_fct=None)
 
                             nb_eval_steps += 1
                             if len(preds) == 0:

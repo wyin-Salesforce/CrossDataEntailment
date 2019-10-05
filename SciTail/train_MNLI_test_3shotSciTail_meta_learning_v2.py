@@ -504,9 +504,8 @@ class Encoder(BertPreTrainedModel):
             if prior_samples_logits is not None:
                 '''size=9'''
                 prior_sample_logits = torch.cuda.FloatTensor(3*class_size, class_size).fill_(0)
-                prior_sample_logits[torch.arange(0, 3*class_size).long(), sample_labels] = 1.0
+                prior_sample_logits[torch.arange(0, 3*class_size).long(), torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2])] = 1.0
                 '''size=sample_size'''
-                '''???? should make it be 000111111'''
                 sample_logits = torch.cuda.FloatTensor(sample_size*class_size, class_size).fill_(0)
                 sample_logits[torch.arange(0, sample_size*class_size).long(), sample_labels] = 1.0
                 sample_logits = torch.cat([prior_sample_logits, sample_logits],dim=0)

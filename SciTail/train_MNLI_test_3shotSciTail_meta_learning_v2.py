@@ -832,7 +832,7 @@ def main():
                 train_sampler = RandomSampler(train_data)
                 '''create 3 samples per class'''
                 if idd < 3:
-                    train_dataloader = DataLoader(train_data, sampler=train_sampler, batch_size=args.sample_size)
+                    train_dataloader = DataLoader(train_data, sampler=train_sampler, batch_size=1)
                 else:
                     train_dataloader = DataLoader(train_data, sampler=train_sampler, batch_size=args.train_batch_size)
                 dataloader_list.append(train_dataloader)
@@ -854,23 +854,23 @@ def main():
                 input_ids, input_mask, segment_ids, label_ids = batch
                 assert input_ids.shape[0] == args.train_batch_size
 
-                mnli_entail_batch = get_a_random_batch_from_dataloader(MNLI_entail_dataloader, args.sample_size)
+                mnli_entail_batch = get_a_random_batch_from_dataloader(MNLI_entail_dataloader, 3)
                 # print('random batch len:', len(mnli_entail_batch[0]))
                 mnli_entail_batch_input_ids, mnli_entail_batch_input_mask, mnli_entail_batch_segment_ids, mnli_entail_batch_label_ids = tuple(t.to(device) for t in mnli_entail_batch) #mnli_entail_batch
                 # print('sample entail:', mnli_entail_batch_input_ids.shape[0], mnli_entail_batch_label_ids.shape, mnli_entail_batch_label_ids)
 
-                mnli_neutra_batch = get_a_random_batch_from_dataloader(MNLI_neutra_dataloader, args.sample_size)
+                mnli_neutra_batch = get_a_random_batch_from_dataloader(MNLI_neutra_dataloader, 3)
                 mnli_neutra_batch_input_ids, mnli_neutra_batch_input_mask, mnli_neutra_batch_segment_ids, mnli_neutra_batch_label_ids = tuple(t.to(device) for t in mnli_neutra_batch) #mnli_neutra_batch
                 # print('sample neutra:', mnli_neutra_batch_input_ids.shape[0], mnli_neutra_batch_label_ids.shape, mnli_neutra_batch_label_ids)
 
-                mnli_contra_batch = get_a_random_batch_from_dataloader(MNLI_contra_dataloader, args.sample_size)
+                mnli_contra_batch = get_a_random_batch_from_dataloader(MNLI_contra_dataloader, 3)
                 mnli_contra_batch_input_ids, mnli_contra_batch_input_mask, mnli_contra_batch_segment_ids, mnli_contra_batch_label_ids = tuple(t.to(device) for t in mnli_contra_batch) #mnli_contra_batch
                 # print('sample contra:', mnli_contra_batch_input_ids.shape[0], mnli_contra_batch_label_ids.shape, mnli_contra_batch_label_ids)
 
                 sample_input_ids_i = torch.cat([mnli_entail_batch_input_ids,mnli_neutra_batch_input_ids,mnli_contra_batch_input_ids],dim=0)
                 sample_input_ids_each_iter.append(sample_input_ids_i)
                 all_input_ids = torch.cat([sample_input_ids_i,input_ids],dim=0)
-                assert all_input_ids.shape[0] == args.sample_size*3+args.train_batch_size
+                assert all_input_ids.shape[0] == 3*3+args.train_batch_size
                 sample_input_mask_i = torch.cat([mnli_entail_batch_input_mask,mnli_neutra_batch_input_mask,mnli_contra_batch_input_mask], dim=0)
                 sample_input_mask_each_iter.append(sample_input_mask_i)
                 all_input_mask = torch.cat([sample_input_mask_i,input_mask], dim=0)
@@ -879,27 +879,37 @@ def main():
                 forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None):
                 '''
                 '''[0,0,0,1,1,1,1,1,1]'''
-                scitail_sample_labellist = [0]*args.sample_size+[1]*args.sample_size+[1]*args.sample_size
+                scitail_sample_labellist = [0,1,1]#[0]*args.sample_size+[1]*args.sample_size+[1]*args.sample_size
                 '''[0,0,0,1,1,1,2,2,2]'''
-                mnli_sample_labellist = [0]*args.sample_size+[1]*args.sample_size+[2]*args.sample_size
-                '''(1) SciTail samples --> MNLI batch'''
-                model.train()
-                loss_cross_domain, _ = model(torch.cat([eval_all_input_ids_shot.to(device),input_ids],dim=0), None, torch.cat([eval_all_input_mask_shot.to(device),input_mask], dim=0), sample_size=args.sample_size, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor(scitail_sample_labellist), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
-                loss_cross_domain.backward()
-                optimizer.step()
-                optimizer.zero_grad()
-                '''(2) MNLI samples --> MNLI batch'''
-                model.train()
-                loss, _ = model(all_input_ids, None, all_input_mask, sample_size=args.sample_size, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor(mnli_sample_labellist), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
-                loss.backward()
-                optimizer.step()
-                optimizer.zero_grad()
-                '''(3) MNLI samples --> SciTail samples'''
-                model.train()
-                loss_cross_sample, mnli_samples_outputs_i = model(torch.cat([sample_input_ids_i,eval_all_input_ids_shot.to(device)],dim=0), None, torch.cat([sample_input_mask_i,eval_all_input_mask_shot.to(device)], dim=0), sample_size=args.sample_size, class_size =num_labels, labels=torch.cuda.LongTensor(scitail_sample_labellist), sample_labels = torch.cuda.LongTensor(mnli_sample_labellist), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
-                loss_cross_sample.backward()
-                optimizer.step()
-                optimizer.zero_grad()
+                mnli_sample_labellist = [0,0,0,1,1,1,1,1,1]#[0]*args.sample_size+[1]*args.sample_size+[2]*args.sample_size
+
+                for k in range(args.sample_size):
+                    target_domain_samples_ids = torch.cat([eval_all_input_ids_shot[k:k+1],
+                                                           eval_all_input_ids_shot[k+args.sample_size:k+args.sample_size+1],
+                                                           eval_all_input_ids_shot[k+2*args.sample_size:k+2*args.sample_size+1]
+                                                           ],dim=0).to(device)
+                    target_domain_samples_masks = torch.cat([eval_all_input_mask_shot[k:k+1],
+                                                           eval_all_input_mask_shot[k+args.sample_size:k+args.sample_size+1],
+                                                           eval_all_input_mask_shot[k+2*args.sample_size:k+2*args.sample_size+1]
+                                                           ],dim=0).to(device)
+                    '''(1) SciTail samples --> MNLI batch'''
+                    model.train()
+                    loss_cross_domain, _ = model(torch.cat([target_domain_samples_ids,input_ids],dim=0), None, torch.cat([target_domain_samples_masks,input_mask], dim=0), sample_size=1, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor(scitail_sample_labellist), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
+                    loss_cross_domain.backward()
+                    optimizer.step()
+                    optimizer.zero_grad()
+                    '''(2) MNLI samples --> MNLI batch'''
+                    model.train()
+                    loss, _ = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor(mnli_sample_labellist), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
+                    loss.backward()
+                    optimizer.step()
+                    optimizer.zero_grad()
+                    '''(3) MNLI samples --> SciTail samples'''
+                    model.train()
+                    loss_cross_sample, mnli_samples_outputs_i = model(torch.cat([sample_input_ids_i,target_domain_samples_ids],dim=0), None, torch.cat([sample_input_mask_i,target_domain_samples_masks], dim=0), sample_size=3, class_size =num_labels, labels=torch.cuda.LongTensor(scitail_sample_labellist), sample_labels = torch.cuda.LongTensor(mnli_sample_labellist), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
+                    loss_cross_sample.backward()
+                    optimizer.step()
+                    optimizer.zero_grad()
 
 
 
@@ -916,7 +926,7 @@ def main():
                     for ff in range(len(sample_input_ids_each_iter)):
                         model.eval()
                         with torch.no_grad():
-                            mnli_sample_hidden_i, mnli_sample_logits_i = model(sample_input_ids_each_iter[ff], None, sample_input_mask_each_iter[ff], sample_size=args.sample_size, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor(mnli_sample_labellist), prior_samples_outputs = None, few_shot_training=False, is_train=False, fetch_hidden_only=True, loss_fct=None)
+                            mnli_sample_hidden_i, mnli_sample_logits_i = model(sample_input_ids_each_iter[ff], None, sample_input_mask_each_iter[ff], sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor(mnli_sample_labellist), prior_samples_outputs = None, few_shot_training=False, is_train=False, fetch_hidden_only=True, loss_fct=None)
                             mnli_sample_hidden_list.append(mnli_sample_hidden_i[None,:,:])
                             mnli_sample_logits_list.append(mnli_sample_logits_i[None,:,:])
                     sample_input_ids_each_iter = []
@@ -930,12 +940,21 @@ def main():
 
                     '''second do few-shot training'''
                     for ff in range(3):
-                        model.train()
-                        few_loss = model(eval_all_input_ids_shot.to(device), None, eval_all_input_mask_shot.to(device), sample_size=args.sample_size, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor(scitail_sample_labellist), prior_samples_outputs = None, few_shot_training=True, is_train=True, loss_fct=loss_fct)
-                        few_loss.backward()
-                        optimizer.step()
-                        optimizer.zero_grad()
-                        print('few_loss:', few_loss)
+                        for k in range(args.sample_size):
+                            target_domain_samples_ids = torch.cat([eval_all_input_ids_shot[k:k+1],
+                                                                   eval_all_input_ids_shot[k+args.sample_size:k+args.sample_size+1],
+                                                                   eval_all_input_ids_shot[k+2*args.sample_size:k+2*args.sample_size+1]
+                                                                   ],dim=0).to(device)
+                            target_domain_samples_masks = torch.cat([eval_all_input_mask_shot[k:k+1],
+                                                                   eval_all_input_mask_shot[k+args.sample_size:k+args.sample_size+1],
+                                                                   eval_all_input_mask_shot[k+2*args.sample_size:k+2*args.sample_size+1]
+                                                                   ],dim=0).to(device)
+                            model.train()
+                            few_loss = model(target_domain_samples_ids, None, target_domain_samples_masks, sample_size=1, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor(scitail_sample_labellist), prior_samples_outputs = None, few_shot_training=True, is_train=True, loss_fct=loss_fct)
+                            few_loss.backward()
+                            optimizer.step()
+                            optimizer.zero_grad()
+                            print('few_loss:', few_loss)
                     '''
                     start evaluate on dev set after this epoch
                     '''

@@ -884,6 +884,7 @@ def main():
                 mnli_sample_labellist = [0,0,0,1,1,1,1,1,1]#[0]*args.sample_size+[1]*args.sample_size+[2]*args.sample_size
 
                 for k in range(args.sample_size):
+                    print('k:',k)
                     target_domain_samples_ids = torch.cat([eval_all_input_ids_shot[k:k+1],
                                                            eval_all_input_ids_shot[k+args.sample_size:k+args.sample_size+1],
                                                            eval_all_input_ids_shot[k+2*args.sample_size:k+2*args.sample_size+1]

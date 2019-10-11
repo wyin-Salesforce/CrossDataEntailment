@@ -4,7 +4,7 @@
 # model = RobertaForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=2)
 
 
-import random
+from random import randrange
 
 for x in range(10):
-    print(random.randint(0,10))
+    print(randrange(10))

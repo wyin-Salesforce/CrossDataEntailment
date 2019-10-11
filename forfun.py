@@ -6,4 +6,4 @@
 
 import random
 
-print(random.sample(range(0,10),3))
+print(random.sample(range(0,10),12))

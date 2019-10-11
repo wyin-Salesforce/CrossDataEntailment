@@ -941,7 +941,7 @@ def main():
 
                     '''second do few-shot training'''
 
-                    for k in range(args.sample_size):
+                    for k in range(200):
                         entail_row_idlist = random.sample(range(0,args.sample_size),3)
                         neutra_row_idlist = random.sample(range(args.sample_size,args.sample_size*2),3)
                         contra_row_idlist = random.sample(range(args.sample_size*2,args.sample_size*3),3)

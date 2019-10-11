@@ -905,12 +905,12 @@ def main():
                     # loss.backward()
                     # optimizer.step()
                     # optimizer.zero_grad()
-                    # '''(3) MNLI samples --> SciTail samples'''
-                    # model.train()
-                    # loss_cross_sample, mnli_samples_outputs_i = model(torch.cat([sample_input_ids_i,target_domain_samples_ids],dim=0), None, torch.cat([sample_input_mask_i,target_domain_samples_masks], dim=0), sample_size=3, class_size =num_labels, labels=torch.cuda.LongTensor(scitail_sample_labellist), sample_labels = torch.cuda.LongTensor(mnli_sample_labellist), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
-                    # loss_cross_sample.backward()
-                    # optimizer.step()
-                    # optimizer.zero_grad()
+                    '''(3) MNLI samples --> SciTail samples'''
+                    model.train()
+                    loss_cross_sample, mnli_samples_outputs_i = model(torch.cat([sample_input_ids_i,target_domain_samples_ids],dim=0), None, torch.cat([sample_input_mask_i,target_domain_samples_masks], dim=0), sample_size=3, class_size =num_labels, labels=torch.cuda.LongTensor(scitail_sample_labellist), sample_labels = torch.cuda.LongTensor(mnli_sample_labellist), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
+                    loss_cross_sample.backward()
+                    optimizer.step()
+                    optimizer.zero_grad()
 
 
 

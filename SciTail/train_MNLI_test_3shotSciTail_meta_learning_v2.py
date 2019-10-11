@@ -139,8 +139,8 @@ class RteProcessor(DataProcessor):
                     examples_contra.append(
                         InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
             line_co+=1
-            # if line_co > 20000:
-            #     break
+            if line_co > 20000:
+                break
         readfile.close()
         print('loaded  size:', line_co)
         return examples_entail, examples_neutral, examples_contra
@@ -881,7 +881,7 @@ def main():
                 '''
                 '''[0,0,0,1,1,1,1,1,1]'''
                 scitail_sample_labellist = [0]*3+[1]*3+[1]*3
-                # full_scitail_sample_labellist = [0]*args.sample_size+[1]*args.sample_size+[1]*args.sample_size
+                full_scitail_sample_labellist = [0]*args.sample_size+[1]*args.sample_size+[1]*args.sample_size
                 '''[0,0,0,1,1,1,2,2,2]'''
                 mnli_sample_labellist = [0,0,0,1,1,1,2,2,2]#[0]*args.sample_size+[1]*args.sample_size+[2]*args.sample_size
 
@@ -966,7 +966,7 @@ def main():
                             target_domain_samples_masks = eval_all_input_mask_shot[row_idlist].to(device)
 
                             model.train()
-                            few_loss = model(target_domain_samples_ids, None, target_domain_samples_masks, sample_size=1, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor(scitail_sample_labellist), prior_samples_outputs = None, few_shot_training=True, is_train=True, loss_fct=loss_fct)
+                            few_loss = model(target_domain_samples_ids, None, target_domain_samples_masks, sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor(scitail_sample_labellist), prior_samples_outputs = None, few_shot_training=True, is_train=True, loss_fct=loss_fct)
                             few_loss.backward()
                             optimizer.step()
                             optimizer.zero_grad()
@@ -996,13 +996,13 @@ def main():
                             segment_ids = segment_ids.to(device)
                             label_ids = label_ids.to(device)
                             gold_label_ids+=list(label_ids.detach().cpu().numpy())
-
+                            '''here used all the scitail samples'''
                             all_input_ids = torch.cat([eval_all_input_ids_shot.to(device),input_ids],dim=0)
                             all_input_mask = torch.cat([eval_all_input_mask_shot.to(device),input_mask], dim=0)
 
 
                             with torch.no_grad():
-                                logits_LR, logits_NN, logits = model(all_input_ids, None, all_input_mask, sample_size=args.sample_size, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor(scitail_sample_labellist), prior_samples_outputs = prior_mnli_samples_outputs, prior_samples_logits = prior_mnli_samples_logits, is_train=False, loss_fct=None)
+                                logits_LR, logits_NN, logits = model(all_input_ids, None, all_input_mask, sample_size=args.sample_size, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor(full_scitail_sample_labellist), prior_samples_outputs = prior_mnli_samples_outputs, prior_samples_logits = prior_mnli_samples_logits, is_train=False, loss_fct=None)
 
                             nb_eval_steps += 1
                             if len(preds) == 0:

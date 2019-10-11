@@ -139,8 +139,8 @@ class RteProcessor(DataProcessor):
                     examples_contra.append(
                         InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
             line_co+=1
-            # if line_co > 20000:
-            #     break
+            if line_co > 20000:
+                break
         readfile.close()
         print('loaded  size:', line_co)
         return examples_entail, examples_neutral, examples_contra
@@ -898,8 +898,8 @@ def main():
                     neutra_row_idlist = random.sample(range(args.sample_size,args.sample_size*2),3)
                     contra_row_idlist = random.sample(range(args.sample_size*2,args.sample_size*3),3)
                     row_idlist = entail_row_idlist + neutra_row_idlist + contra_row_idlist
-                    target_domain_samples_ids = eval_all_input_ids_shot[row_idlist]
-                    target_domain_samples_masks = eval_all_input_mask_shot[row_idlist]
+                    target_domain_samples_ids = eval_all_input_ids_shot[row_idlist].to(device)
+                    target_domain_samples_masks = eval_all_input_mask_shot[row_idlist].to(device)
 
                     '''(1) SciTail samples --> MNLI batch'''
                     model.train()
@@ -962,8 +962,8 @@ def main():
                             neutra_row_idlist = random.sample(range(args.sample_size,args.sample_size*2),3)
                             contra_row_idlist = random.sample(range(args.sample_size*2,args.sample_size*3),3)
                             row_idlist = entail_row_idlist + neutra_row_idlist + contra_row_idlist
-                            target_domain_samples_ids = eval_all_input_ids_shot[row_idlist]
-                            target_domain_samples_masks = eval_all_input_mask_shot[row_idlist]
+                            target_domain_samples_ids = eval_all_input_ids_shot[row_idlist].to(device)
+                            target_domain_samples_masks = eval_all_input_mask_shot[row_idlist].to(device)
 
                             model.train()
                             few_loss = model(target_domain_samples_ids, None, target_domain_samples_masks, sample_size=1, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor(scitail_sample_labellist), prior_samples_outputs = None, few_shot_training=True, is_train=True, loss_fct=loss_fct)

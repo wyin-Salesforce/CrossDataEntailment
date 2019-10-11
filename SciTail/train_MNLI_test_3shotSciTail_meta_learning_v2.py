@@ -880,23 +880,30 @@ def main():
                 forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None):
                 '''
                 '''[0,0,0,1,1,1,1,1,1]'''
-                scitail_sample_labellist = [0,1,1]#[0]*args.sample_size+[1]*args.sample_size+[1]*args.sample_size
-                full_scitail_sample_labellist = [0]*args.sample_size+[1]*args.sample_size+[1]*args.sample_size
+                scitail_sample_labellist = [0]*3+[1]*3+[1]*3
+                # full_scitail_sample_labellist = [0]*args.sample_size+[1]*args.sample_size+[1]*args.sample_size
                 '''[0,0,0,1,1,1,2,2,2]'''
-                mnli_sample_labellist = [0,0,0,1,1,1,1,1,1]#[0]*args.sample_size+[1]*args.sample_size+[2]*args.sample_size
+                mnli_sample_labellist = [0,0,0,1,1,1,2,2,2]#[0]*args.sample_size+[1]*args.sample_size+[2]*args.sample_size
 
                 for k in range(args.sample_size):
-                    target_domain_samples_ids = torch.cat([eval_all_input_ids_shot[k:k+1],
-                                                           eval_all_input_ids_shot[k+args.sample_size:k+args.sample_size+1],
-                                                           eval_all_input_ids_shot[k+2*args.sample_size:k+2*args.sample_size+1]
-                                                           ],dim=0).to(device)
-                    target_domain_samples_masks = torch.cat([eval_all_input_mask_shot[k:k+1],
-                                                           eval_all_input_mask_shot[k+args.sample_size:k+args.sample_size+1],
-                                                           eval_all_input_mask_shot[k+2*args.sample_size:k+2*args.sample_size+1]
-                                                           ],dim=0).to(device)
+                    # target_domain_samples_ids = torch.cat([eval_all_input_ids_shot[k:k+1],
+                    #                                        eval_all_input_ids_shot[k+args.sample_size:k+args.sample_size+1],
+                    #                                        eval_all_input_ids_shot[k+2*args.sample_size:k+2*args.sample_size+1]
+                    #                                        ],dim=0).to(device)
+                    # target_domain_samples_masks = torch.cat([eval_all_input_mask_shot[k:k+1],
+                    #                                        eval_all_input_mask_shot[k+args.sample_size:k+args.sample_size+1],
+                    #                                        eval_all_input_mask_shot[k+2*args.sample_size:k+2*args.sample_size+1]
+                    #                                        ],dim=0).to(device)
+                    entail_row_idlist = random.sample(range(0,args.sample_size),3)
+                    neutra_row_idlist = random.sample(range(args.sample_size,args.sample_size*2),3)
+                    contra_row_idlist = random.sample(range(args.sample_size*2,args.sample_size*3),3)
+                    row_idlist = entail_row_idlist + neutra_row_idlist + contra_row_idlist
+                    target_domain_samples_ids = eval_all_input_ids_shot[row_idlist]
+                    target_domain_samples_masks = eval_all_input_mask_shot[row_idlist]
+
                     '''(1) SciTail samples --> MNLI batch'''
                     model.train()
-                    loss_cross_domain, _ = model(torch.cat([target_domain_samples_ids,input_ids],dim=0), None, torch.cat([target_domain_samples_masks,input_mask], dim=0), sample_size=1, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor(scitail_sample_labellist), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
+                    loss_cross_domain, _ = model(torch.cat([target_domain_samples_ids,input_ids],dim=0), None, torch.cat([target_domain_samples_masks,input_mask], dim=0), sample_size=3, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor(scitail_sample_labellist), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
                     loss_cross_domain.backward()
                     optimizer.step()
                     optimizer.zero_grad()
@@ -943,14 +950,21 @@ def main():
                     '''second do few-shot training'''
                     for ff in range(3):
                         for k in range(args.sample_size):
-                            target_domain_samples_ids = torch.cat([eval_all_input_ids_shot[k:k+1],
-                                                                   eval_all_input_ids_shot[k+args.sample_size:k+args.sample_size+1],
-                                                                   eval_all_input_ids_shot[k+2*args.sample_size:k+2*args.sample_size+1]
-                                                                   ],dim=0).to(device)
-                            target_domain_samples_masks = torch.cat([eval_all_input_mask_shot[k:k+1],
-                                                                   eval_all_input_mask_shot[k+args.sample_size:k+args.sample_size+1],
-                                                                   eval_all_input_mask_shot[k+2*args.sample_size:k+2*args.sample_size+1]
-                                                                   ],dim=0).to(device)
+                            # target_domain_samples_ids = torch.cat([eval_all_input_ids_shot[k:k+1],
+                            #                                        eval_all_input_ids_shot[k+args.sample_size:k+args.sample_size+1],
+                            #                                        eval_all_input_ids_shot[k+2*args.sample_size:k+2*args.sample_size+1]
+                            #                                        ],dim=0).to(device)
+                            # target_domain_samples_masks = torch.cat([eval_all_input_mask_shot[k:k+1],
+                            #                                        eval_all_input_mask_shot[k+args.sample_size:k+args.sample_size+1],
+                            #                                        eval_all_input_mask_shot[k+2*args.sample_size:k+2*args.sample_size+1]
+                            #                                        ],dim=0).to(device)
+                            entail_row_idlist = random.sample(range(0,args.sample_size),3)
+                            neutra_row_idlist = random.sample(range(args.sample_size,args.sample_size*2),3)
+                            contra_row_idlist = random.sample(range(args.sample_size*2,args.sample_size*3),3)
+                            row_idlist = entail_row_idlist + neutra_row_idlist + contra_row_idlist
+                            target_domain_samples_ids = eval_all_input_ids_shot[row_idlist]
+                            target_domain_samples_masks = eval_all_input_mask_shot[row_idlist]
+
                             model.train()
                             few_loss = model(target_domain_samples_ids, None, target_domain_samples_masks, sample_size=1, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor(scitail_sample_labellist), prior_samples_outputs = None, few_shot_training=True, is_train=True, loss_fct=loss_fct)
                             few_loss.backward()
@@ -988,7 +1002,7 @@ def main():
 
 
                             with torch.no_grad():
-                                logits_LR, logits_NN, logits = model(all_input_ids, None, all_input_mask, sample_size=args.sample_size, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor(full_scitail_sample_labellist), prior_samples_outputs = prior_mnli_samples_outputs, prior_samples_logits = prior_mnli_samples_logits, is_train=False, loss_fct=None)
+                                logits_LR, logits_NN, logits = model(all_input_ids, None, all_input_mask, sample_size=args.sample_size, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor(scitail_sample_labellist), prior_samples_outputs = prior_mnli_samples_outputs, prior_samples_logits = prior_mnli_samples_logits, is_train=False, loss_fct=None)
 
                             nb_eval_steps += 1
                             if len(preds) == 0:

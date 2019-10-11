@@ -705,8 +705,8 @@ def main():
     # Prepare model
     # cache_dir = args.cache_dir if args.cache_dir else os.path.join(str(PYTORCH_TRANSFORMERS_CACHE), 'distributed_{}'.format(args.local_rank))
 
-    # pretrain_model_dir = 'roberta-large-mnli' #'roberta-large' , 'roberta-large-mnli'
-    pretrain_model_dir = '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestSciTail/0.8397239263803681'
+    pretrain_model_dir = 'roberta-large-mnli' #'roberta-large' , 'roberta-large-mnli'
+    # pretrain_model_dir = '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestSciTail/0.8397239263803681'
     # model = Encoder.from_pretrained(pretrain_model_dir, num_labels=num_labels)
     model = Encoder.from_pretrained(pretrain_model_dir, num_labels=num_labels)
     # exit(0)
@@ -894,27 +894,24 @@ def main():
                     target_domain_samples_ids = eval_all_input_ids_shot[row_idlist].to(device)
                     target_domain_samples_masks = eval_all_input_mask_shot[row_idlist].to(device)
 
-                    # '''(1) SciTail samples --> MNLI batch'''
-                    # model.train()
-                    # loss_cross_domain, _ = model(torch.cat([target_domain_samples_ids,input_ids],dim=0), None, torch.cat([target_domain_samples_masks,input_mask], dim=0), sample_size=3, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor(scitail_sample_labellist), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
-                    # loss_cross_domain.backward()
-                    # optimizer.step()
-                    # optimizer.zero_grad()
-                    # '''(2) MNLI samples --> MNLI batch'''
-                    # model.train()
-                    # loss, _ = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor(mnli_sample_labellist), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
-                    # loss.backward()
-                    # optimizer.step()
-                    # optimizer.zero_grad()
+                    '''(1) SciTail samples --> MNLI batch'''
+                    model.train()
+                    loss_cross_domain, _ = model(torch.cat([target_domain_samples_ids,input_ids],dim=0), None, torch.cat([target_domain_samples_masks,input_mask], dim=0), sample_size=3, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor(scitail_sample_labellist), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
+                    loss_cross_domain.backward()
+                    optimizer.step()
+                    optimizer.zero_grad()
+                    '''(2) MNLI samples --> MNLI batch'''
+                    model.train()
+                    loss, _ = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor(mnli_sample_labellist), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
+                    loss.backward()
+                    optimizer.step()
+                    optimizer.zero_grad()
                     '''(3) MNLI samples --> SciTail samples'''
                     model.train()
                     loss_cross_sample, mnli_samples_outputs_i = model(torch.cat([sample_input_ids_i,target_domain_samples_ids],dim=0), None, torch.cat([sample_input_mask_i,target_domain_samples_masks], dim=0), sample_size=3, class_size =num_labels, labels=torch.cuda.LongTensor(scitail_sample_labellist), sample_labels = torch.cuda.LongTensor(mnli_sample_labellist), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
                     loss_cross_sample.backward()
                     optimizer.step()
                     optimizer.zero_grad()
-
-
-
 
                 global_step += 1
                 iter_co+=1

@@ -886,14 +886,6 @@ def main():
                 mnli_sample_labellist = [0,0,0,1,1,1,2,2,2]#[0]*args.sample_size+[1]*args.sample_size+[2]*args.sample_size
 
                 for k in range(args.sample_size):
-                    # target_domain_samples_ids = torch.cat([eval_all_input_ids_shot[k:k+1],
-                    #                                        eval_all_input_ids_shot[k+args.sample_size:k+args.sample_size+1],
-                    #                                        eval_all_input_ids_shot[k+2*args.sample_size:k+2*args.sample_size+1]
-                    #                                        ],dim=0).to(device)
-                    # target_domain_samples_masks = torch.cat([eval_all_input_mask_shot[k:k+1],
-                    #                                        eval_all_input_mask_shot[k+args.sample_size:k+args.sample_size+1],
-                    #                                        eval_all_input_mask_shot[k+2*args.sample_size:k+2*args.sample_size+1]
-                    #                                        ],dim=0).to(device)
                     entail_row_idlist = random.sample(range(0,args.sample_size),3)
                     neutra_row_idlist = random.sample(range(args.sample_size,args.sample_size*2),3)
                     contra_row_idlist = random.sample(range(args.sample_size*2,args.sample_size*3),3)
@@ -948,16 +940,8 @@ def main():
                     prior_mnli_samples_logits = torch.mean(prior_mnli_samples_logits,dim=0)
 
                     '''second do few-shot training'''
-                    for ff in range(3):
+                    for ff in range(args.sample_size):
                         for k in range(args.sample_size):
-                            # target_domain_samples_ids = torch.cat([eval_all_input_ids_shot[k:k+1],
-                            #                                        eval_all_input_ids_shot[k+args.sample_size:k+args.sample_size+1],
-                            #                                        eval_all_input_ids_shot[k+2*args.sample_size:k+2*args.sample_size+1]
-                            #                                        ],dim=0).to(device)
-                            # target_domain_samples_masks = torch.cat([eval_all_input_mask_shot[k:k+1],
-                            #                                        eval_all_input_mask_shot[k+args.sample_size:k+args.sample_size+1],
-                            #                                        eval_all_input_mask_shot[k+2*args.sample_size:k+2*args.sample_size+1]
-                            #                                        ],dim=0).to(device)
                             entail_row_idlist = random.sample(range(0,args.sample_size),3)
                             neutra_row_idlist = random.sample(range(args.sample_size,args.sample_size*2),3)
                             contra_row_idlist = random.sample(range(args.sample_size*2,args.sample_size*3),3)

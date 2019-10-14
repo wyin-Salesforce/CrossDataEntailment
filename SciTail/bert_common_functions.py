@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import os
-from pytorch_transformers.modeling_bert import BertPreTrainedModel, BertModel
+from transformers.modeling_bert import BertPreTrainedModel, BertModel
 from random import randrange
 
 def convert_examples_to_features(examples, label_list, max_seq_length,

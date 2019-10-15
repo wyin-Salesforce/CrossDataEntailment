@@ -790,8 +790,8 @@ def main():
                                                 pad_token_segment_id=0)
 
         eval_all_input_ids_shot = torch.tensor([f.input_ids for f in eval_features_shot], dtype=torch.long)
-        eval_all_input_mask_shot = torch.tensor([f.input_mask for f in eval_features_shot], dtype=torch.long)
-        eval_all_segment_ids_shot = torch.tensor([f.segment_ids for f in eval_features_shot], dtype=torch.long)
+        eval_all_input_mask_shot = torch.tensor([f.attention_mask for f in eval_features_shot], dtype=torch.long)
+        eval_all_segment_ids_shot = torch.tensor([f.token_type_ids for f in eval_features_shot], dtype=torch.long)
         eval_all_label_ids_shot = torch.tensor([f.label_id for f in eval_features_shot], dtype=torch.long)
 
         '''load dev set'''
@@ -818,8 +818,8 @@ def main():
                                                 pad_token_segment_id=0)
 
         dev_all_input_ids = torch.tensor([f.input_ids for f in dev_features], dtype=torch.long)
-        dev_all_input_mask = torch.tensor([f.input_mask for f in dev_features], dtype=torch.long)
-        dev_all_segment_ids = torch.tensor([f.segment_ids for f in dev_features], dtype=torch.long)
+        dev_all_input_mask = torch.tensor([f.attention_mask for f in dev_features], dtype=torch.long)
+        dev_all_segment_ids = torch.tensor([f.token_type_ids for f in dev_features], dtype=torch.long)
         dev_all_label_ids = torch.tensor([f.label_id for f in dev_features], dtype=torch.long)
 
         dev_data = TensorDataset(dev_all_input_ids, dev_all_input_mask, dev_all_segment_ids, dev_all_label_ids)
@@ -850,8 +850,8 @@ def main():
                                                 pad_token_segment_id=0)
 
         eval_all_input_ids = torch.tensor([f.input_ids for f in eval_features], dtype=torch.long)
-        eval_all_input_mask = torch.tensor([f.input_mask for f in eval_features], dtype=torch.long)
-        eval_all_segment_ids = torch.tensor([f.segment_ids for f in eval_features], dtype=torch.long)
+        eval_all_input_mask = torch.tensor([f.attention_mask for f in eval_features], dtype=torch.long)
+        eval_all_segment_ids = torch.tensor([f.token_type_ids for f in eval_features], dtype=torch.long)
         eval_all_label_ids = torch.tensor([f.label_id for f in eval_features], dtype=torch.long)
 
         eval_data = TensorDataset(eval_all_input_ids, eval_all_input_mask, eval_all_segment_ids, eval_all_label_ids)
@@ -867,8 +867,8 @@ def main():
             for idd, train_features in enumerate([train_features_entail, train_features_neutral, train_features_contra,
             train_features_entail + train_features_neutral + train_features_contra]):
                 all_input_ids = torch.tensor([f.input_ids for f in train_features], dtype=torch.long)
-                all_input_mask = torch.tensor([f.input_mask for f in train_features], dtype=torch.long)
-                all_segment_ids = torch.tensor([f.segment_ids for f in train_features], dtype=torch.long)
+                all_input_mask = torch.tensor([f.attention_mask for f in train_features], dtype=torch.long)
+                all_segment_ids = torch.tensor([f.token_type_ids for f in train_features], dtype=torch.long)
                 all_label_ids = torch.tensor([f.label_id for f in train_features], dtype=torch.long)
 
                 train_data = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids)

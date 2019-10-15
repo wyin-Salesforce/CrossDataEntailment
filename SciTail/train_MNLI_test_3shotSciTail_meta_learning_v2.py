@@ -715,7 +715,7 @@ def main():
 
     tokenizer = RobertaTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
 
-    model.to(device)
+    # model.to(device)
     # store_bert_model(model, tokenizer.vocab, '/export/home/workspace/CrossDataEntailment/models', 'try')
     # exit(0)
     # if n_gpu > 1:
@@ -893,21 +893,21 @@ def main():
 
             for step, batch in enumerate(tqdm(MNLI_dataloader, desc="Iteration")):
 
-                batch = tuple(t.to(device) for t in batch)
+                batch = tuple(t for t in batch)
                 input_ids, input_mask, segment_ids, label_ids = batch
                 assert input_ids.shape[0] == args.train_batch_size
 
                 mnli_entail_batch = get_a_random_batch_from_dataloader(MNLI_entail_dataloader, 3)
                 # print('random batch len:', len(mnli_entail_batch[0]))
-                mnli_entail_batch_input_ids, mnli_entail_batch_input_mask, mnli_entail_batch_segment_ids, mnli_entail_batch_label_ids = tuple(t.to(device) for t in mnli_entail_batch) #mnli_entail_batch
+                mnli_entail_batch_input_ids, mnli_entail_batch_input_mask, mnli_entail_batch_segment_ids, mnli_entail_batch_label_ids = tuple(t for t in mnli_entail_batch) #mnli_entail_batch
                 # print('sample entail:', mnli_entail_batch_input_ids.shape[0], mnli_entail_batch_label_ids.shape, mnli_entail_batch_label_ids)
 
                 mnli_neutra_batch = get_a_random_batch_from_dataloader(MNLI_neutra_dataloader, 3)
-                mnli_neutra_batch_input_ids, mnli_neutra_batch_input_mask, mnli_neutra_batch_segment_ids, mnli_neutra_batch_label_ids = tuple(t.to(device) for t in mnli_neutra_batch) #mnli_neutra_batch
+                mnli_neutra_batch_input_ids, mnli_neutra_batch_input_mask, mnli_neutra_batch_segment_ids, mnli_neutra_batch_label_ids = tuple(t for t in mnli_neutra_batch) #mnli_neutra_batch
                 # print('sample neutra:', mnli_neutra_batch_input_ids.shape[0], mnli_neutra_batch_label_ids.shape, mnli_neutra_batch_label_ids)
 
                 mnli_contra_batch = get_a_random_batch_from_dataloader(MNLI_contra_dataloader, 3)
-                mnli_contra_batch_input_ids, mnli_contra_batch_input_mask, mnli_contra_batch_segment_ids, mnli_contra_batch_label_ids = tuple(t.to(device) for t in mnli_contra_batch) #mnli_contra_batch
+                mnli_contra_batch_input_ids, mnli_contra_batch_input_mask, mnli_contra_batch_segment_ids, mnli_contra_batch_label_ids = tuple(t for t in mnli_contra_batch) #mnli_contra_batch
                 # print('sample contra:', mnli_contra_batch_input_ids.shape[0], mnli_contra_batch_label_ids.shape, mnli_contra_batch_label_ids)
 
                 sample_input_ids_i = torch.cat([mnli_entail_batch_input_ids,mnli_neutra_batch_input_ids,mnli_contra_batch_input_ids],dim=0)
@@ -932,8 +932,8 @@ def main():
                     neutra_row_idlist = random.sample(range(args.sample_size,args.sample_size*2),3)
                     contra_row_idlist = random.sample(range(args.sample_size*2,args.sample_size*3),3)
                     row_idlist = entail_row_idlist + neutra_row_idlist + contra_row_idlist
-                    target_domain_samples_ids = eval_all_input_ids_shot[row_idlist].to(device)
-                    target_domain_samples_masks = eval_all_input_mask_shot[row_idlist].to(device)
+                    target_domain_samples_ids = eval_all_input_ids_shot[row_idlist]
+                    target_domain_samples_masks = eval_all_input_mask_shot[row_idlist]
 
                     # '''(1) SciTail samples --> MNLI batch'''
                     # model.train()
@@ -985,8 +985,8 @@ def main():
                         neutra_row_idlist = random.sample(range(args.sample_size,args.sample_size*2),3)
                         contra_row_idlist = random.sample(range(args.sample_size*2,args.sample_size*3),3)
                         row_idlist = entail_row_idlist + neutra_row_idlist + contra_row_idlist
-                        target_domain_samples_ids = eval_all_input_ids_shot[row_idlist].to(device)
-                        target_domain_samples_masks = eval_all_input_mask_shot[row_idlist].to(device)
+                        target_domain_samples_ids = eval_all_input_ids_shot[row_idlist]
+                        target_domain_samples_masks = eval_all_input_mask_shot[row_idlist]
 
                         model.train()
                         few_loss = model(target_domain_samples_ids, None, target_domain_samples_masks, sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor(scitail_sample_labellist), prior_samples_outputs = None, few_shot_training=True, is_train=True, loss_fct=loss_fct)
@@ -1014,14 +1014,14 @@ def main():
                         gold_label_ids = []
                         print('Evaluating...')
                         for input_ids, input_mask, segment_ids, label_ids in dev_or_test_dataloader:
-                            input_ids = input_ids.to(device)
-                            input_mask = input_mask.to(device)
-                            segment_ids = segment_ids.to(device)
-                            label_ids = label_ids.to(device)
+                            # input_ids = input_ids.to(device)
+                            # input_mask = input_mask.to(device)
+                            # segment_ids = segment_ids.to(device)
+                            # label_ids = label_ids.to(device)
                             gold_label_ids+=list(label_ids.detach().cpu().numpy())
                             '''here used all the scitail samples'''
-                            all_input_ids = torch.cat([eval_all_input_ids_shot.to(device),input_ids],dim=0)
-                            all_input_mask = torch.cat([eval_all_input_mask_shot.to(device),input_mask], dim=0)
+                            all_input_ids = torch.cat([eval_all_input_ids_shot,input_ids],dim=0)
+                            all_input_mask = torch.cat([eval_all_input_mask_shot,input_mask], dim=0)
 
 
                             with torch.no_grad():

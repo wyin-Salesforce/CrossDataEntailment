@@ -792,7 +792,7 @@ def main():
         eval_all_input_ids_shot = torch.tensor([f.input_ids for f in eval_features_shot], dtype=torch.long)
         eval_all_input_mask_shot = torch.tensor([f.attention_mask for f in eval_features_shot], dtype=torch.long)
         eval_all_segment_ids_shot = torch.tensor([f.token_type_ids for f in eval_features_shot], dtype=torch.long)
-        eval_all_label_ids_shot = torch.tensor([f.label_id for f in eval_features_shot], dtype=torch.long)
+        eval_all_label_ids_shot = torch.tensor([f.label for f in eval_features_shot], dtype=torch.long)
 
         '''load dev set'''
         dev_examples = processor.get_SciTail_as_dev_or_test('/export/home/Dataset/SciTailV1/tsv_format/scitail_1.0_dev.tsv', 'dev')
@@ -820,7 +820,7 @@ def main():
         dev_all_input_ids = torch.tensor([f.input_ids for f in dev_features], dtype=torch.long)
         dev_all_input_mask = torch.tensor([f.attention_mask for f in dev_features], dtype=torch.long)
         dev_all_segment_ids = torch.tensor([f.token_type_ids for f in dev_features], dtype=torch.long)
-        dev_all_label_ids = torch.tensor([f.label_id for f in dev_features], dtype=torch.long)
+        dev_all_label_ids = torch.tensor([f.label for f in dev_features], dtype=torch.long)
 
         dev_data = TensorDataset(dev_all_input_ids, dev_all_input_mask, dev_all_segment_ids, dev_all_label_ids)
         dev_sampler = SequentialSampler(dev_data)
@@ -852,7 +852,7 @@ def main():
         eval_all_input_ids = torch.tensor([f.input_ids for f in eval_features], dtype=torch.long)
         eval_all_input_mask = torch.tensor([f.attention_mask for f in eval_features], dtype=torch.long)
         eval_all_segment_ids = torch.tensor([f.token_type_ids for f in eval_features], dtype=torch.long)
-        eval_all_label_ids = torch.tensor([f.label_id for f in eval_features], dtype=torch.long)
+        eval_all_label_ids = torch.tensor([f.label for f in eval_features], dtype=torch.long)
 
         eval_data = TensorDataset(eval_all_input_ids, eval_all_input_mask, eval_all_segment_ids, eval_all_label_ids)
         eval_sampler = SequentialSampler(eval_data)
@@ -869,7 +869,7 @@ def main():
                 all_input_ids = torch.tensor([f.input_ids for f in train_features], dtype=torch.long)
                 all_input_mask = torch.tensor([f.attention_mask for f in train_features], dtype=torch.long)
                 all_segment_ids = torch.tensor([f.token_type_ids for f in train_features], dtype=torch.long)
-                all_label_ids = torch.tensor([f.label_id for f in train_features], dtype=torch.long)
+                all_label_ids = torch.tensor([f.label for f in train_features], dtype=torch.long)
 
                 train_data = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids)
                 train_sampler = RandomSampler(train_data)

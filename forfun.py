@@ -441,10 +441,10 @@ class Encoder(BertPreTrainedModel):
             pred_labels_batch[pred_labels_batch!=0]=1
             gold_labels_batch = target_labels
             gold_labels_batch[gold_labels_batch!=0]=1
-            print('pred_labels_batch:', pred_labels_batch)
-            print('gold_labels_batch:', gold_labels_batch)
-            exit(0)
-            acc = (torch.softmax(LR_logits_target.view(-1, self.num_labels), dim=1).argmax(dim=1) == target_labels).sum().float() / float(target_labels.size(0) )
+            # print('pred_labels_batch:', pred_labels_batch)
+            # print('gold_labels_batch:', gold_labels_batch)
+            # exit(0)
+            acc = (pred_labels_batch == gold_labels_batch).sum().float() / float(target_labels.size(0) )
             loss = acc
         return loss
 
@@ -803,4 +803,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-# CUDA_VISIBLE_DEVICES=7 python -u train_MNLI_test_3shotSciTail_meta_learning.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --num_train_epochs 3 --data_dir '' --output_dir ''
+# CUDA_VISIBLE_DEVICES=0 python -u forfun.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --num_train_epochs 3 --data_dir '' --output_dir ''

@@ -833,17 +833,17 @@ def main():
                             print('max_dev_acc:', max_dev_acc)
                             '''testing'''
                             test_acc = 0.0
+                            with torch.no_grad():
+                                for idd, target_test_batch in enumerate(test_dataloader):
 
-                            for idd, target_test_batch in enumerate(test_dataloader):
+                                    target_test_batch = tuple(t.to(device) for t in target_test_batch)
+                                    target_test_input_ids_batch, target_test_input_mask_batch, target_test_segment_ids_batch, target_test_label_ids_batch = target_test_batch
 
-                                target_test_batch = tuple(t.to(device) for t in target_test_batch)
-                                target_test_input_ids_batch, target_test_input_mask_batch, target_test_segment_ids_batch, target_test_label_ids_batch = target_test_batch
+                                    target_id_type_mask_batch = (target_test_input_ids_batch, target_test_segment_ids_batch, target_test_input_mask_batch)
+                                    target_labels_batch = target_test_label_ids_batch
 
-                                target_id_type_mask_batch = (target_test_input_ids_batch, target_test_segment_ids_batch, target_test_input_mask_batch)
-                                target_labels_batch = target_test_label_ids_batch
-
-                                acc_i = model(target_id_type_mask_batch, target_labels_batch, None, None, loss_fct=loss_fct)
-                                test_acc+=acc_i.item()
+                                    acc_i = model(target_id_type_mask_batch, target_labels_batch, None, None, loss_fct=loss_fct)
+                                    test_acc+=acc_i.item()
 
                             test_acc/=len(test_dataloader)
                             print('\t\t\t >>>>test acc:', test_acc)

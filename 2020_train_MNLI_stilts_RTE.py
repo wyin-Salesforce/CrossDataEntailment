@@ -39,9 +39,9 @@ from sklearn.metrics import matthews_corrcoef, f1_score
 
 
 
-from pytorch_transformers.tokenization_roberta import RobertaTokenizer
-from pytorch_transformers.optimization import AdamW
-from pytorch_transformers.modeling_roberta import RobertaForSequenceClassification
+from transformers.tokenization_roberta import RobertaTokenizer
+from transformers.optimization import AdamW
+from transformers.modeling_roberta import RobertaForSequenceClassification
 
 logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt = '%m/%d/%Y %H:%M:%S',
@@ -646,7 +646,7 @@ def main():
                 model.train()
                 batch = tuple(t.to(device) for t in batch)
                 input_ids, input_mask, segment_ids, label_ids = batch
-                logits = model(input_ids, None, input_mask, labels=None)
+                logits = model(input_ids, input_mask, None, labels=None)
                 loss_fct = CrossEntropyLoss()
                 loss = loss_fct(logits[0].view(-1, num_labels), label_ids.view(-1))
 
@@ -693,7 +693,7 @@ def main():
                             gold_label_ids+=list(label_ids.detach().cpu().numpy())
 
                             with torch.no_grad():
-                                logits = model(input_ids, None, input_mask, labels=None)
+                                logits = model(input_ids, input_mask, None, labels=None)
                             logits = logits[0]
 
                             loss_fct = CrossEntropyLoss()

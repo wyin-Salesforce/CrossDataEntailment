@@ -132,8 +132,8 @@ class RteProcessor(DataProcessor):
                 examples.append(
                         InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
             line_co+=1
-            if line_co > 1000:
-                break
+            # if line_co > 1000:
+            #     break
         readfile.close()
         print('loaded  size:', line_co)
         return examples
@@ -524,7 +524,7 @@ def main():
                         type=float,
                         help="The initial learning rate for Adam.")
     parser.add_argument("--num_train_epochs",
-                        default=3.0,
+                        default=10.0,
                         type=float,
                         help="Total number of training epochs to perform.")
     parser.add_argument("--warmup_proportion",
@@ -751,6 +751,7 @@ def main():
         iter_co = 0
         tr_loss = 0
         loss_fct = CrossEntropyLoss()
+        max_dev_acc = 0.0
         for _ in trange(int(args.num_train_epochs), desc="Epoch"):
             for step, train_source_batch in enumerate(tqdm(train_source_dataloader, desc="Iteration")):
 
@@ -781,26 +782,41 @@ def main():
 
 
                 if iter_co %50==0:
-
                     model.eval()
-                    acc = 0.0
+                    dev_acc = 0.0
                     with torch.no_grad():
                         for idd, target_dev_batch in enumerate(dev_dataloader):
 
                             target_dev_batch = tuple(t.to(device) for t in target_dev_batch)
                             target_dev_input_ids_batch, target_dev_input_mask_batch, target_dev_segment_ids_batch, target_dev_label_ids_batch = target_dev_batch
 
-
                             target_id_type_mask_batch = (target_dev_input_ids_batch, target_dev_segment_ids_batch, target_dev_input_mask_batch)
-                            # target_id_type_mask_batch = (target_dev_input_ids_batch, None, target_dev_input_mask_batch)
                             target_labels_batch = target_dev_label_ids_batch
 
                             acc_i = model(target_id_type_mask_batch, target_labels_batch, None, None, loss_fct=loss_fct)
-                            acc+=acc_i
+                            dev_acc+=acc_i.item()
 
-                    acc/=len(dev_dataloader)
-                    print('dev acc:', acc)
+                    dev_acc/=len(dev_dataloader)
+                    print('dev acc:', dev_acc)
+                    if dev_acc> max_dev_acc:
+                        max_dev_acc = dev_acc
+                        print('max_dev_acc:', max_dev_acc)
+                        '''testing'''
+                        test_acc = 0.0
 
+                        for idd, target_test_batch in enumerate(test_dataloader):
+
+                            target_test_batch = tuple(t.to(device) for t in target_test_batch)
+                            target_test_input_ids_batch, target_test_input_mask_batch, target_test_segment_ids_batch, target_test_label_ids_batch = target_test_batch
+
+                            target_id_type_mask_batch = (target_test_input_ids_batch, target_test_segment_ids_batch, target_test_input_mask_batch)
+                            target_labels_batch = target_test_label_ids_batch
+
+                            acc_i = model(target_id_type_mask_batch, target_labels_batch, None, None, loss_fct=loss_fct)
+                            test_acc+=acc_i.item()
+
+                        test_acc/=len(test_dataloader)
+                        print('\t\t\t >>>>test acc:', test_acc)
 if __name__ == "__main__":
     main()
-# CUDA_VISIBLE_DEVICES=0 python -u forfun.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --num_train_epochs 3 --data_dir '' --output_dir ''
+# CUDA_VISIBLE_DEVICES=0 python -u forfun.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir ''

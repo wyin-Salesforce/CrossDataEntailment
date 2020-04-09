@@ -141,55 +141,57 @@ class RteProcessor(DataProcessor):
 
 
 
-    def get_RTE_as_train(self, filename):
-        '''
-        this function read 3 examples for entail, neutral, contral separately
-        pls note that it does not have random sampling
-        '''
-        examples_entail=[]
-        examples_neutral=[]
-        examples_contra=[]
+    def get_RTE_as_train(self, filename, K):
+        '''first load all into lists'''
         readfile = codecs.open(filename, 'r', 'utf-8')
-        class2size = defaultdict(int)
+        entail_list = []
+        not_entail_list = []
         line_co=0
         for row in readfile:
             if line_co>0:
                 line=row.strip().split('\t')
-                guid = "train-"+str(line_co-1)
-                text_a = line[1].strip()
-                text_b = line[2].strip()
-                if random.uniform(0, 1) < 0.85:
-                    continue
-                # label = line[3].strip() #["entailment", "not_entailment"]
-                # label = 'entailment'  if line[3].strip() == 'entailment' else 'neutral'
-                if line[3].strip() == 'entailment':
-                    labels = ['entailment']
+                premise = line[1].strip()
+                hypothesis = line[2].strip()
+                label = line[3].strip()
+                if label == 'entailment':
+                    entail_list.append((premise, hypothesis))
                 else:
-                    labels = ['neutral', 'contradiction']
-                for label in labels:
-                    if class2size.get(label, 0) < 3:
-                        if label == 'entailment':
-                            examples_entail.append(
-                                InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
-                        elif label == 'neutral':
-                            examples_neutral.append(
-                                InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
-                        else:
-                            examples_contra.append(
-                                InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
-                        class2size[label]+=1
-                    else:
-                        continue
-                if len(class2size.keys()) == 3 and sum(class2size.values()) == 9:
-                    break
-            line_co+=1
-            # if line_co > 20000:
-            #     break
+                    not_entail_list.append((premise, hypothesis))
         readfile.close()
-        print('loaded  size:', line_co)
-        assert len(examples_entail) == 3
-        assert len(examples_neutral) == 3
-        assert len(examples_contra) == 3
+
+        '''now randomly sampling'''
+        entail_size = len(entail_list)
+        not_entail_size = len(not_entail_list)
+        if K <= entail_size:
+            sampled_entail = random.sample(entail_list, K)
+        else:
+            sampled_entail = random.choices(entail_list, k = K))
+        if K <= int(not_entail_size/2):
+            sampled_not_entail = random.sample(not_entail_list, 2*K)
+        else:
+            sampled_not_entail = random.choices(not_entail_list, k = 2*K))
+
+        examples_entail=[]
+        examples_neutral=[]
+        examples_contra=[]
+
+        for idd, pair in enumerate(sampled_entail):
+            examples_entail.append(
+                InputExample(guid='entail_'+str(idd), text_a=pair[0], text_b=pair[1], label='entailment'))
+
+        for idd, pair in enumerate(sampled_not_entail):
+            if idd < K:
+                '''neutral'''
+                examples_entail.append(
+                    InputExample(guid='neutral_'+str(idd), text_a=pair[0], text_b=pair[1], label='neutral'))
+            else:
+                '''contradiction'''
+                examples_entail.append(
+                    InputExample(guid='contra_'+str(idd), text_a=pair[0], text_b=pair[1], label='contradiction'))
+
+        assert len(examples_entail) == K
+        assert len(examples_neutral) == K
+        assert len(examples_contra) == K
         return examples_entail, examples_neutral, examples_contra
 
     def get_RTE_as_dev(self, filename):
@@ -471,6 +473,11 @@ def main():
     parser = argparse.ArgumentParser()
 
     ## Required parameters
+    parser.add_argument("--k_shot",
+                        default=3,
+                        type=int,
+                        required=True,
+                        help="size per class")
     parser.add_argument("--data_dir",
                         default=None,
                         type=str,
@@ -610,7 +617,8 @@ def main():
 
 
     train_examples_source = processor.get_MNLI_as_train('/export/home/Dataset/glue_data/MNLI/train.tsv') #train_pu_half_v1.txt
-    train_examples_entail_RTE, train_examples_neutral_RTE, train_examples_contra_RTE = processor.get_RTE_as_train('/export/home/Dataset/glue_data/RTE/train.tsv')
+    '''load k-shot examples'''
+    train_examples_entail_RTE, train_examples_neutral_RTE, train_examples_contra_RTE = processor.get_RTE_as_train('/export/home/Dataset/glue_data/RTE/train.tsv', args.k_shot)
         # seen_classes=[0,2,4,6,8]
 
         # num_train_optimization_steps = int(
@@ -702,6 +710,14 @@ def main():
         train_target_input_mask_shot = torch.tensor([f.input_mask for f in train_target_features], dtype=torch.long).to(device)
         train_target_segment_ids_shot = torch.tensor([f.segment_ids for f in train_target_features], dtype=torch.long).to(device)
         train_target_label_ids_shot = torch.tensor([f.label_id for f in train_target_features], dtype=torch.long).to(device)
+        assert train_target_input_ids_shot.shape[0] == args.k_shot*3
+
+        train_target_data = TensorDataset(train_target_input_ids_shot, train_target_input_mask_shot, train_target_segment_ids_shot, train_target_label_ids_shot)
+        train_target_sampler = RandomSampler(train_target_data)
+        '''create 3 samples per class'''
+        assert args.k_shot*3>=9
+        train_target_dataloader = DataLoader(train_target_data, sampler=train_target_sampler, batch_size=9)
+
 
         '''load dev set'''
         dev_examples = processor.get_RTE_as_dev('/export/home/Dataset/glue_data/RTE/dev.tsv')
@@ -754,73 +770,79 @@ def main():
         max_dev_acc = 0.0
         for _ in trange(int(args.num_train_epochs), desc="Epoch"):
             for step, train_source_batch in enumerate(tqdm(train_source_dataloader, desc="Iteration")):
+            # for train_source_batch in train_source_dataloader:
 
                 train_source_batch = tuple(t.to(device) for t in train_source_batch)
                 train_source_input_ids_batch, train_source_input_mask_batch, train_source_segment_ids_batch, train_source_label_ids_batch = train_source_batch
                 assert train_source_input_ids_batch.shape[0] == args.train_batch_size
 
                 '''
-                forward(self, target_id_type_mask, target_labels, source_id_type_mask, source_labels):
+                loop on the k-shot examples
                 '''
-                target_id_type_mask_batch = (train_target_input_ids_shot, train_target_segment_ids_shot, train_target_input_mask_shot)
-                # target_id_type_mask_batch = (train_target_input_ids_shot, None, train_target_input_mask_shot)
-                target_labels_batch = train_target_label_ids_shot
-
-                source_id_type_mask_batch = (train_source_input_ids_batch, train_source_segment_ids_batch, train_source_input_mask_batch)
-                # source_id_type_mask_batch = (train_source_input_ids_batch, None, train_source_input_mask_batch)
-                source_labels_batch = train_source_label_ids_batch
-
-                model.train()
-                loss_cross_domain = model(target_id_type_mask_batch, target_labels_batch, source_id_type_mask_batch, source_labels_batch, loss_fct=loss_fct)
-                loss_cross_domain.backward()
-                optimizer.step()
-                optimizer.zero_grad()
+                for train_target_batch in train_target_dataloader:
+                    train_target_batch = tuple(t.to(device) for t in train_target_batch)
+                    train_target_input_ids_batch, train_target_input_mask_batch, train_target_segment_ids_batch, train_target_label_ids_batch = train_target_batch
 
 
-                global_step += 1
-                iter_co+=1
+                    target_id_type_mask_batch = (train_target_input_ids_batch, train_target_segment_ids_batch, train_target_input_mask_batch)
+                    # target_id_type_mask_batch = (train_target_input_ids_shot, None, train_target_input_mask_shot)
+                    target_labels_batch = train_target_label_ids_batch
+
+                    source_id_type_mask_batch = (train_source_input_ids_batch, train_source_segment_ids_batch, train_source_input_mask_batch)
+                    # source_id_type_mask_batch = (train_source_input_ids_batch, None, train_source_input_mask_batch)
+                    source_labels_batch = train_source_label_ids_batch
+
+                    model.train()
+                    loss_cross_domain = model(target_id_type_mask_batch, target_labels_batch, source_id_type_mask_batch, source_labels_batch, loss_fct=loss_fct)
+                    loss_cross_domain.backward()
+                    optimizer.step()
+                    optimizer.zero_grad()
 
 
-                if iter_co %50==0:
-                    model.eval()
-                    dev_acc = 0.0
-                    with torch.no_grad():
-                        for idd, target_dev_batch in enumerate(dev_dataloader):
+                    global_step += 1
+                    iter_co+=1
 
-                            target_dev_batch = tuple(t.to(device) for t in target_dev_batch)
-                            target_dev_input_ids_batch, target_dev_input_mask_batch, target_dev_segment_ids_batch, target_dev_label_ids_batch = target_dev_batch
 
-                            target_id_type_mask_batch = (target_dev_input_ids_batch, target_dev_segment_ids_batch, target_dev_input_mask_batch)
-                            target_labels_batch = target_dev_label_ids_batch
+                    if iter_co %50==0:
+                        model.eval()
+                        dev_acc = 0.0
+                        with torch.no_grad():
+                            for idd, target_dev_batch in enumerate(dev_dataloader):
 
-                            acc_i = model(target_id_type_mask_batch, target_labels_batch, None, None, loss_fct=loss_fct)
-                            dev_acc+=acc_i.item()
+                                target_dev_batch = tuple(t.to(device) for t in target_dev_batch)
+                                target_dev_input_ids_batch, target_dev_input_mask_batch, target_dev_segment_ids_batch, target_dev_label_ids_batch = target_dev_batch
 
-                    dev_acc/=len(dev_dataloader)
-                    print('dev acc:', dev_acc)
-                    if dev_acc> max_dev_acc:
-                        max_dev_acc = dev_acc
-                        print('max_dev_acc:', max_dev_acc)
-                        '''testing'''
-                        test_acc = 0.0
+                                target_id_type_mask_batch = (target_dev_input_ids_batch, target_dev_segment_ids_batch, target_dev_input_mask_batch)
+                                target_labels_batch = target_dev_label_ids_batch
 
-                        for idd, target_test_batch in enumerate(test_dataloader):
+                                acc_i = model(target_id_type_mask_batch, target_labels_batch, None, None, loss_fct=loss_fct)
+                                dev_acc+=acc_i.item()
 
-                            target_test_batch = tuple(t.to(device) for t in target_test_batch)
-                            target_test_input_ids_batch, target_test_input_mask_batch, target_test_segment_ids_batch, target_test_label_ids_batch = target_test_batch
+                        dev_acc/=len(dev_dataloader)
+                        print('dev acc:', dev_acc)
+                        if dev_acc> max_dev_acc:
+                            max_dev_acc = dev_acc
+                            print('max_dev_acc:', max_dev_acc)
+                            '''testing'''
+                            test_acc = 0.0
 
-                            target_id_type_mask_batch = (target_test_input_ids_batch, target_test_segment_ids_batch, target_test_input_mask_batch)
-                            target_labels_batch = target_test_label_ids_batch
+                            for idd, target_test_batch in enumerate(test_dataloader):
 
-                            acc_i = model(target_id_type_mask_batch, target_labels_batch, None, None, loss_fct=loss_fct)
-                            test_acc+=acc_i.item()
+                                target_test_batch = tuple(t.to(device) for t in target_test_batch)
+                                target_test_input_ids_batch, target_test_input_mask_batch, target_test_segment_ids_batch, target_test_label_ids_batch = target_test_batch
 
-                        test_acc/=len(test_dataloader)
-                        print('\t\t\t >>>>test acc:', test_acc)
+                                target_id_type_mask_batch = (target_test_input_ids_batch, target_test_segment_ids_batch, target_test_input_mask_batch)
+                                target_labels_batch = target_test_label_ids_batch
+
+                                acc_i = model(target_id_type_mask_batch, target_labels_batch, None, None, loss_fct=loss_fct)
+                                test_acc+=acc_i.item()
+
+                            test_acc/=len(test_dataloader)
+                            print('\t\t\t >>>>test acc:', test_acc)
 if __name__ == "__main__":
     main()
     '''
     1, change the encoder to the full roberta-large-mnli
     2, change the k-shot size easily
     '''
-# CUDA_VISIBLE_DEVICES=0 python -u forfun.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir ''
+# CUDA_VISIBLE_DEVICES=0 python -u forfun.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3

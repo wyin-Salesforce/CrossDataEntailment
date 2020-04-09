@@ -147,7 +147,7 @@ class RteProcessor(DataProcessor):
                 guid = "train-"+str(line_co-1)
                 text_a = line[1].strip()
                 text_b = line[2].strip()
-                label = line[3].strip() #["entailment", "not_entailment"]
+                label = 'entailment' if line[3].strip()=='entailment' else 'neutral' #["entailment", "not_entailment"]
                 examples.append(
                     InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
             line_co+=1
@@ -170,7 +170,8 @@ class RteProcessor(DataProcessor):
                 guid = "dev-"+str(line_co-1)
                 text_a = line[1].strip()
                 text_b = line[2].strip()
-                label = line[3].strip() #["entailment", "not_entailment"]
+                # label = line[3].strip() #["entailment", "not_entailment"]
+                label = 'entailment' if line[3].strip()=='entailment' else 'neutral'
                 # label = 'entailment'  if line[3] == 'entailment' else 'neutral'
                 examples.append(
                     InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
@@ -192,7 +193,7 @@ class RteProcessor(DataProcessor):
                 text_a = line[1]
                 text_b = line[2]
                 '''for RTE, we currently only choose randomly two labels in the set, in prediction we then decide the predicted labels'''
-                label = 'entailment'  if line[0] == '1' else 'not_entailment'
+                label = 'entailment'  if line[0] == '1' else 'neutral'
                 examples.append(
                     InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
                 line_co+=1
@@ -203,7 +204,8 @@ class RteProcessor(DataProcessor):
 
     def get_labels(self):
         'here we keep the three-way in MNLI training '
-        return ["entailment", "not_entailment"]
+        # return ["entailment", "not_entailment"]
+        return ["entailment", "neutral", "contradiction"]
 
     def _create_examples(self, lines, set_type):
         """Creates examples for the training and dev sets."""
@@ -714,7 +716,12 @@ def main():
                         wenpeng added a softxmax so that each row is a prob vec
                         '''
                         pred_probs = softmax(preds,axis=1)
-                        pred_label_ids = list(np.argmax(pred_probs, axis=1))
+                        # pred_label_ids = list(np.argmax(pred_probs, axis=1))
+                        pred_indices = np.argmax(pred_probs, axis=1)
+
+                        pred_label_ids = []
+                        for p in pred_indices:
+                            pred_label_ids.append(0 if p == 0 else 1)
 
                         gold_label_ids = gold_label_ids
                         assert len(pred_label_ids) == len(gold_label_ids)

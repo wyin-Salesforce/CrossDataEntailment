@@ -423,19 +423,17 @@ class Encoder(BertPreTrainedModel):
         '''mnli minibatch'''
         if source_id_type_mask is not None:
             LR_logits_source = self.classifier(pooled_outputs[target_input_size:]) #(9+batch, 3)
-        '''target (k) examples, it has two parts of logits, one is from target alone, one is add target and source'''
-        LR_logits_target_target_side = self.classifier_target(pooled_outputs[:target_input_size])
-        LR_logits_target_source_side = self.classifier(pooled_outputs[:target_input_size])
-        LR_logits_target = torch.softmax(LR_logits_target_target_side, dim=1) + torch.softmax(LR_logits_target_source_side, dim=1)
-        '''therefore, target has two parts of loss'''
-        target_loss = (loss_fct(LR_logits_target.view(-1, self.num_labels), target_labels.view(-1))
-                    +loss_fct(LR_logits_target_target_side.view(-1, self.num_labels), target_labels.view(-1)))
+        '''target (k) examples'''
+        LR_logits_target = (self.classifier_target(pooled_outputs[:target_input_size])+
+            self.classifier(pooled_outputs[:target_input_size]))
+
+        target_loss = loss_fct(LR_logits_target.view(-1, self.num_labels), target_labels.view(-1))
         if source_id_type_mask is not None:
             source_loss = loss_fct(LR_logits_source.view(-1, self.num_labels), source_labels.view(-1))
             loss = target_loss+source_loss
         else:
             '''testing, compute acc'''
-            pred_labels_batch = torch.softmax((LR_logits_target+LR_logits_target_target_side).view(-1, self.num_labels), dim=1).argmax(dim=1)
+            pred_labels_batch = torch.softmax(LR_logits_target.view(-1, self.num_labels), dim=1).argmax(dim=1)
             pred_labels_batch[pred_labels_batch!=0]=1
             gold_labels_batch = target_labels
             gold_labels_batch[gold_labels_batch!=0]=1

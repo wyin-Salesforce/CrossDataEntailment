@@ -391,7 +391,6 @@ class Encoder(BertPreTrainedModel):
     def __init__(self, config):
         super(Encoder, self).__init__(config)
         self.num_labels = config.num_labels
-        '''??? why a different name will not get initialized'''
         self.roberta = RobertaModel(config)
         self.classifier = RobertaClassificationHead(config)
         self.classifier_target = RobertaClassificationHead(config)
@@ -424,11 +423,13 @@ class Encoder(BertPreTrainedModel):
         '''mnli minibatch'''
         if source_id_type_mask is not None:
             LR_logits_source = self.classifier(pooled_outputs[target_input_size:]) #(9+batch, 3)
-        '''target (k) examples'''
-        LR_logits_target = (self.classifier_target(pooled_outputs[:target_input_size])+
-            self.classifier(pooled_outputs[:target_input_size]))
-
-        target_loss = loss_fct(LR_logits_target.view(-1, self.num_labels), target_labels.view(-1))
+        '''target (k) examples, it has two parts of logits, one is from target alone, one is add target and source'''
+        LR_logits_target_target_side = self.classifier_target(pooled_outputs[:target_input_size])
+        LR_logits_target_source_side = self.classifier(pooled_outputs[:target_input_size])
+        LR_logits_target = LR_logits_target_target_side + LR_logits_target_source_side
+        '''therefore, target has two parts of loss'''
+        target_loss = (loss_fct(LR_logits_target.view(-1, self.num_labels), target_labels.view(-1))
+                    +loss_fct(LR_logits_target_target_side.view(-1, self.num_labels), target_labels.view(-1)))
         if source_id_type_mask is not None:
             source_loss = loss_fct(LR_logits_source.view(-1, self.num_labels), source_labels.view(-1))
             loss = target_loss+source_loss

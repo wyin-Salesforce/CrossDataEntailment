@@ -27,7 +27,7 @@ from sklearn.metrics import matthews_corrcoef, f1_score
 
 from transformers.tokenization_roberta import RobertaTokenizer
 from transformers.optimization import AdamW
-from transformers.modeling_roberta import RobertaModel, RobertaConfig, RobertaForSequenceClassification, RobertaClassificationHead
+from transformers.modeling_roberta import RobertaModel, RobertaConfig, RobertaForSequenceClassification#, RobertaClassificationHead
 from transformers.modeling_bert import BertPreTrainedModel
 
 # from bert_common_functions import store_transformers_models, get_a_random_batch_from_dataloader, cosine_rowwise_two_matrices
@@ -383,7 +383,6 @@ def _truncate_seq_pair(tokens_a, tokens_b, max_length):
         else:
             tokens_b.pop()
 
-
 class Encoder(BertPreTrainedModel):
     config_class = RobertaConfig
     pretrained_model_archive_map = ROBERTA_PRETRAINED_MODEL_ARCHIVE_MAP
@@ -392,14 +391,10 @@ class Encoder(BertPreTrainedModel):
     def __init__(self, config):
         super(Encoder, self).__init__(config)
         self.num_labels = config.num_labels
-        '''make sure have this two config, other wise bert and roberta only output logits, no hidden states'''
-        config.output_attentions = True
-        config.output_hidden_states = True
         '''??? why a different name will not get initialized'''
-        # self.roberta = RobertaModel(config)
-        RobertaForSequenceClassification(config) # use to classify target shot examples
-        self.classifier = RobertaClassificationHead(config) # used to classifier source
-        # self.classifier_target = RobertaClassificationHead(config)
+        self.roberta = RobertaModel(config)
+        self.classifier_source = RobertaClassificationHead(config)
+        self.classifier_target = RobertaClassificationHead(config)
         # self.dropout = nn.Dropout(config.hidden_dropout_prob)
         # self.mlp_1 = nn.Linear(config.hidden_size*3, config.hidden_size)
         # self.mlp_2 = nn.Linear(config.hidden_size, 1, bias=False)
@@ -431,21 +426,15 @@ class Encoder(BertPreTrainedModel):
         # print('token_type_ids:', token_type_ids)
         # print('attention_mask:', attention_mask)
         '''pls note that roberta does not need token_type, especially when value more than 0 in the tensor, error report'''
-        outputs = RobertaForSequenceClassification(input_ids, attention_mask, None)
+        outputs = self.roberta(input_ids, attention_mask, None)
         # print('outputs:', outputs)
-        overall_logits_target_side = outputs[0] # (logits,) + outputs[2:]
-        # print('outputs:', outputs)
-        sequence_outputs = RobertaForSequenceClassification.sequence_output #(9+batch, sent_len, hidden_size)
-        overall_logits_source_side = self.classifier(sequence_outputs)
-        # print('overall_logits_source_side:', overall_logits_source_side)
-        # print('subset target:', overall_logits_target_side[:target_input_size])
-        # print('subset source:', overall_logits_source_side[:target_input_size])
-
-        LR_logits_target = overall_logits_target_side[:target_input_size]+overall_logits_source_side[:target_input_size]
-
+        pooled_outputs = outputs[1]#torch.max(outputs[0],dim=1)[0]+ outputs[1]#outputs[1]#torch.mean(outputs[0],dim=1)#outputs[1] #(batch, hidden_size)
+        '''mnli minibatch'''
         if source_id_type_mask is not None:
-            LR_logits_source = overall_logits_source_side[target_input_size:]
-
+            LR_logits_source = self.classifier_source(pooled_outputs[target_input_size:]) #(9+batch, 3)
+        '''target (k) examples'''
+        LR_logits_target = (self.classifier_target(pooled_outputs[:target_input_size])+
+            self.classifier_source(pooled_outputs[:target_input_size]))
 
         target_loss = loss_fct(LR_logits_target.view(-1, self.num_labels), target_labels.view(-1))
         if source_id_type_mask is not None:
@@ -464,23 +453,103 @@ class Encoder(BertPreTrainedModel):
             loss = acc
         return loss
 
-# class RobertaClassificationHead(nn.Module):
-#     """Head for sentence-level classification tasks."""
+# class Encoder(BertPreTrainedModel):
+#     config_class = RobertaConfig
+#     pretrained_model_archive_map = ROBERTA_PRETRAINED_MODEL_ARCHIVE_MAP
+#     base_model_prefix = "roberta"
 #
 #     def __init__(self, config):
-#         super(RobertaClassificationHead, self).__init__()
-#         self.dense = nn.Linear(config.hidden_size, config.hidden_size)
-#         self.dropout = nn.Dropout(config.hidden_dropout_prob)
-#         self.out_proj = nn.Linear(config.hidden_size, config.num_labels)
+#         super(Encoder, self).__init__(config)
+#         self.num_labels = config.num_labels
+#         '''make sure have this two config, other wise bert and roberta only output logits, no hidden states'''
+#         config.output_attentions = True
+#         config.output_hidden_states = True
+#         '''??? why a different name will not get initialized'''
+#         # self.roberta = RobertaModel(config)
+#         self.roberta = RobertaForSequenceClassification(config) # use to classify target shot examples
+#         self.classifier = RobertaClassificationHead(config) # used to classifier source
+#         # self.classifier_target = RobertaClassificationHead(config)
+#         # self.dropout = nn.Dropout(config.hidden_dropout_prob)
+#         # self.mlp_1 = nn.Linear(config.hidden_size*3, config.hidden_size)
+#         # self.mlp_2 = nn.Linear(config.hidden_size, 1, bias=False)
+#         # self.init_weights()
+#         # self.apply(self.init_bert_weights)
+#     # def forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None, sample_labels=None, prior_samples_outputs=None, prior_samples_logits = None, few_shot_training=False, is_train = True, fetch_hidden_only=False, loss_fct = None):
+#     def forward(self, target_id_type_mask, target_labels, source_id_type_mask, source_labels, loss_fct=None):
 #
-#     def forward(self, features, **kwargs):
-#         x = features#[:, 0, :]  # take <s> token (equiv. to [CLS])
-#         x = self.dropout(x)
-#         x = self.dense(x)
-#         x = torch.tanh(x)
-#         x = self.dropout(x)
-#         x = self.out_proj(x)
-#         return x
+#         '''
+#         samples: input_ids, token_type_ids, attention_mask; in class order
+#         minibatch: input_ids, token_type_ids, attention_mask
+#         '''
+#         '''k-example in test'''
+#         target_input_ids, target_token_type, target_attention_mask = target_id_type_mask
+#         target_input_size = target_input_ids.shape[0]
+#         '''mnli minibatch'''
+#         if source_id_type_mask is not None:
+#             source_input_ids, source_token_type, source_attention_mask = source_id_type_mask
+#
+#             input_ids = torch.cat([target_input_ids, source_input_ids], dim=0)
+#             # token_type_ids =torch.cat([target_token_type, source_token_type], dim=0)
+#             attention_mask = torch.cat([target_attention_mask, source_attention_mask], dim=0)
+#         else:
+#             input_ids = target_input_ids
+#             # token_type_ids = target_token_type
+#             attention_mask = target_attention_mask
+#         # outputs = self.roberta(input_ids, token_type_ids, attention_mask) #(batch, max_len, hidden_size)
+#         # print('input_ids:', input_ids)
+#         # print('token_type_ids:', token_type_ids)
+#         # print('attention_mask:', attention_mask)
+#         '''pls note that roberta does not need token_type, especially when value more than 0 in the tensor, error report'''
+#         outputs = self.roberta(input_ids, attention_mask, None)
+#         # print('outputs:', outputs)
+#         overall_logits_target_side = outputs[0] # (logits,) + outputs[2:]
+#         # print('outputs:', outputs)
+#         sequence_outputs = self.roberta.sequence_output #(9+batch, sent_len, hidden_size)
+#         overall_logits_source_side = self.classifier(sequence_outputs)
+#         # print('overall_logits_source_side:', overall_logits_source_side)
+#         # print('subset target:', overall_logits_target_side[:target_input_size])
+#         # print('subset source:', overall_logits_source_side[:target_input_size])
+#
+#         LR_logits_target = overall_logits_target_side[:target_input_size]+overall_logits_source_side[:target_input_size]
+#
+#         if source_id_type_mask is not None:
+#             LR_logits_source = overall_logits_source_side[target_input_size:]
+#
+#
+#         target_loss = loss_fct(LR_logits_target.view(-1, self.num_labels), target_labels.view(-1))
+#         if source_id_type_mask is not None:
+#             source_loss = loss_fct(LR_logits_source.view(-1, self.num_labels), source_labels.view(-1))
+#             loss = target_loss+source_loss
+#         else:
+#             '''testing, compute acc'''
+#             pred_labels_batch = torch.softmax(LR_logits_target.view(-1, self.num_labels), dim=1).argmax(dim=1)
+#             pred_labels_batch[pred_labels_batch!=0]=1
+#             gold_labels_batch = target_labels
+#             gold_labels_batch[gold_labels_batch!=0]=1
+#             # print('pred_labels_batch:', pred_labels_batch)
+#             # print('gold_labels_batch:', gold_labels_batch)
+#             # exit(0)
+#             acc = (pred_labels_batch == gold_labels_batch).sum().float() / float(target_labels.size(0) )
+#             loss = acc
+#         return loss
+
+class RobertaClassificationHead(nn.Module):
+    """Head for sentence-level classification tasks."""
+
+    def __init__(self, config):
+        super(RobertaClassificationHead, self).__init__()
+        self.dense = nn.Linear(config.hidden_size, config.hidden_size)
+        self.dropout = nn.Dropout(config.hidden_dropout_prob)
+        self.out_proj = nn.Linear(config.hidden_size, config.num_labels)
+
+    def forward(self, features, **kwargs):
+        x = features#[:, 0, :]  # take <s> token (equiv. to [CLS])
+        x = self.dropout(x)
+        x = self.dense(x)
+        x = torch.tanh(x)
+        x = self.dropout(x)
+        x = self.out_proj(x)
+        return x
 
 
 def main():

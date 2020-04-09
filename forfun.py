@@ -27,7 +27,7 @@ from sklearn.metrics import matthews_corrcoef, f1_score
 
 from transformers.tokenization_roberta import RobertaTokenizer
 from transformers.optimization import AdamW
-from transformers.modeling_roberta import RobertaModel, RobertaConfig#, RobertaClassificationHead
+from transformers.modeling_roberta import RobertaModel, RobertaConfig, RobertaForSequenceClassification, RobertaClassificationHead
 from transformers.modeling_bert import BertPreTrainedModel
 
 # from bert_common_functions import store_transformers_models, get_a_random_batch_from_dataloader, cosine_rowwise_two_matrices
@@ -132,8 +132,8 @@ class RteProcessor(DataProcessor):
                 examples.append(
                         InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
             line_co+=1
-            # if line_co > 1000:
-            #     break
+            if line_co > 1000:
+                break
         readfile.close()
         print('loaded  size:', line_co)
         return examples
@@ -393,12 +393,13 @@ class Encoder(BertPreTrainedModel):
         super(Encoder, self).__init__(config)
         self.num_labels = config.num_labels
         '''??? why a different name will not get initialized'''
-        self.roberta = RobertaModel(config)
-        self.classifier_source = RobertaClassificationHead(config)
-        self.classifier_target = RobertaClassificationHead(config)
-        self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.mlp_1 = nn.Linear(config.hidden_size*3, config.hidden_size)
-        self.mlp_2 = nn.Linear(config.hidden_size, 1, bias=False)
+        # self.roberta = RobertaModel(config)
+        self.RobertaForSequenceClassification = RobertaForSequenceClassification(config) # use to classify target shot examples
+        self.classifier = RobertaClassificationHead(config) # used to classifier source
+        # self.classifier_target = RobertaClassificationHead(config)
+        # self.dropout = nn.Dropout(config.hidden_dropout_prob)
+        # self.mlp_1 = nn.Linear(config.hidden_size*3, config.hidden_size)
+        # self.mlp_2 = nn.Linear(config.hidden_size, 1, bias=False)
         # self.init_weights()
         # self.apply(self.init_bert_weights)
     # def forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None, sample_labels=None, prior_samples_outputs=None, prior_samples_logits = None, few_shot_training=False, is_train = True, fetch_hidden_only=False, loss_fct = None):
@@ -427,15 +428,17 @@ class Encoder(BertPreTrainedModel):
         # print('token_type_ids:', token_type_ids)
         # print('attention_mask:', attention_mask)
         '''pls note that roberta does not need token_type, especially when value more than 0 in the tensor, error report'''
-        outputs = self.roberta(input_ids, attention_mask, None)
+        outputs = self.RobertaForSequenceClassification(input_ids, attention_mask, None)
+        overall_logits_target_side = outputs[1] # # (loss), logits, (hidden_states), (attentions)
         # print('outputs:', outputs)
-        pooled_outputs = outputs[1]#torch.max(outputs[0],dim=1)[0]+ outputs[1]#outputs[1]#torch.mean(outputs[0],dim=1)#outputs[1] #(batch, hidden_size)
-        '''mnli minibatch'''
+        sequence_outputs = self.RobertaForSequenceClassification.sequence_outputs #(9+batch, sent_len, hidden_size)
+        overall_logits_source_side = self.classifier(sequence_outputs)
+
+        LR_logits_target = overall_logits_target_side[:target_input_size]+overall_logits_source_side[:target_input_size]
+
         if source_id_type_mask is not None:
-            LR_logits_source = self.classifier_source(pooled_outputs[target_input_size:]) #(9+batch, 3)
-        '''target (k) examples'''
-        LR_logits_target = (self.classifier_target(pooled_outputs[:target_input_size])+
-            self.classifier_source(pooled_outputs[:target_input_size]))
+            LR_logits_source = overall_logits_source_side[target_input_size:]
+
 
         target_loss = loss_fct(LR_logits_target.view(-1, self.num_labels), target_labels.view(-1))
         if source_id_type_mask is not None:
@@ -454,23 +457,23 @@ class Encoder(BertPreTrainedModel):
             loss = acc
         return loss
 
-class RobertaClassificationHead(nn.Module):
-    """Head for sentence-level classification tasks."""
-
-    def __init__(self, config):
-        super(RobertaClassificationHead, self).__init__()
-        self.dense = nn.Linear(config.hidden_size, config.hidden_size)
-        self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.out_proj = nn.Linear(config.hidden_size, config.num_labels)
-
-    def forward(self, features, **kwargs):
-        x = features#[:, 0, :]  # take <s> token (equiv. to [CLS])
-        x = self.dropout(x)
-        x = self.dense(x)
-        x = torch.tanh(x)
-        x = self.dropout(x)
-        x = self.out_proj(x)
-        return x
+# class RobertaClassificationHead(nn.Module):
+#     """Head for sentence-level classification tasks."""
+#
+#     def __init__(self, config):
+#         super(RobertaClassificationHead, self).__init__()
+#         self.dense = nn.Linear(config.hidden_size, config.hidden_size)
+#         self.dropout = nn.Dropout(config.hidden_dropout_prob)
+#         self.out_proj = nn.Linear(config.hidden_size, config.num_labels)
+#
+#     def forward(self, features, **kwargs):
+#         x = features#[:, 0, :]  # take <s> token (equiv. to [CLS])
+#         x = self.dropout(x)
+#         x = self.dense(x)
+#         x = torch.tanh(x)
+#         x = self.dropout(x)
+#         x = self.out_proj(x)
+#         return x
 
 
 def main():
@@ -684,23 +687,7 @@ def main():
         train_source_sampler = RandomSampler(train_source_data)
         '''create 3 samples per class'''
         train_source_dataloader = DataLoader(train_source_data, sampler=train_source_sampler, batch_size=args.train_batch_size)
-        for train_batch in train_source_dataloader:
-            print('train_batch size:', train_batch[0].shape[0])
-            if train_batch[0].shape[0] != args.train_batch_size:
-                print('train_batch size:', train_batch[0].shape[0])
 
-        exit(0)
-
-
-
-
-
-        # train_features_entail = train_features[:len(train_examples_entail)]
-        # train_features_neutral = train_features[len(train_examples_entail):(len(train_examples_entail)+len(train_examples_neutral))]
-        # train_features_contra = train_features[(len(train_examples_entail)+len(train_examples_neutral)):]
-        # assert len(train_features_entail) == len(train_examples_entail)
-        # assert len(train_features_neutral) == len(train_examples_neutral)
-        # assert len(train_features_contra) == len(train_examples_contra)
 
         '''load 3-shot data'''
         train_target_features = convert_examples_to_features(
@@ -798,7 +785,7 @@ def main():
                     train_source_batch = tuple(t.to(device) for t in train_source_batch)
                     train_source_input_ids_batch, train_source_input_mask_batch, train_source_segment_ids_batch, train_source_label_ids_batch = train_source_batch
 
-                    assert train_source_input_ids_batch.shape[0] == args.train_batch_size
+                    # assert train_source_input_ids_batch.shape[0] == args.train_batch_size
 
 
 

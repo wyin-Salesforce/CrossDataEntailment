@@ -392,6 +392,9 @@ class Encoder(BertPreTrainedModel):
     def __init__(self, config):
         super(Encoder, self).__init__(config)
         self.num_labels = config.num_labels
+        '''make sure have this two config, other wise bert and roberta only output logits, no hidden states'''
+        config.output_attentions = True
+        config.output_hidden_states = True
         '''??? why a different name will not get initialized'''
         # self.roberta = RobertaModel(config)
         self.roberta = RobertaForSequenceClassification(config) # use to classify target shot examples

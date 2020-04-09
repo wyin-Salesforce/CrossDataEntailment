@@ -709,16 +709,17 @@ def main():
                             if test_acc > max_dev_acc:
                                 max_dev_acc = test_acc
                                 print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
-                                '''store the model'''
-                                store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE', str(max_dev_acc))
 
                             else:
                                 print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
+                                '''break means if the dev acc does not surpass the max_dev, no need test'''
                                 break
                         else: # this is test
                             if test_acc > max_test_acc:
                                 max_test_acc = test_acc
                             print('\ntest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
+                            '''store the model'''
+                            store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE', str(max_dev_acc)+'-'+str(test_acc))
 
 
 

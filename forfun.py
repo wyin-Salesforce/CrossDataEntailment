@@ -767,7 +767,10 @@ def main():
 
                 # for step, train_source_batch in enumerate(tqdm(train_source_dataloader, desc="Iteration")):
                 for train_source_batch in train_source_dataloader:
-                # for train_source_batch in train_source_dataloader:
+                    '''we make sure one scan of train_target_dataloader corresponds to one scan of train_source_dataloader'''
+                    rand_prob = random.uniform(0, 1)
+                    if rand_prob > 1/len(train_target_dataloader):
+                        continue
 
                     train_source_batch = tuple(t.to(device) for t in train_source_batch)
                     train_source_input_ids_batch, train_source_input_mask_batch, train_source_segment_ids_batch, train_source_label_ids_batch = train_source_batch

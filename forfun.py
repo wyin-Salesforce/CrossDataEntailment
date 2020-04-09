@@ -173,8 +173,8 @@ class RteProcessor(DataProcessor):
         else:
             sampled_not_entail = random.choices(not_entail_list, k = 2*K)
 
-        print('sampled_entail size:', len(sampled_entail))
-        print('sampled_not_entail size:', len(sampled_not_entail))
+        # print('sampled_entail size:', len(sampled_entail))
+        # print('sampled_not_entail size:', len(sampled_not_entail))
         examples_entail=[]
         examples_neutral=[]
         examples_contra=[]
@@ -186,11 +186,11 @@ class RteProcessor(DataProcessor):
         for idd, pair in enumerate(sampled_not_entail):
             if idd < K:
                 '''neutral'''
-                examples_entail.append(
+                examples_neutral.append(
                     InputExample(guid='neutral_'+str(idd), text_a=pair[0], text_b=pair[1], label='neutral'))
             else:
                 '''contradiction'''
-                examples_entail.append(
+                examples_contra.append(
                     InputExample(guid='contra_'+str(idd), text_a=pair[0], text_b=pair[1], label='contradiction'))
 
         assert len(examples_entail) == K

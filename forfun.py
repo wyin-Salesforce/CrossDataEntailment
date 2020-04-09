@@ -438,7 +438,8 @@ class Encoder(BertPreTrainedModel):
         sequence_outputs = self.roberta.sequence_output #(9+batch, sent_len, hidden_size)
         overall_logits_source_side = self.classifier(sequence_outputs)
         print('overall_logits_source_side:', overall_logits_source_side)
-        print('subset:', overall_logits_source_side[:target_input_size])
+        print('subset target:', overall_logits_target_side[:target_input_size])
+        print('subset source:', overall_logits_source_side[:target_input_size])
 
         LR_logits_target = overall_logits_target_side[:target_input_size]+overall_logits_source_side[:target_input_size]
 

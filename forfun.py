@@ -435,7 +435,7 @@ class Encoder(BertPreTrainedModel):
         # print('outputs:', outputs)
         overall_logits_target_side = outputs[1] # # (loss), logits, (hidden_states), (attentions)
         # print('outputs:', outputs)
-        sequence_outputs = self.RobertaForSequenceClassification.sequence_outputs #(9+batch, sent_len, hidden_size)
+        sequence_outputs = self.roberta.sequence_outputs #(9+batch, sent_len, hidden_size)
         overall_logits_source_side = self.classifier(sequence_outputs)
 
         LR_logits_target = overall_logits_target_side[:target_input_size]+overall_logits_source_side[:target_input_size]

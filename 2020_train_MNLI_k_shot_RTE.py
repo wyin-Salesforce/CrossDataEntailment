@@ -27,7 +27,7 @@ from sklearn.metrics import matthews_corrcoef, f1_score
 
 from transformers.tokenization_roberta import RobertaTokenizer
 from transformers.optimization import AdamW
-from transformers.modeling_roberta import RobertaModel, RobertaConfig, RobertaForSequenceClassification, RobertaClassificationHead
+from transformers.modeling_roberta import RobertaModel, RobertaConfig, RobertaForSequenceClassification#, RobertaClassificationHead
 from transformers.modeling_bert import BertPreTrainedModel
 
 # from bert_common_functions import store_transformers_models, get_a_random_batch_from_dataloader, cosine_rowwise_two_matrices
@@ -132,8 +132,8 @@ class RteProcessor(DataProcessor):
                 examples.append(
                         InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
             line_co+=1
-            if line_co > 1000:
-                break
+            # if line_co > 1000:
+            #     break
         readfile.close()
         print('loaded  size:', line_co)
         return examples
@@ -383,7 +383,6 @@ def _truncate_seq_pair(tokens_a, tokens_b, max_length):
         else:
             tokens_b.pop()
 
-
 class Encoder(BertPreTrainedModel):
     config_class = RobertaConfig
     pretrained_model_archive_map = ROBERTA_PRETRAINED_MODEL_ARCHIVE_MAP
@@ -392,20 +391,11 @@ class Encoder(BertPreTrainedModel):
     def __init__(self, config):
         super(Encoder, self).__init__(config)
         self.num_labels = config.num_labels
-        '''make sure have this two config, other wise bert and roberta only output logits, no hidden states'''
-        config.output_attentions = True
-        config.output_hidden_states = True
-        '''??? why a different name will not get initialized'''
-        # self.roberta = RobertaModel(config)
-        self.roberta = RobertaForSequenceClassification(config) # use to classify target shot examples
-        self.classifier = RobertaClassificationHead(config) # used to classifier source
-        # self.classifier_target = RobertaClassificationHead(config)
-        # self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        # self.mlp_1 = nn.Linear(config.hidden_size*3, config.hidden_size)
-        # self.mlp_2 = nn.Linear(config.hidden_size, 1, bias=False)
-        # self.init_weights()
-        # self.apply(self.init_bert_weights)
-    # def forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None, sample_labels=None, prior_samples_outputs=None, prior_samples_logits = None, few_shot_training=False, is_train = True, fetch_hidden_only=False, loss_fct = None):
+        self.roberta = RobertaModel(config)
+        self.classifier = RobertaClassificationHead(config)
+        self.classifier_target = RobertaClassificationHead(config)
+        self.classifier_target.load_state_dict(self.classifier.state_dict())
+
     def forward(self, target_id_type_mask, target_labels, source_id_type_mask, source_labels, loss_fct=None):
 
         '''
@@ -426,24 +416,16 @@ class Encoder(BertPreTrainedModel):
             input_ids = target_input_ids
             # token_type_ids = target_token_type
             attention_mask = target_attention_mask
-        # outputs = self.roberta(input_ids, token_type_ids, attention_mask) #(batch, max_len, hidden_size)
-        # print('input_ids:', input_ids)
-        # print('token_type_ids:', token_type_ids)
-        # print('attention_mask:', attention_mask)
+
         '''pls note that roberta does not need token_type, especially when value more than 0 in the tensor, error report'''
         outputs = self.roberta(input_ids, attention_mask, None)
-        print('outputs:', outputs)
-        overall_logits_target_side = outputs[1] # # (loss), logits, (hidden_states), (attentions)
-        exit(0)
-        # print('outputs:', outputs)
-        sequence_outputs = self.RobertaForSequenceClassification.sequence_outputs #(9+batch, sent_len, hidden_size)
-        overall_logits_source_side = self.classifier(sequence_outputs)
-
-        LR_logits_target = overall_logits_target_side[:target_input_size]+overall_logits_source_side[:target_input_size]
-
+        pooled_outputs = outputs[1]#torch.max(outputs[0],dim=1)[0]+ outputs[1]#outputs[1]#torch.mean(outputs[0],dim=1)#outputs[1] #(batch, hidden_size)
+        '''mnli minibatch'''
         if source_id_type_mask is not None:
-            LR_logits_source = overall_logits_source_side[target_input_size:]
-
+            LR_logits_source = self.classifier(pooled_outputs[target_input_size:]) #(9+batch, 3)
+        '''target (k) examples'''
+        LR_logits_target = (self.classifier_target(pooled_outputs[:target_input_size])+
+            self.classifier(pooled_outputs[:target_input_size]))
 
         target_loss = loss_fct(LR_logits_target.view(-1, self.num_labels), target_labels.view(-1))
         if source_id_type_mask is not None:
@@ -455,30 +437,28 @@ class Encoder(BertPreTrainedModel):
             pred_labels_batch[pred_labels_batch!=0]=1
             gold_labels_batch = target_labels
             gold_labels_batch[gold_labels_batch!=0]=1
-            # print('pred_labels_batch:', pred_labels_batch)
-            # print('gold_labels_batch:', gold_labels_batch)
-            # exit(0)
             acc = (pred_labels_batch == gold_labels_batch).sum().float() / float(target_labels.size(0) )
             loss = acc
         return loss
 
-# class RobertaClassificationHead(nn.Module):
-#     """Head for sentence-level classification tasks."""
-#
-#     def __init__(self, config):
-#         super(RobertaClassificationHead, self).__init__()
-#         self.dense = nn.Linear(config.hidden_size, config.hidden_size)
-#         self.dropout = nn.Dropout(config.hidden_dropout_prob)
-#         self.out_proj = nn.Linear(config.hidden_size, config.num_labels)
-#
-#     def forward(self, features, **kwargs):
-#         x = features#[:, 0, :]  # take <s> token (equiv. to [CLS])
-#         x = self.dropout(x)
-#         x = self.dense(x)
-#         x = torch.tanh(x)
-#         x = self.dropout(x)
-#         x = self.out_proj(x)
-#         return x
+
+class RobertaClassificationHead(nn.Module):
+    """wenpeng overwrite it so to accept matrix as input"""
+
+    def __init__(self, config):
+        super(RobertaClassificationHead, self).__init__()
+        self.dense = nn.Linear(config.hidden_size, config.hidden_size)
+        self.dropout = nn.Dropout(config.hidden_dropout_prob)
+        self.out_proj = nn.Linear(config.hidden_size, config.num_labels)
+
+    def forward(self, features, **kwargs):
+        x = features#[:, 0, :]  # take <s> token (equiv. to [CLS])
+        x = self.dropout(x)
+        x = self.dense(x)
+        x = torch.tanh(x)
+        x = self.dropout(x)
+        x = self.out_proj(x)
+        return x
 
 
 def main():
@@ -657,6 +637,8 @@ def main():
 
     # Prepare optimizer
     param_optimizer = list(model.named_parameters())
+    # print('param_optimizer:', param_optimizer)
+    # exit(0)
     no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
     optimizer_grouped_parameters = [
         {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
@@ -785,7 +767,10 @@ def main():
 
                 # for step, train_source_batch in enumerate(tqdm(train_source_dataloader, desc="Iteration")):
                 for train_source_batch in train_source_dataloader:
-                # for train_source_batch in train_source_dataloader:
+                    '''we make sure one scan of train_target_dataloader corresponds to one scan of train_source_dataloader'''
+                    rand_prob = random.uniform(0, 1)
+                    if rand_prob > 1/len(train_target_dataloader):
+                        continue
 
                     train_source_batch = tuple(t.to(device) for t in train_source_batch)
                     train_source_input_ids_batch, train_source_input_mask_batch, train_source_segment_ids_batch, train_source_label_ids_batch = train_source_batch
@@ -831,17 +816,17 @@ def main():
                             print('max_dev_acc:', max_dev_acc)
                             '''testing'''
                             test_acc = 0.0
+                            with torch.no_grad():
+                                for idd, target_test_batch in enumerate(test_dataloader):
 
-                            for idd, target_test_batch in enumerate(test_dataloader):
+                                    target_test_batch = tuple(t.to(device) for t in target_test_batch)
+                                    target_test_input_ids_batch, target_test_input_mask_batch, target_test_segment_ids_batch, target_test_label_ids_batch = target_test_batch
 
-                                target_test_batch = tuple(t.to(device) for t in target_test_batch)
-                                target_test_input_ids_batch, target_test_input_mask_batch, target_test_segment_ids_batch, target_test_label_ids_batch = target_test_batch
+                                    target_id_type_mask_batch = (target_test_input_ids_batch, target_test_segment_ids_batch, target_test_input_mask_batch)
+                                    target_labels_batch = target_test_label_ids_batch
 
-                                target_id_type_mask_batch = (target_test_input_ids_batch, target_test_segment_ids_batch, target_test_input_mask_batch)
-                                target_labels_batch = target_test_label_ids_batch
-
-                                acc_i = model(target_id_type_mask_batch, target_labels_batch, None, None, loss_fct=loss_fct)
-                                test_acc+=acc_i.item()
+                                    acc_i = model(target_id_type_mask_batch, target_labels_batch, None, None, loss_fct=loss_fct)
+                                    test_acc+=acc_i.item()
 
                             test_acc/=len(test_dataloader)
                             print('\t\t\t >>>>test acc:', test_acc)
@@ -851,4 +836,4 @@ if __name__ == "__main__":
     1, change the encoder to the full roberta-large-mnli
     2, change the k-shot size easily
     '''
-# CUDA_VISIBLE_DEVICES=0 python -u forfun.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3
+# CUDA_VISIBLE_DEVICES=0 python -u 2020_train_MNLI_k_shot_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3

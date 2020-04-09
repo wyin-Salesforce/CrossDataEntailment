@@ -1,4 +1,18 @@
-
+# coding=utf-8
+# Copyright 2018 The Google AI Language Team Authors and The HuggingFace Inc. team.
+# Copyright (c) 2018, NVIDIA CORPORATION.  All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """BERT finetuning runner."""
 
 from __future__ import absolute_import, division, print_function
@@ -17,7 +31,7 @@ from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,
                               TensorDataset)
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm, trange
-import torch.nn as nn
+
 from torch.nn import CrossEntropyLoss, MSELoss
 from scipy.special import softmax
 from scipy.stats import pearsonr, spearmanr
@@ -27,10 +41,9 @@ from sklearn.metrics import matthews_corrcoef, f1_score
 
 from transformers.tokenization_roberta import RobertaTokenizer
 from transformers.optimization import AdamW
-from transformers.modeling_roberta import RobertaModel, RobertaConfig, RobertaForSequenceClassification#, RobertaClassificationHead
-from transformers.modeling_bert import BertPreTrainedModel
+from transformers.modeling_roberta import RobertaForSequenceClassification
 
-# from bert_common_functions import store_transformers_models, get_a_random_batch_from_dataloader, cosine_rowwise_two_matrices
+from bert_common_functions import store_transformers_models
 
 logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt = '%m/%d/%Y %H:%M:%S',
@@ -40,17 +53,6 @@ logger = logging.getLogger(__name__)
 # from pytorch_transformers.modeling_bert import BertPreTrainedModel, BertModel
 # import torch.nn as nn
 
-ROBERTA_PRETRAINED_MODEL_ARCHIVE_MAP = {
-    'roberta-base': "https://s3.amazonaws.com/models.huggingface.co/bert/roberta-base-pytorch_model.bin",
-    'roberta-large': "https://s3.amazonaws.com/models.huggingface.co/bert/roberta-large-pytorch_model.bin",
-    'roberta-large-mnli': "https://s3.amazonaws.com/models.huggingface.co/bert/roberta-large-mnli-pytorch_model.bin",
-}
-
-ROBERTA_PRETRAINED_CONFIG_ARCHIVE_MAP = {
-    'roberta-base': "https://s3.amazonaws.com/models.huggingface.co/bert/roberta-base-config.json",
-    'roberta-large': "https://s3.amazonaws.com/models.huggingface.co/bert/roberta-large-config.json",
-    'roberta-large-mnli': "https://s3.amazonaws.com/models.huggingface.co/bert/roberta-large-mnli-config.json",
-}
 
 
 class InputExample(object):
@@ -118,8 +120,6 @@ class RteProcessor(DataProcessor):
         can read the training file, dev and test file
         '''
         examples=[]
-        # examples_neutral=[]
-        # examples_contra=[]
         readfile = codecs.open(filename, 'r', 'utf-8')
         line_co=0
         for row in readfile:
@@ -130,73 +130,13 @@ class RteProcessor(DataProcessor):
                 text_b = line[9].strip()
                 label = line[-1].strip() #["entailment", "neutral", "contradiction"]
                 examples.append(
-                        InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+                    InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
             line_co+=1
-            # if line_co > 1000:
+            # if line_co > 20000:
             #     break
         readfile.close()
         print('loaded  size:', line_co)
         return examples
-
-
-
-
-    def get_RTE_as_train(self, filename, K):
-        '''first load all into lists'''
-        readfile = codecs.open(filename, 'r', 'utf-8')
-        entail_list = []
-        not_entail_list = []
-        line_co=0
-        for row in readfile:
-            if line_co>0:
-                line=row.strip().split('\t')
-                premise = line[1].strip()
-                hypothesis = line[2].strip()
-                label = line[3].strip()
-                if label == 'entailment':
-                    entail_list.append((premise, hypothesis))
-                else:
-                    not_entail_list.append((premise, hypothesis))
-            line_co+=1
-        readfile.close()
-
-        '''now randomly sampling'''
-        entail_size = len(entail_list)
-        not_entail_size = len(not_entail_list)
-        print('entail_size:', entail_size, 'not_entail_size:', not_entail_size)
-        if K <= entail_size:
-            sampled_entail = random.sample(entail_list, K)
-        else:
-            sampled_entail = random.choices(entail_list, k = K)
-        if K <= int(not_entail_size/2):
-            sampled_not_entail = random.sample(not_entail_list, 2*K)
-        else:
-            sampled_not_entail = random.choices(not_entail_list, k = 2*K)
-
-        # print('sampled_entail size:', len(sampled_entail))
-        # print('sampled_not_entail size:', len(sampled_not_entail))
-        examples_entail=[]
-        examples_neutral=[]
-        examples_contra=[]
-
-        for idd, pair in enumerate(sampled_entail):
-            examples_entail.append(
-                InputExample(guid='entail_'+str(idd), text_a=pair[0], text_b=pair[1], label='entailment'))
-
-        for idd, pair in enumerate(sampled_not_entail):
-            if idd < K:
-                '''neutral'''
-                examples_neutral.append(
-                    InputExample(guid='neutral_'+str(idd), text_a=pair[0], text_b=pair[1], label='neutral'))
-            else:
-                '''contradiction'''
-                examples_contra.append(
-                    InputExample(guid='contra_'+str(idd), text_a=pair[0], text_b=pair[1], label='contradiction'))
-
-        assert len(examples_entail) == K
-        assert len(examples_neutral) == K
-        assert len(examples_contra) == K
-        return examples_entail, examples_neutral, examples_contra
 
     def get_RTE_as_dev(self, filename):
         '''
@@ -241,7 +181,6 @@ class RteProcessor(DataProcessor):
         readfile.close()
         print('loaded test size:', line_co)
         return examples
-
 
     def get_labels(self):
         'here we keep the three-way in MNLI training '
@@ -305,6 +244,25 @@ def convert_examples_to_features(examples, label_list, max_seq_length,
             special_tokens_count = 3 if sep_token_extra else 2
             if len(tokens_a) > max_seq_length - special_tokens_count:
                 tokens_a = tokens_a[:(max_seq_length - special_tokens_count)]
+
+        # The convention in BERT is:
+        # (a) For sequence pairs:
+        #  tokens:   [CLS] is this jack ##son ##ville ? [SEP] no it is not . [SEP]
+        #  type_ids:   0   0  0    0    0     0       0   0   1  1  1  1   1   1
+        # (b) For single sequences:
+        #  tokens:   [CLS] the dog is hairy . [SEP]
+        #  type_ids:   0   0   0   0  0     0   0
+        #
+        # Where "type_ids" are used to indicate whether this is the first
+        # sequence or the second sequence. The embedding vectors for `type=0` and
+        # `type=1` were learned during pre-training and are added to the wordpiece
+        # embedding vector (and position vector). This is not *strictly* necessary
+        # since the [SEP] token unambiguously separates the sequences, but it makes
+        # it easier for the model to learn the concept of sequences.
+        #
+        # For classification tasks, the first vector (corresponding to [CLS]) is
+        # used as as the "sentence vector". Note that this only makes sense because
+        # the entire model is fine-tuned.
         tokens = tokens_a + [sep_token]
         if sep_token_extra:
             # roberta uses an extra separator b/w pairs of sentences
@@ -383,93 +341,19 @@ def _truncate_seq_pair(tokens_a, tokens_b, max_length):
         else:
             tokens_b.pop()
 
-class Encoder(BertPreTrainedModel):
-    config_class = RobertaConfig
-    pretrained_model_archive_map = ROBERTA_PRETRAINED_MODEL_ARCHIVE_MAP
-    base_model_prefix = "roberta"
-
-    def __init__(self, config):
-        super(Encoder, self).__init__(config)
-        self.num_labels = config.num_labels
-        self.roberta = RobertaModel(config)
-        self.classifier = RobertaClassificationHead(config)
-        self.classifier_target = RobertaClassificationHead(config)
-        self.classifier_target.load_state_dict(self.classifier.state_dict())
-
-    def forward(self, target_id_type_mask, target_labels, source_id_type_mask, source_labels, loss_fct=None):
-
-        '''
-        samples: input_ids, token_type_ids, attention_mask; in class order
-        minibatch: input_ids, token_type_ids, attention_mask
-        '''
-        '''k-example in test'''
-        target_input_ids, target_token_type, target_attention_mask = target_id_type_mask
-        target_input_size = target_input_ids.shape[0]
-        '''mnli minibatch'''
-        if source_id_type_mask is not None:
-            source_input_ids, source_token_type, source_attention_mask = source_id_type_mask
-
-            input_ids = torch.cat([target_input_ids, source_input_ids], dim=0)
-            # token_type_ids =torch.cat([target_token_type, source_token_type], dim=0)
-            attention_mask = torch.cat([target_attention_mask, source_attention_mask], dim=0)
-        else:
-            input_ids = target_input_ids
-            # token_type_ids = target_token_type
-            attention_mask = target_attention_mask
-
-        '''pls note that roberta does not need token_type, especially when value more than 0 in the tensor, error report'''
-        outputs = self.roberta(input_ids, attention_mask, None)
-        pooled_outputs = outputs[1]#torch.max(outputs[0],dim=1)[0]+ outputs[1]#outputs[1]#torch.mean(outputs[0],dim=1)#outputs[1] #(batch, hidden_size)
-        '''mnli minibatch'''
-        if source_id_type_mask is not None:
-            LR_logits_source = self.classifier(pooled_outputs[target_input_size:]) #(9+batch, 3)
-        '''target (k) examples'''
-        LR_logits_target = (self.classifier_target(pooled_outputs[:target_input_size])+
-            self.classifier(pooled_outputs[:target_input_size]))
-
-        target_loss = loss_fct(LR_logits_target.view(-1, self.num_labels), target_labels.view(-1))
-        if source_id_type_mask is not None:
-            source_loss = loss_fct(LR_logits_source.view(-1, self.num_labels), source_labels.view(-1))
-            loss = target_loss+source_loss
-        else:
-            '''testing, compute acc'''
-            pred_labels_batch = torch.softmax(LR_logits_target.view(-1, self.num_labels), dim=1).argmax(dim=1)
-            pred_labels_batch[pred_labels_batch!=0]=1
-            gold_labels_batch = target_labels
-            gold_labels_batch[gold_labels_batch!=0]=1
-            acc = (pred_labels_batch == gold_labels_batch).sum().float() / float(target_labels.size(0) )
-            loss = acc
-        return loss
 
 
-class RobertaClassificationHead(nn.Module):
-    """wenpeng overwrite it so to accept matrix as input"""
 
-    def __init__(self, config):
-        super(RobertaClassificationHead, self).__init__()
-        self.dense = nn.Linear(config.hidden_size, config.hidden_size)
-        self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.out_proj = nn.Linear(config.hidden_size, config.num_labels)
 
-    def forward(self, features, **kwargs):
-        x = features#[:, 0, :]  # take <s> token (equiv. to [CLS])
-        x = self.dropout(x)
-        x = self.dense(x)
-        x = torch.tanh(x)
-        x = self.dropout(x)
-        x = self.out_proj(x)
-        return x
+
+
+
 
 
 def main():
     parser = argparse.ArgumentParser()
 
     ## Required parameters
-    parser.add_argument("--k_shot",
-                        default=3,
-                        type=int,
-                        required=True,
-                        help="size per class")
     parser.add_argument("--data_dir",
                         default=None,
                         type=str,
@@ -511,19 +395,19 @@ def main():
                         action='store_true',
                         help="Set this flag if you are using an uncased model.")
     parser.add_argument("--train_batch_size",
-                        default=10,
+                        default=16,
                         type=int,
                         help="Total batch size for training.")
     parser.add_argument("--eval_batch_size",
-                        default=16,
+                        default=64,
                         type=int,
                         help="Total batch size for eval.")
     parser.add_argument("--learning_rate",
-                        default=1e-5,
+                        default=2e-5,
                         type=float,
                         help="The initial learning rate for Adam.")
     parser.add_argument("--num_train_epochs",
-                        default=10.0,
+                        default=3.0,
                         type=float,
                         help="Total number of training epochs to perform.")
     parser.add_argument("--warmup_proportion",
@@ -608,24 +492,37 @@ def main():
 
 
 
-    train_examples_source = processor.get_MNLI_as_train('/export/home/Dataset/glue_data/MNLI/train.tsv') #train_pu_half_v1.txt
-    '''load k-shot examples'''
-    train_examples_entail_RTE, train_examples_neutral_RTE, train_examples_contra_RTE = processor.get_RTE_as_train('/export/home/Dataset/glue_data/RTE/train.tsv', args.k_shot)
+    train_examples = None
+    num_train_optimization_steps = None
+    if args.do_train:
+        train_examples = processor.get_MNLI_as_train('/export/home/Dataset/glue_data/MNLI/train.tsv') #train_pu_half_v1.txt
         # seen_classes=[0,2,4,6,8]
 
-        # num_train_optimization_steps = int(
-        #     len(train_examples) / args.train_batch_size / args.gradient_accumulation_steps) * args.num_train_epochs
-        # if args.local_rank != -1:
-        #     num_train_optimization_steps = num_train_optimization_steps // torch.distributed.get_world_size()
+        num_train_optimization_steps = int(
+            len(train_examples) / args.train_batch_size / args.gradient_accumulation_steps) * args.num_train_epochs
+        if args.local_rank != -1:
+            num_train_optimization_steps = num_train_optimization_steps // torch.distributed.get_world_size()
 
     # Prepare model
     # cache_dir = args.cache_dir if args.cache_dir else os.path.join(str(PYTORCH_TRANSFORMERS_CACHE), 'distributed_{}'.format(args.local_rank))
 
     pretrain_model_dir = 'roberta-large-mnli' #'roberta-large' , 'roberta-large-mnli'
-    # model = Encoder.from_pretrained(pretrain_model_dir, num_labels=num_labels)
-    model = Encoder.from_pretrained(pretrain_model_dir, num_labels=num_labels)
-    # exit(0)
+    model = RobertaForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
 
+    # print(model.classifier.weight)
+    # st_model = st_BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
+    # print(st_model.classifier.weight)
+    # model2 = BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
+    # print(model2.classifier.weight)
+    # exit(0)
+    # model = my_BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
+
+    # for np1, np2 in zip(list(model.named_parameters()),list(st_model.named_parameters())):
+    #     if np1[1].data.ne(np2[1].data).sum() > 0:
+    #         print(np1[0], np2[0])
+    #         print(np1[1].data)
+    #         print(np2[1].data)
+    # exit(0)
 
     tokenizer = RobertaTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
 
@@ -637,8 +534,6 @@ def main():
 
     # Prepare optimizer
     param_optimizer = list(model.named_parameters())
-    # print('param_optimizer:', param_optimizer)
-    # exit(0)
     no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
     optimizer_grouped_parameters = [
         {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
@@ -653,9 +548,8 @@ def main():
     max_test_acc = 0.0
     max_dev_acc = 0.0
     if args.do_train:
-        train_source_features = convert_examples_to_features(
-            train_examples_source,
-            label_list, args.max_seq_length, tokenizer, output_mode,
+        train_features = convert_examples_to_features(
+            train_examples, label_list, args.max_seq_length, tokenizer, output_mode,
             cls_token_at_end=False,#bool(args.model_type in ['xlnet']),            # xlnet has a cls token at the end
             cls_token=tokenizer.cls_token,
             cls_token_segment_id=0,#2 if args.model_type in ['xlnet'] else 0,
@@ -664,43 +558,6 @@ def main():
             pad_on_left=False,#bool(args.model_type in ['xlnet']),                 # pad on the left for xlnet
             pad_token=tokenizer.convert_tokens_to_ids([tokenizer.pad_token])[0],
             pad_token_segment_id=0)#4 if args.model_type in ['xlnet'] else 0,)
-
-        train_source_input_ids = torch.tensor([f.input_ids for f in train_source_features], dtype=torch.long)
-        train_source_input_mask = torch.tensor([f.input_mask for f in train_source_features], dtype=torch.long)
-        train_source_segment_ids = torch.tensor([f.segment_ids for f in train_source_features], dtype=torch.long)
-        train_source_label_ids = torch.tensor([f.label_id for f in train_source_features], dtype=torch.long)
-
-        train_source_data = TensorDataset(train_source_input_ids, train_source_input_mask, train_source_segment_ids, train_source_label_ids)
-        train_source_sampler = RandomSampler(train_source_data)
-        '''create 3 samples per class'''
-        train_source_dataloader = DataLoader(train_source_data, sampler=train_source_sampler, batch_size=args.train_batch_size)
-
-
-        '''load 3-shot data'''
-        train_target_features = convert_examples_to_features(
-            train_examples_entail_RTE+train_examples_neutral_RTE + train_examples_contra_RTE,
-            label_list, args.max_seq_length, tokenizer, output_mode,
-            cls_token_at_end=False,#bool(args.model_type in ['xlnet']),            # xlnet has a cls token at the end
-            cls_token=tokenizer.cls_token,
-            cls_token_segment_id=0,#2 if args.model_type in ['xlnet'] else 0,
-            sep_token=tokenizer.sep_token,
-            sep_token_extra=True,#bool(args.model_type in ['roberta']),           # roberta uses an extra separator b/w pairs of sentences, cf. github.com/pytorch/fairseq/commit/1684e166e3da03f5b600dbb7855cb98ddfcd0805
-            pad_on_left=False,#bool(args.model_type in ['xlnet']),                 # pad on the left for xlnet
-            pad_token=tokenizer.convert_tokens_to_ids([tokenizer.pad_token])[0],
-            pad_token_segment_id=0)#4 if args.model_type in ['xlnet'] else 0,)
-
-        train_target_input_ids_shot = torch.tensor([f.input_ids for f in train_target_features], dtype=torch.long).to(device)
-        train_target_input_mask_shot = torch.tensor([f.input_mask for f in train_target_features], dtype=torch.long).to(device)
-        train_target_segment_ids_shot = torch.tensor([f.segment_ids for f in train_target_features], dtype=torch.long).to(device)
-        train_target_label_ids_shot = torch.tensor([f.label_id for f in train_target_features], dtype=torch.long).to(device)
-        assert train_target_input_ids_shot.shape[0] == args.k_shot*3
-
-        train_target_data = TensorDataset(train_target_input_ids_shot, train_target_input_mask_shot, train_target_segment_ids_shot, train_target_label_ids_shot)
-        train_target_sampler = RandomSampler(train_target_data)
-        '''create 3 samples per class'''
-        assert args.k_shot*3>=9
-        train_target_dataloader = DataLoader(train_target_data, sampler=train_target_sampler, batch_size=9)
-
 
         '''load dev set'''
         dev_examples = processor.get_RTE_as_dev('/export/home/Dataset/glue_data/RTE/dev.tsv')
@@ -723,11 +580,10 @@ def main():
         dev_data = TensorDataset(dev_all_input_ids, dev_all_input_mask, dev_all_segment_ids, dev_all_label_ids)
         dev_sampler = SequentialSampler(dev_data)
         dev_dataloader = DataLoader(dev_data, sampler=dev_sampler, batch_size=args.eval_batch_size)
-
         '''load test set'''
-        test_examples = processor.get_RTE_as_test('/export/home/Dataset/RTE/test_RTE_1235.txt')
-        test_features = convert_examples_to_features(
-            test_examples, label_list, args.max_seq_length, tokenizer, output_mode,
+        eval_examples = processor.get_RTE_as_test('/export/home/Dataset/RTE/test_RTE_1235.txt')
+        eval_features = convert_examples_to_features(
+            eval_examples, label_list, args.max_seq_length, tokenizer, output_mode,
             cls_token_at_end=False,#bool(args.model_type in ['xlnet']),            # xlnet has a cls token at the end
             cls_token=tokenizer.cls_token,
             cls_token_segment_id=0,#2 if args.model_type in ['xlnet'] else 0,
@@ -737,103 +593,138 @@ def main():
             pad_token=tokenizer.convert_tokens_to_ids([tokenizer.pad_token])[0],
             pad_token_segment_id=0)#4 if args.model_type in ['xlnet'] else 0,)
 
-        test_all_input_ids = torch.tensor([f.input_ids for f in test_features], dtype=torch.long)
-        test_all_input_mask = torch.tensor([f.input_mask for f in test_features], dtype=torch.long)
-        test_all_segment_ids = torch.tensor([f.segment_ids for f in test_features], dtype=torch.long)
-        test_all_label_ids = torch.tensor([f.label_id for f in test_features], dtype=torch.long)
+        eval_all_input_ids = torch.tensor([f.input_ids for f in eval_features], dtype=torch.long)
+        eval_all_input_mask = torch.tensor([f.input_mask for f in eval_features], dtype=torch.long)
+        eval_all_segment_ids = torch.tensor([f.segment_ids for f in eval_features], dtype=torch.long)
+        eval_all_label_ids = torch.tensor([f.label_id for f in eval_features], dtype=torch.long)
 
-        test_data = TensorDataset(test_all_input_ids, test_all_input_mask, test_all_segment_ids, test_all_label_ids)
-        test_sampler = SequentialSampler(test_data)
-        test_dataloader = DataLoader(test_data, sampler=test_sampler, batch_size=args.eval_batch_size)
+        eval_data = TensorDataset(eval_all_input_ids, eval_all_input_mask, eval_all_segment_ids, eval_all_label_ids)
+        eval_sampler = SequentialSampler(eval_data)
+        eval_dataloader = DataLoader(eval_data, sampler=eval_sampler, batch_size=args.eval_batch_size)
 
         logger.info("***** Running training *****")
+        logger.info("  Num examples = %d", len(train_examples))
+        logger.info("  Batch size = %d", args.train_batch_size)
+        logger.info("  Num steps = %d", num_train_optimization_steps)
+        all_input_ids = torch.tensor([f.input_ids for f in train_features], dtype=torch.long)
+        all_input_mask = torch.tensor([f.input_mask for f in train_features], dtype=torch.long)
+        all_segment_ids = torch.tensor([f.segment_ids for f in train_features], dtype=torch.long)
+        all_label_ids = torch.tensor([f.label_id for f in train_features], dtype=torch.long)
+
+        train_data = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids)
+        train_sampler = RandomSampler(train_data)
+
+        train_dataloader = DataLoader(train_data, sampler=train_sampler, batch_size=args.train_batch_size)
+
         iter_co = 0
-        tr_loss = 0
-        loss_fct = CrossEntropyLoss()
-        max_dev_acc = 0.0
         for _ in trange(int(args.num_train_epochs), desc="Epoch"):
+            tr_loss = 0
+            nb_tr_examples, nb_tr_steps = 0, 0
+            for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
+                model.train()
+                batch = tuple(t.to(device) for t in batch)
+                input_ids, input_mask, segment_ids, label_ids = batch
+                logits = model(input_ids, input_mask, None, labels=None)
+                loss_fct = CrossEntropyLoss()
+                loss = loss_fct(logits[0].view(-1, num_labels), label_ids.view(-1))
 
-            '''
-            loop on the k-shot examples
-            '''
-            for train_target_batch in train_target_dataloader:
-                train_target_batch = tuple(t.to(device) for t in train_target_batch)
-                train_target_input_ids_batch, train_target_input_mask_batch, train_target_segment_ids_batch, train_target_label_ids_batch = train_target_batch
+                if n_gpu > 1:
+                    loss = loss.mean() # mean() to average on multi-gpu.
+                if args.gradient_accumulation_steps > 1:
+                    loss = loss / args.gradient_accumulation_steps
 
+                loss.backward()
 
-                target_id_type_mask_batch = (train_target_input_ids_batch, train_target_segment_ids_batch, train_target_input_mask_batch)
-                # target_id_type_mask_batch = (train_target_input_ids_shot, None, train_target_input_mask_shot)
-                target_labels_batch = train_target_label_ids_batch
+                tr_loss += loss.item()
+                nb_tr_examples += input_ids.size(0)
+                nb_tr_steps += 1
 
-                # for step, train_source_batch in enumerate(tqdm(train_source_dataloader, desc="Iteration")):
-                for train_source_batch in train_source_dataloader:
-                    '''we make sure one scan of train_target_dataloader corresponds to one scan of train_source_dataloader'''
-                    rand_prob = random.uniform(0, 1)
-                    if rand_prob > 1/len(train_target_dataloader):
-                        continue
+                optimizer.step()
+                optimizer.zero_grad()
+                global_step += 1
+                iter_co+=1
+                if iter_co %20==0:
+                    '''
+                    start evaluate on dev set after this epoch
+                    '''
+                    model.eval()
 
-                    train_source_batch = tuple(t.to(device) for t in train_source_batch)
-                    train_source_input_ids_batch, train_source_input_mask_batch, train_source_segment_ids_batch, train_source_label_ids_batch = train_source_batch
+                    for idd, dev_or_test_dataloader in enumerate([dev_dataloader, eval_dataloader]):
 
-                    # assert train_source_input_ids_batch.shape[0] == args.train_batch_size
+                        logger.info("***** Running evaluation *****")
+                        if idd == 0:
+                            logger.info("  Num examples = %d", len(dev_examples))
+                        else:
+                            logger.info("  Num examples = %d", len(eval_examples))
+                        logger.info("  Batch size = %d", args.eval_batch_size)
 
+                        eval_loss = 0
+                        nb_eval_steps = 0
+                        preds = []
+                        gold_label_ids = []
+                        print('Evaluating...')
+                        for input_ids, input_mask, segment_ids, label_ids in dev_or_test_dataloader:
+                            input_ids = input_ids.to(device)
+                            input_mask = input_mask.to(device)
+                            segment_ids = segment_ids.to(device)
+                            label_ids = label_ids.to(device)
+                            gold_label_ids+=list(label_ids.detach().cpu().numpy())
 
-
-                    source_id_type_mask_batch = (train_source_input_ids_batch, train_source_segment_ids_batch, train_source_input_mask_batch)
-                    # source_id_type_mask_batch = (train_source_input_ids_batch, None, train_source_input_mask_batch)
-                    source_labels_batch = train_source_label_ids_batch
-
-                    model.train()
-                    loss_cross_domain = model(target_id_type_mask_batch, target_labels_batch, source_id_type_mask_batch, source_labels_batch, loss_fct=loss_fct)
-                    loss_cross_domain.backward()
-                    optimizer.step()
-                    optimizer.zero_grad()
-
-
-                    global_step += 1
-                    iter_co+=1
-
-
-                    if iter_co %50==0:
-                        model.eval()
-                        dev_acc = 0.0
-                        with torch.no_grad():
-                            for idd, target_dev_batch in enumerate(dev_dataloader):
-
-                                target_dev_batch = tuple(t.to(device) for t in target_dev_batch)
-                                target_dev_input_ids_batch, target_dev_input_mask_batch, target_dev_segment_ids_batch, target_dev_label_ids_batch = target_dev_batch
-
-                                target_id_type_mask_batch = (target_dev_input_ids_batch, target_dev_segment_ids_batch, target_dev_input_mask_batch)
-                                target_labels_batch = target_dev_label_ids_batch
-
-                                acc_i = model(target_id_type_mask_batch, target_labels_batch, None, None, loss_fct=loss_fct)
-                                dev_acc+=acc_i.item()
-
-                        dev_acc/=len(dev_dataloader)
-                        print('iter:', iter_co, ' dev acc:', dev_acc)
-                        if dev_acc> max_dev_acc:
-                            max_dev_acc = dev_acc
-                            print('max_dev_acc:', max_dev_acc)
-                            '''testing'''
-                            test_acc = 0.0
                             with torch.no_grad():
-                                for idd, target_test_batch in enumerate(test_dataloader):
+                                logits = model(input_ids, input_mask, None, labels=None)
+                            logits = logits[0]
 
-                                    target_test_batch = tuple(t.to(device) for t in target_test_batch)
-                                    target_test_input_ids_batch, target_test_input_mask_batch, target_test_segment_ids_batch, target_test_label_ids_batch = target_test_batch
+                            loss_fct = CrossEntropyLoss()
+                            tmp_eval_loss = loss_fct(logits.view(-1, num_labels), label_ids.view(-1))
 
-                                    target_id_type_mask_batch = (target_test_input_ids_batch, target_test_segment_ids_batch, target_test_input_mask_batch)
-                                    target_labels_batch = target_test_label_ids_batch
+                            eval_loss += tmp_eval_loss.mean().item()
+                            nb_eval_steps += 1
+                            if len(preds) == 0:
+                                preds.append(logits.detach().cpu().numpy())
+                            else:
+                                preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
 
-                                    acc_i = model(target_id_type_mask_batch, target_labels_batch, None, None, loss_fct=loss_fct)
-                                    test_acc+=acc_i.item()
+                        eval_loss = eval_loss / nb_eval_steps
+                        preds = preds[0]
 
-                            test_acc/=len(test_dataloader)
-                            print('\t\t\t >>>>test acc:', test_acc)
+                        '''
+                        preds: size*3 ["entailment", "neutral", "contradiction"]
+                        wenpeng added a softxmax so that each row is a prob vec
+                        '''
+                        pred_probs = softmax(preds,axis=1)
+                        pred_indices = np.argmax(pred_probs, axis=1)
+                        pred_label_ids = []
+                        for p in pred_indices:
+                            pred_label_ids.append(0 if p == 0 else 1)
+                        gold_label_ids = gold_label_ids
+                        assert len(pred_label_ids) == len(gold_label_ids)
+                        hit_co = 0
+                        for k in range(len(pred_label_ids)):
+                            if pred_label_ids[k] == gold_label_ids[k]:
+                                hit_co +=1
+                        test_acc = hit_co/len(gold_label_ids)
+
+
+                        if idd == 0: # this is dev
+                            if test_acc > max_dev_acc:
+                                max_dev_acc = test_acc
+                                print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
+                                '''store the model'''
+                                store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE', str(max_dev_acc))
+
+                            else:
+                                print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
+                                break
+                        else: # this is test
+                            if test_acc > max_test_acc:
+                                max_test_acc = test_acc
+                            print('\ntest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
+
+
+
+
+
+
 if __name__ == "__main__":
     main()
-    '''
-    1, change the encoder to the full roberta-large-mnli
-    2, change the k-shot size easily
-    '''
-# CUDA_VISIBLE_DEVICES=0 python -u forfun.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3
+# CUDA_VISIBLE_DEVICES=2 python -u 2020_train_MNLI_test_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 2e-5 --num_train_epochs 3 --data_dir '' --output_dir '' > /export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE/log.train.mnli.test.rte.txt 2>&1

@@ -162,6 +162,7 @@ class RteProcessor(DataProcessor):
         '''now randomly sampling'''
         entail_size = len(entail_list)
         not_entail_size = len(not_entail_list)
+        print('entail_size:', entail_size, 'not_entail_size:', not_entail_size)
         if K <= entail_size:
             sampled_entail = random.sample(entail_list, K)
         else:

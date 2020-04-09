@@ -773,24 +773,28 @@ def main():
         loss_fct = CrossEntropyLoss()
         max_dev_acc = 0.0
         for _ in trange(int(args.num_train_epochs), desc="Epoch"):
-            for step, train_source_batch in enumerate(tqdm(train_source_dataloader, desc="Iteration")):
-            # for train_source_batch in train_source_dataloader:
 
-                train_source_batch = tuple(t.to(device) for t in train_source_batch)
-                train_source_input_ids_batch, train_source_input_mask_batch, train_source_segment_ids_batch, train_source_label_ids_batch = train_source_batch
-                assert train_source_input_ids_batch.shape[0] == args.train_batch_size
-
-                '''
-                loop on the k-shot examples
-                '''
-                for train_target_batch in train_target_dataloader:
-                    train_target_batch = tuple(t.to(device) for t in train_target_batch)
-                    train_target_input_ids_batch, train_target_input_mask_batch, train_target_segment_ids_batch, train_target_label_ids_batch = train_target_batch
+            '''
+            loop on the k-shot examples
+            '''
+            for train_target_batch in train_target_dataloader:
+                train_target_batch = tuple(t.to(device) for t in train_target_batch)
+                train_target_input_ids_batch, train_target_input_mask_batch, train_target_segment_ids_batch, train_target_label_ids_batch = train_target_batch
 
 
-                    target_id_type_mask_batch = (train_target_input_ids_batch, train_target_segment_ids_batch, train_target_input_mask_batch)
-                    # target_id_type_mask_batch = (train_target_input_ids_shot, None, train_target_input_mask_shot)
-                    target_labels_batch = train_target_label_ids_batch
+                target_id_type_mask_batch = (train_target_input_ids_batch, train_target_segment_ids_batch, train_target_input_mask_batch)
+                # target_id_type_mask_batch = (train_target_input_ids_shot, None, train_target_input_mask_shot)
+                target_labels_batch = train_target_label_ids_batch
+
+                # for step, train_source_batch in enumerate(tqdm(train_source_dataloader, desc="Iteration")):
+                for train_source_batch in train_source_dataloader:
+                # for train_source_batch in train_source_dataloader:
+
+                    train_source_batch = tuple(t.to(device) for t in train_source_batch)
+                    train_source_input_ids_batch, train_source_input_mask_batch, train_source_segment_ids_batch, train_source_label_ids_batch = train_source_batch
+                    assert train_source_input_ids_batch.shape[0] == args.train_batch_size
+
+
 
                     source_id_type_mask_batch = (train_source_input_ids_batch, train_source_segment_ids_batch, train_source_input_mask_batch)
                     # source_id_type_mask_batch = (train_source_input_ids_batch, None, train_source_input_mask_batch)
@@ -823,7 +827,7 @@ def main():
                                 dev_acc+=acc_i.item()
 
                         dev_acc/=len(dev_dataloader)
-                        print('dev acc:', dev_acc)
+                        print('iter:', iter_co, ' dev acc:', dev_acc)
                         if dev_acc> max_dev_acc:
                             max_dev_acc = dev_acc
                             print('max_dev_acc:', max_dev_acc)

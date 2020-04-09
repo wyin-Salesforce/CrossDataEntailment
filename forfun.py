@@ -435,7 +435,7 @@ class Encoder(BertPreTrainedModel):
             loss = target_loss+source_loss
         else:
             '''testing, compute acc'''
-            pred_labels_batch = torch.softmax(LR_logits_target.view(-1, self.num_labels), dim=1).argmax(dim=1)
+            pred_labels_batch = torch.softmax((LR_logits_target+LR_logits_target_target_side).view(-1, self.num_labels), dim=1).argmax(dim=1)
             pred_labels_batch[pred_labels_batch!=0]=1
             gold_labels_batch = target_labels
             gold_labels_batch[gold_labels_batch!=0]=1

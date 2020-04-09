@@ -420,6 +420,7 @@ class Encoder(BertPreTrainedModel):
         # print('input_ids:', input_ids)
         # print('token_type_ids:', token_type_ids)
         # print('attention_mask:', attention_mask)
+        '''pls note that roberta does not need token_type, especially when value more than 0 in the tensor, error report'''
         outputs = self.roberta(input_ids, attention_mask, None)
         # print('outputs:', outputs)
         pooled_outputs = outputs[1]#torch.max(outputs[0],dim=1)[0]+ outputs[1]#outputs[1]#torch.mean(outputs[0],dim=1)#outputs[1] #(batch, hidden_size)
@@ -754,7 +755,7 @@ def main():
 
     tokenizer = RobertaTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
 
-    # model.to(device)
+    model.to(device)
     # store_bert_model(model, tokenizer.vocab, '/export/home/workspace/CrossDataEntailment/models', 'try')
     # exit(0)
     # if n_gpu > 1:
@@ -823,10 +824,10 @@ def main():
             pad_token=tokenizer.convert_tokens_to_ids([tokenizer.pad_token])[0],
             pad_token_segment_id=0)#4 if args.model_type in ['xlnet'] else 0,)
 
-        train_target_input_ids_shot = torch.tensor([f.input_ids for f in train_target_features], dtype=torch.long)#.to(device)
-        train_target_input_mask_shot = torch.tensor([f.input_mask for f in train_target_features], dtype=torch.long)#.to(device)
-        train_target_segment_ids_shot = torch.tensor([f.segment_ids for f in train_target_features], dtype=torch.long)#.to(device)
-        train_target_label_ids_shot = torch.tensor([f.label_id for f in train_target_features], dtype=torch.long)#.to(device)
+        train_target_input_ids_shot = torch.tensor([f.input_ids for f in train_target_features], dtype=torch.long).to(device)
+        train_target_input_mask_shot = torch.tensor([f.input_mask for f in train_target_features], dtype=torch.long).to(device)
+        train_target_segment_ids_shot = torch.tensor([f.segment_ids for f in train_target_features], dtype=torch.long).to(device)
+        train_target_label_ids_shot = torch.tensor([f.label_id for f in train_target_features], dtype=torch.long).to(device)
 
         '''load dev set'''
         dev_examples = processor.get_RTE_as_dev('/export/home/Dataset/glue_data/RTE/dev.tsv')
@@ -879,19 +880,19 @@ def main():
         for _ in trange(int(args.num_train_epochs), desc="Epoch"):
             for step, train_source_batch in enumerate(tqdm(train_source_dataloader, desc="Iteration")):
 
-                train_source_batch = tuple(t for t in train_source_batch)
+                train_source_batch = tuple(t.to(device) for t in train_source_batch)
                 train_source_input_ids_batch, train_source_input_mask_batch, train_source_segment_ids_batch, train_source_label_ids_batch = train_source_batch
                 assert train_source_input_ids_batch.shape[0] == args.train_batch_size
 
                 '''
                 forward(self, target_id_type_mask, target_labels, source_id_type_mask, source_labels):
                 '''
-                # target_id_type_mask_batch = (train_target_input_ids_shot, train_target_segment_ids_shot, train_target_input_mask_shot)
-                target_id_type_mask_batch = (train_target_input_ids_shot, None, train_target_input_mask_shot)
+                target_id_type_mask_batch = (train_target_input_ids_shot, train_target_segment_ids_shot, train_target_input_mask_shot)
+                # target_id_type_mask_batch = (train_target_input_ids_shot, None, train_target_input_mask_shot)
                 target_labels_batch = train_target_label_ids_shot
 
                 source_id_type_mask_batch = (train_source_input_ids_batch, train_source_segment_ids_batch, train_source_input_mask_batch)
-                source_id_type_mask_batch = (train_source_input_ids_batch, None, train_source_input_mask_batch)
+                # source_id_type_mask_batch = (train_source_input_ids_batch, None, train_source_input_mask_batch)
                 source_labels_batch = train_source_label_ids_batch
 
                 model.train()
@@ -912,12 +913,12 @@ def main():
                     with torch.no_grad():
                         for idd, target_dev_batch in enumerate(dev_dataloader):
 
-                            target_dev_batch = tuple(t for t in target_dev_batch)
+                            target_dev_batch = tuple(t.to(device) for t in target_dev_batch)
                             target_dev_input_ids_batch, target_dev_input_mask_batch, target_dev_segment_ids_batch, target_dev_label_ids_batch = target_dev_batch
 
 
-                            # target_id_type_mask_batch = (target_dev_input_ids_batch, target_dev_segment_ids_batch, target_dev_input_mask_batch)
-                            target_id_type_mask_batch = (target_dev_input_ids_batch, None, target_dev_input_mask_batch)
+                            target_id_type_mask_batch = (target_dev_input_ids_batch, target_dev_segment_ids_batch, target_dev_input_mask_batch)
+                            # target_id_type_mask_batch = (target_dev_input_ids_batch, None, target_dev_input_mask_batch)
                             target_labels_batch = target_dev_label_ids_batch
 
                             acc_i = model(target_id_type_mask_batch, target_labels_batch, None, None, loss_fct=loss_fct)

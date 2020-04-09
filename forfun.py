@@ -425,7 +425,7 @@ class Encoder(BertPreTrainedModel):
         pooled_outputs = outputs[1]#torch.max(outputs[0],dim=1)[0]+ outputs[1]#outputs[1]#torch.mean(outputs[0],dim=1)#outputs[1] #(batch, hidden_size)
         '''mnli minibatch'''
         if source_id_type_mask is not None:
-            LR_logits_source = self.classifier_source(pooled_outputs) #(9+batch, 3)
+            LR_logits_source = self.classifier_source(pooled_outputs[target_input_size:]) #(9+batch, 3)
         '''target (k) examples'''
         LR_logits_target = (self.classifier_target(pooled_outputs[:target_input_size])+
             self.classifier_source(pooled_outputs[:target_input_size]))

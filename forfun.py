@@ -395,6 +395,7 @@ class Encoder(BertPreTrainedModel):
         self.roberta = RobertaModel(config)
         self.classifier = RobertaClassificationHead(config)
         self.classifier_target = RobertaClassificationHead(config)
+        self.classifier_target.load_state_dict(self.classifier.state_dict())
 
     def forward(self, target_id_type_mask, target_labels, source_id_type_mask, source_labels, loss_fct=None):
 

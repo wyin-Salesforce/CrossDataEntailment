@@ -886,10 +886,12 @@ def main():
                 '''
                 forward(self, target_id_type_mask, target_labels, source_id_type_mask, source_labels):
                 '''
-                target_id_type_mask_batch = (train_target_input_ids_shot, train_target_segment_ids_shot, train_target_input_mask_shot)
+                # target_id_type_mask_batch = (train_target_input_ids_shot, train_target_segment_ids_shot, train_target_input_mask_shot)
+                target_id_type_mask_batch = (train_target_input_ids_shot, None, train_target_input_mask_shot)
                 target_labels_batch = train_target_label_ids_shot
 
                 source_id_type_mask_batch = (train_source_input_ids_batch, train_source_segment_ids_batch, train_source_input_mask_batch)
+                source_id_type_mask_batch = (train_source_input_ids_batch, None, train_source_input_mask_batch)
                 source_labels_batch = train_source_label_ids_batch
 
                 model.train()
@@ -914,7 +916,8 @@ def main():
                             target_dev_input_ids_batch, target_dev_input_mask_batch, target_dev_segment_ids_batch, target_dev_label_ids_batch = target_dev_batch
 
 
-                            target_id_type_mask_batch = (target_dev_input_ids_batch, target_dev_segment_ids_batch, target_dev_input_mask_batch)
+                            # target_id_type_mask_batch = (target_dev_input_ids_batch, target_dev_segment_ids_batch, target_dev_input_mask_batch)
+                            target_id_type_mask_batch = (target_dev_input_ids_batch, None, target_dev_input_mask_batch)
                             target_labels_batch = target_dev_label_ids_batch
 
                             acc_i = model(target_id_type_mask_batch, target_labels_batch, None, None, loss_fct=loss_fct)

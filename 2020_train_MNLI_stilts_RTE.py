@@ -39,11 +39,9 @@ from sklearn.metrics import matthews_corrcoef, f1_score
 
 
 
-from transformers.tokenization_roberta import RobertaTokenizer
-from transformers.optimization import AdamW
-from transformers.modeling_roberta import RobertaForSequenceClassification
-
-from bert_common_functions import store_transformers_models
+from pytorch_transformers.tokenization_roberta import RobertaTokenizer
+from pytorch_transformers.optimization import AdamW
+from pytorch_transformers.modeling_roberta import RobertaForSequenceClassification
 
 logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt = '%m/%d/%Y %H:%M:%S',
@@ -115,7 +113,28 @@ class DataProcessor(object):
 
 class RteProcessor(DataProcessor):
     """Processor for the RTE data set (GLUE version)."""
-    def get_MNLI_as_train(self, filename):
+    def get_train_examples_wenpeng(self, filename):
+        readfile = codecs.open(filename, 'r', 'utf-8')
+        line_co=0
+        examples=[]
+        for row in readfile:
+            if line_co>0:
+                line=row.strip().split('\t')
+                guid = "train-"+line[0]
+                text_a = line[1]
+                text_b = line[2]
+                label = line[-1]
+                examples.append(
+                    InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+                line_co+=1
+            else:
+                line_co+=1
+                continue
+        readfile.close()
+        print('loaded training size:', line_co)
+        return examples
+
+    def get_RTE_as_train(self, filename):
         '''
         can read the training file, dev and test file
         '''
@@ -126,9 +145,9 @@ class RteProcessor(DataProcessor):
             if line_co>0:
                 line=row.strip().split('\t')
                 guid = "train-"+str(line_co-1)
-                text_a = line[8].strip()
-                text_b = line[9].strip()
-                label = line[-1].strip() #["entailment", "neutral", "contradiction"]
+                text_a = line[1].strip()
+                text_b = line[2].strip()
+                label = line[3].strip() #["entailment", "not_entailment"]
                 examples.append(
                     InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
             line_co+=1
@@ -151,8 +170,8 @@ class RteProcessor(DataProcessor):
                 guid = "dev-"+str(line_co-1)
                 text_a = line[1].strip()
                 text_b = line[2].strip()
-                # label = line[3].strip() #["entailment", "not_entailment"]
-                label = 'entailment'  if line[3] == 'entailment' else 'neutral'
+                label = line[3].strip() #["entailment", "not_entailment"]
+                # label = 'entailment'  if line[3] == 'entailment' else 'neutral'
                 examples.append(
                     InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
             line_co+=1
@@ -173,7 +192,7 @@ class RteProcessor(DataProcessor):
                 text_a = line[1]
                 text_b = line[2]
                 '''for RTE, we currently only choose randomly two labels in the set, in prediction we then decide the predicted labels'''
-                label = 'entailment'  if line[0] == '1' else 'neutral'
+                label = 'entailment'  if line[0] == '1' else 'not_entailment'
                 examples.append(
                     InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
                 line_co+=1
@@ -184,7 +203,7 @@ class RteProcessor(DataProcessor):
 
     def get_labels(self):
         'here we keep the three-way in MNLI training '
-        return ["entailment", "neutral", "contradiction"]
+        return ["entailment", "not_entailment"]
 
     def _create_examples(self, lines, set_type):
         """Creates examples for the training and dev sets."""
@@ -403,7 +422,7 @@ def main():
                         type=int,
                         help="Total batch size for eval.")
     parser.add_argument("--learning_rate",
-                        default=2e-5,
+                        default=1e-5,
                         type=float,
                         help="The initial learning rate for Adam.")
     parser.add_argument("--num_train_epochs",
@@ -495,7 +514,7 @@ def main():
     train_examples = None
     num_train_optimization_steps = None
     if args.do_train:
-        train_examples = processor.get_MNLI_as_train('/export/home/Dataset/glue_data/MNLI/train.tsv') #train_pu_half_v1.txt
+        train_examples = processor.get_RTE_as_train('/export/home/Dataset/glue_data/RTE/train.tsv') #train_pu_half_v1.txt
         # seen_classes=[0,2,4,6,8]
 
         num_train_optimization_steps = int(
@@ -506,7 +525,8 @@ def main():
     # Prepare model
     # cache_dir = args.cache_dir if args.cache_dir else os.path.join(str(PYTORCH_TRANSFORMERS_CACHE), 'distributed_{}'.format(args.local_rank))
 
-    pretrain_model_dir = 'roberta-large-mnli' #'roberta-large' , 'roberta-large-mnli'
+    # pretrain_model_dir = 'roberta-large-mnli' #'roberta-large' , 'roberta-large-mnli'
+    pretrain_model_dir = '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE/0.8772563176895307'
     model = RobertaForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
 
     # print(model.classifier.weight)
@@ -580,6 +600,8 @@ def main():
         dev_data = TensorDataset(dev_all_input_ids, dev_all_input_mask, dev_all_segment_ids, dev_all_label_ids)
         dev_sampler = SequentialSampler(dev_data)
         dev_dataloader = DataLoader(dev_data, sampler=dev_sampler, batch_size=args.eval_batch_size)
+
+
         '''load test set'''
         eval_examples = processor.get_RTE_as_test('/export/home/Dataset/RTE/test_RTE_1235.txt')
         eval_features = convert_examples_to_features(
@@ -624,7 +646,7 @@ def main():
                 model.train()
                 batch = tuple(t.to(device) for t in batch)
                 input_ids, input_mask, segment_ids, label_ids = batch
-                logits = model(input_ids, input_mask, None, labels=None)
+                logits = model(input_ids, None, input_mask, labels=None)
                 loss_fct = CrossEntropyLoss()
                 loss = loss_fct(logits[0].view(-1, num_labels), label_ids.view(-1))
 
@@ -671,7 +693,7 @@ def main():
                             gold_label_ids+=list(label_ids.detach().cpu().numpy())
 
                             with torch.no_grad():
-                                logits = model(input_ids, input_mask, None, labels=None)
+                                logits = model(input_ids, None, input_mask, labels=None)
                             logits = logits[0]
 
                             loss_fct = CrossEntropyLoss()
@@ -692,10 +714,8 @@ def main():
                         wenpeng added a softxmax so that each row is a prob vec
                         '''
                         pred_probs = softmax(preds,axis=1)
-                        pred_indices = np.argmax(pred_probs, axis=1)
-                        pred_label_ids = []
-                        for p in pred_indices:
-                            pred_label_ids.append(0 if p == 0 else 1)
+                        pred_label_ids = list(np.argmax(pred_probs, axis=1))
+
                         gold_label_ids = gold_label_ids
                         assert len(pred_label_ids) == len(gold_label_ids)
                         hit_co = 0
@@ -704,7 +724,6 @@ def main():
                                 hit_co +=1
                         test_acc = hit_co/len(gold_label_ids)
 
-
                         if idd == 0: # this is dev
                             if test_acc > max_dev_acc:
                                 max_dev_acc = test_acc
@@ -712,15 +731,13 @@ def main():
 
                             else:
                                 print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
-                                '''break means if the dev acc does not surpass the max_dev, no need test'''
                                 break
                         else: # this is test
                             if test_acc > max_test_acc:
                                 max_test_acc = test_acc
                             print('\ntest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
                             '''store the model, because we can test after a max_dev acc reached'''
-                            store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE', str(max_dev_acc)+'-'+str(test_acc))
-
+                            store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLIstiltsRTE', str(max_dev_acc)+'-'+str(test_acc))
 
 
 
@@ -728,4 +745,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-# CUDA_VISIBLE_DEVICES=2 python -u 2020_train_MNLI_test_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 2e-5 --num_train_epochs 3 --data_dir '' --output_dir '' > /export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE/log.train.mnli.test.rte.txt 2>&1
+# CUDA_VISIBLE_DEVICES=3 python -u 2020_train_MNLI_stilts_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 2e-5 --num_train_epochs 3 --data_dir '' --output_dir '' > /export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLIstiltsRTE/log.train.mnli.stilts.rte.txt 2>&1

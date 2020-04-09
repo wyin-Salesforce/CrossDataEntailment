@@ -132,8 +132,8 @@ class RteProcessor(DataProcessor):
                 examples.append(
                         InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
             line_co+=1
-            # if line_co > 1000:
-            #     break
+            if line_co > 1000:
+                break
         readfile.close()
         print('loaded  size:', line_co)
         return examples

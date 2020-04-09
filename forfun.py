@@ -416,7 +416,8 @@ class Encoder(BertPreTrainedModel):
             input_ids = target_input_ids
             token_type_ids = target_token_type
             attention_mask = target_attention_mask
-        outputs = self.roberta(input_ids, token_type_ids, attention_mask) #(batch, max_len, hidden_size)
+        # outputs = self.roberta(input_ids, token_type_ids, attention_mask) #(batch, max_len, hidden_size)
+        outputs = self.roberta(input_ids, attention_mask, token_type_ids)
         pooled_outputs = outputs[1]#torch.max(outputs[0],dim=1)[0]+ outputs[1]#outputs[1]#torch.mean(outputs[0],dim=1)#outputs[1] #(batch, hidden_size)
         '''mnli minibatch'''
         if source_id_type_mask is not None:

@@ -436,143 +436,17 @@ class Encoder(BertPreTrainedModel):
             source_loss = loss_fct(LR_logits_source.view(-1, self.num_labels), source_labels.view(-1))
             loss = target_loss+source_loss
         else:
-            '''compute acc'''
+            '''testing, compute acc'''
+            pred_labels_batch = torch.softmax(LR_logits_target.view(-1, self.num_labels), dim=1).argmax(dim=1)
+            pred_labels_batch[pred_labels_batch!=0]=1
+            gold_labels_batch = target_labels
+            gold_labels_batch[gold_labels_batch!=0]=1
+            print('pred_labels_batch:', pred_labels_batch)
+            print('gold_labels_batch:', gold_labels_batch)
+            exit(0)
             acc = (torch.softmax(LR_logits_target.view(-1, self.num_labels), dim=1).argmax(dim=1) == target_labels).sum().float() / float(target_labels.size(0) )
             loss = acc
         return loss
-        # if is_train:
-        #
-        #     '''??? output samples_outputs for accumulating info for testing phase'''
-        #     samples_outputs = pooled_outputs[:sample_size*class_size,:] #(9, hidden_size)
-        #     # if prior_samples_outputs is not None:
-        #     #     '''testing'''
-        #     #     # samples_outputs = (samples_outputs+prior_samples_outputs)*0.5
-        #     #     samples_outputs =  torch.cat([prior_samples_outputs, samples_outputs], dim=0)
-        #     # print('samples_outputs shaoe:', samples_outputs.shape)
-        #     '''we use all into LR'''
-        #
-        #     sample_logits = LR_logits[:sample_size*class_size,:] #(9,3)
-        #     batch_logits_from_LR = nn.Softmax(dim=1)(LR_logits[sample_size*class_size:,:]) #(10,3)
-        #     # if few_shot_training:
-        #
-        #
-        #     '''This criterion combines :func:`nn.LogSoftmax` and :func:`nn.NLLLoss` in one single class.'''
-        #     # loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
-        #     sample_loss = loss_fct(sample_logits.view(-1, self.num_labels), sample_labels.view(-1))
-        #     if few_shot_training:
-        #         return sample_loss
-        #     '''nearest neighber'''
-        #     batch_outputs = pooled_outputs[sample_size*class_size:,:] #(batch, hidden_size)
-        #
-        #     batch_size = batch_outputs.shape[0]
-        #     hidden_size = batch_outputs.shape[1]
-        #     # print('batch_size:',batch_size, 'hidden_size:', hidden_size)
-        #
-        #
-        #     # samples_outputs = samples_outputs.reshape(sample_size, class_size, samples_outputs.shape[1])
-        #     '''we use average for class embedding'''
-        #     # class_rep = torch.mean(samples_outputs,dim=0) #(class_size, hidden_size)
-        #     repeat_sample_rep = torch.cat([samples_outputs]*batch_size, dim=0) #(9*batch_size, hidden)
-        #
-        #
-        #
-        #
-        #     # repeat_batch_outputs = tile(batch_outputs,0,class_size) #(batch*class_size, hidden)
-        #     repeat_batch_outputs = batch_outputs.repeat(1, samples_outputs.shape[0]).view(-1, hidden_size)#(9*batch_size, hidden)
-        #     '''? add similarity or something similar?'''
-        #     mlp_input = torch.cat([
-        #     repeat_batch_outputs, repeat_sample_rep,
-        #     # repeat_batch_outputs - repeat_sample_rep,
-        #     # cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep),
-        #     repeat_batch_outputs*repeat_sample_rep
-        #     ], dim=1) #(batch*class_size, hidden*2)
-        #     '''??? add drop out here'''
-        #     group_scores = torch.tanh(self.mlp_2(self.dropout(torch.tanh(self.mlp_1(self.dropout(mlp_input))))))#(batch*class_size, 1)
-        #     group_scores_with_simi = group_scores + cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)
-        #     # group_scores = torch.tanh(self.mlp_2((torch.tanh(mlp_input))))#(9*batch_size, 1)
-        #     # print('group_scores:',group_scores)
-        #
-        #     similarity_matrix = group_scores_with_simi.reshape(batch_size, samples_outputs.shape[0])
-        #     '''???note that the softmax will make the resulting logits smaller than LR'''
-        #     batch_logits_from_NN = torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits) #(batch, 3)
-        #     '''???use each of the logits for loss compute'''
-        #     batch_logits = batch_logits_from_LR+batch_logits_from_NN
-        #
-        #
-        #     '''??? add bias here'''
-        #
-        #     '''This criterion combines :func:`nn.LogSoftmax` and :func:`nn.NLLLoss` in one single class.'''
-        #     batch_loss = (loss_fct(batch_logits_from_LR.view(-1, self.num_labels), labels.view(-1))+
-        #                 loss_fct(batch_logits_from_NN.view(-1, self.num_labels), labels.view(-1)))
-        #     loss = sample_loss+batch_loss
-        #     return loss, samples_outputs
-        #
-        # else:
-        #     '''testing'''
-        #     batch_logits_from_LR = nn.Softmax(dim=1)(LR_logits[sample_size*class_size:,:]) #(10,3)
-        #
-        #
-        #
-        #
-        #
-        #
-        #     '''??? output samples_outputs for accumulating info for testing phase'''
-        #     samples_outputs = pooled_outputs[:sample_size*class_size,:] #(9, hidden_size)
-        #     if fetch_hidden_only:
-        #         return samples_outputs, LR_logits[:sample_size*class_size,:]
-        #
-        #
-        #     samples_outputs =  torch.cat([prior_samples_outputs, samples_outputs], dim=0)
-        #     batch_outputs = pooled_outputs[sample_size*class_size:,:] #(batch, hidden_size)
-        #     # print('samples_outputs shaoe:', samples_outputs.shape)
-        #     # sample_logits = self.classifier(samples_outputs) #(9, 3)
-        #     # if few_shot_training:
-        #     #     loss_fct = CrossEntropyLoss()
-        #     #     '''This criterion combines :func:`nn.LogSoftmax` and :func:`nn.NLLLoss` in one single class.'''
-        #     #     # loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
-        #     #     sample_loss = loss_fct(sample_logits.view(-1, self.num_labels), sample_labels.view(-1))
-        #     #     return sample_loss
-        #
-        #
-        #     batch_size = batch_outputs.shape[0]
-        #     hidden_size = batch_outputs.shape[1]
-        #     # print('batch_size:',batch_size, 'hidden_size:', hidden_size)
-        #
-        #
-        #     # samples_outputs = samples_outputs.reshape(sample_size, class_size, samples_outputs.shape[1])
-        #     '''we use average for class embedding'''
-        #     # class_rep = torch.mean(samples_outputs,dim=0) #(class_size, hidden_size)
-        #     repeat_sample_rep = torch.cat([samples_outputs]*batch_size, dim=0) #(9*batch_size, hidden)
-        #     repeat_batch_outputs = batch_outputs.repeat(1, samples_outputs.shape[0]).view(-1, hidden_size)#(9*batch_size, hidden)
-        #     '''? add similarity or something similar?'''
-        #     mlp_input = torch.cat([
-        #     repeat_batch_outputs, repeat_sample_rep,
-        #     # repeat_batch_outputs - repeat_sample_rep,
-        #     # cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep),
-        #     repeat_batch_outputs*repeat_sample_rep
-        #     ], dim=1) #(batch*class_size, hidden*2)
-        #     '''??? add drop out here'''
-        #     group_scores = torch.tanh(self.mlp_2(self.dropout(torch.tanh(self.mlp_1(self.dropout(mlp_input))))))#(batch*class_size, 1)
-        #     group_scores_with_simi = group_scores + cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)
-        #     # group_scores = torch.tanh(self.mlp_2((torch.tanh(mlp_input))))#(9*batch_size, 1)
-        #     # print('group_scores:',group_scores)
-        #
-        #     similarity_matrix = group_scores_with_simi.reshape(batch_size, samples_outputs.shape[0])
-        #
-        #     if prior_samples_logits is not None:
-        #         sample_logits = torch.cuda.FloatTensor(9, 3).fill_(0)
-        #         sample_logits[torch.arange(0, 9).long(), sample_labels] = 1.0
-        #         sample_logits = sample_logits.repeat(2,1)
-        #     else:
-        #         '''the results now that using LR predicted logits is better'''
-        #         sample_logits = prior_samples_logits
-        #         sample_logits = torch.cat([sample_logits, LR_logits[:sample_size*class_size,:]],dim=0)
-        #     batch_logits_from_NN = nn.Softmax(dim=1)(torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits)) #(batch, 3)
-        #     # print('batch_logits_from_LR:',batch_logits_from_LR)
-        #     # print('batch_logits_from_NN:', batch_logits_from_NN)
-        #     logits = batch_logits_from_LR+batch_logits_from_NN
-        #     return batch_logits_from_LR, batch_logits_from_NN, logits
-
 
 class RobertaClassificationHead(nn.Module):
     """Head for sentence-level classification tasks."""

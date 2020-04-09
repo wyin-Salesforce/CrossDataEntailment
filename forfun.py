@@ -397,7 +397,7 @@ class Encoder(BertPreTrainedModel):
         config.output_hidden_states = True
         '''??? why a different name will not get initialized'''
         # self.roberta = RobertaModel(config)
-        self.roberta = RobertaForSequenceClassification(config) # use to classify target shot examples
+        RobertaForSequenceClassification(config) # use to classify target shot examples
         self.classifier = RobertaClassificationHead(config) # used to classifier source
         # self.classifier_target = RobertaClassificationHead(config)
         # self.dropout = nn.Dropout(config.hidden_dropout_prob)
@@ -431,11 +431,11 @@ class Encoder(BertPreTrainedModel):
         # print('token_type_ids:', token_type_ids)
         # print('attention_mask:', attention_mask)
         '''pls note that roberta does not need token_type, especially when value more than 0 in the tensor, error report'''
-        outputs = self.roberta(input_ids, attention_mask, None)
+        outputs = RobertaForSequenceClassification(input_ids, attention_mask, None)
         # print('outputs:', outputs)
         overall_logits_target_side = outputs[0] # (logits,) + outputs[2:]
         # print('outputs:', outputs)
-        sequence_outputs = self.roberta.sequence_output #(9+batch, sent_len, hidden_size)
+        sequence_outputs = RobertaForSequenceClassification.sequence_output #(9+batch, sent_len, hidden_size)
         overall_logits_source_side = self.classifier(sequence_outputs)
         # print('overall_logits_source_side:', overall_logits_source_side)
         # print('subset target:', overall_logits_target_side[:target_input_size])
@@ -659,8 +659,8 @@ def main():
 
     # Prepare optimizer
     param_optimizer = list(model.named_parameters())
-    print('param_optimizer:', param_optimizer)
-    exit(0)
+    # print('param_optimizer:', param_optimizer)
+    # exit(0)
     no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
     optimizer_grouped_parameters = [
         {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},

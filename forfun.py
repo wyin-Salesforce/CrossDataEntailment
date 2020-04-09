@@ -392,6 +392,9 @@ class Encoder(BertPreTrainedModel):
     def __init__(self, config):
         super(Encoder, self).__init__(config)
         self.num_labels = config.num_labels
+        '''make sure have this two config, other wise bert and roberta only output logits, no hidden states'''
+        config.output_attentions = True
+        config.output_hidden_states = True
         '''??? why a different name will not get initialized'''
         # self.roberta = RobertaModel(config)
         self.roberta = RobertaForSequenceClassification(config) # use to classify target shot examples
@@ -429,7 +432,7 @@ class Encoder(BertPreTrainedModel):
         # print('attention_mask:', attention_mask)
         '''pls note that roberta does not need token_type, especially when value more than 0 in the tensor, error report'''
         outputs = self.roberta(input_ids, attention_mask, None)
-        print('outputs:', outputs)
+        # print('outputs:', outputs)
         overall_logits_target_side = outputs[1] # # (loss), logits, (hidden_states), (attentions)
         # print('outputs:', outputs)
         sequence_outputs = self.RobertaForSequenceClassification.sequence_outputs #(9+batch, sent_len, hidden_size)

@@ -157,6 +157,7 @@ class RteProcessor(DataProcessor):
                     entail_list.append((premise, hypothesis))
                 else:
                     not_entail_list.append((premise, hypothesis))
+            line_co+=1
         readfile.close()
 
         '''now randomly sampling'''

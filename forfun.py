@@ -429,6 +429,7 @@ class Encoder(BertPreTrainedModel):
         # print('attention_mask:', attention_mask)
         '''pls note that roberta does not need token_type, especially when value more than 0 in the tensor, error report'''
         outputs = self.RobertaForSequenceClassification(input_ids, attention_mask, None)
+        print('outputs:', outputs)
         overall_logits_target_side = outputs[1] # # (loss), logits, (hidden_states), (attentions)
         # print('outputs:', outputs)
         sequence_outputs = self.RobertaForSequenceClassification.sequence_outputs #(9+batch, sent_len, hidden_size)

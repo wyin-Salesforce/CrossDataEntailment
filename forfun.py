@@ -684,7 +684,12 @@ def main():
         train_source_sampler = RandomSampler(train_source_data)
         '''create 3 samples per class'''
         train_source_dataloader = DataLoader(train_source_data, sampler=train_source_sampler, batch_size=args.train_batch_size)
+        for train_batch in train_source_dataloader:
+            print('train_batch size:', train_batch[0].shape[0])
+            if train_batch[0].shape[0] != args.train_batch_size:
+                print('train_batch size:', train_batch[0].shape[0])
 
+        exit(0)
 
 
 
@@ -792,6 +797,7 @@ def main():
 
                     train_source_batch = tuple(t.to(device) for t in train_source_batch)
                     train_source_input_ids_batch, train_source_input_mask_batch, train_source_segment_ids_batch, train_source_label_ids_batch = train_source_batch
+
                     assert train_source_input_ids_batch.shape[0] == args.train_batch_size
 
 

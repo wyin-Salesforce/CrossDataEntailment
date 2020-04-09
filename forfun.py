@@ -394,7 +394,7 @@ class Encoder(BertPreTrainedModel):
         self.num_labels = config.num_labels
         '''??? why a different name will not get initialized'''
         # self.roberta = RobertaModel(config)
-        self.RobertaForSequenceClassification = RobertaForSequenceClassification(config) # use to classify target shot examples
+        self.roberta = RobertaForSequenceClassification(config) # use to classify target shot examples
         self.classifier = RobertaClassificationHead(config) # used to classifier source
         # self.classifier_target = RobertaClassificationHead(config)
         # self.dropout = nn.Dropout(config.hidden_dropout_prob)
@@ -428,7 +428,7 @@ class Encoder(BertPreTrainedModel):
         # print('token_type_ids:', token_type_ids)
         # print('attention_mask:', attention_mask)
         '''pls note that roberta does not need token_type, especially when value more than 0 in the tensor, error report'''
-        outputs = self.RobertaForSequenceClassification(input_ids, attention_mask, None)
+        outputs = self.roberta(input_ids, attention_mask, None)
         print('outputs:', outputs)
         overall_logits_target_side = outputs[1] # # (loss), logits, (hidden_states), (attentions)
         # print('outputs:', outputs)

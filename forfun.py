@@ -165,11 +165,11 @@ class RteProcessor(DataProcessor):
         if K <= entail_size:
             sampled_entail = random.sample(entail_list, K)
         else:
-            sampled_entail = random.choices(entail_list, k = K))
+            sampled_entail = random.choices(entail_list, k = K)
         if K <= int(not_entail_size/2):
             sampled_not_entail = random.sample(not_entail_list, 2*K)
         else:
-            sampled_not_entail = random.choices(not_entail_list, k = 2*K))
+            sampled_not_entail = random.choices(not_entail_list, k = 2*K)
 
         examples_entail=[]
         examples_neutral=[]

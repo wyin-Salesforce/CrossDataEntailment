@@ -426,7 +426,7 @@ class Encoder(BertPreTrainedModel):
         '''target (k) examples, it has two parts of logits, one is from target alone, one is add target and source'''
         LR_logits_target_target_side = self.classifier_target(pooled_outputs[:target_input_size])
         LR_logits_target_source_side = self.classifier(pooled_outputs[:target_input_size])
-        LR_logits_target = LR_logits_target_target_side + LR_logits_target_source_side
+        LR_logits_target = torch.softmax(LR_logits_target_target_side, dim=1) + torch.softmax(LR_logits_target_source_side, dim=1)
         '''therefore, target has two parts of loss'''
         target_loss = (loss_fct(LR_logits_target.view(-1, self.num_labels), target_labels.view(-1))
                     +loss_fct(LR_logits_target_target_side.view(-1, self.num_labels), target_labels.view(-1)))

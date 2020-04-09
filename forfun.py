@@ -516,7 +516,7 @@ def main():
                         type=int,
                         help="Total batch size for training.")
     parser.add_argument("--eval_batch_size",
-                        default=64,
+                        default=16,
                         type=int,
                         help="Total batch size for eval.")
     parser.add_argument("--learning_rate",
@@ -819,4 +819,8 @@ def main():
                         print('\t\t\t >>>>test acc:', test_acc)
 if __name__ == "__main__":
     main()
+    '''
+    1, change the encoder to the full roberta-large-mnli
+    2, change the k-shot size easily
+    '''
 # CUDA_VISIBLE_DEVICES=0 python -u forfun.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir ''

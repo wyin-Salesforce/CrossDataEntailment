@@ -505,6 +505,7 @@ def main():
     parser.add_argument('--server_port', type=str, default='', help="Can be used for distant debugging.")
     args = parser.parse_args()
 
+    args.train_batch_size = args.k_shot*3
 
     processors = {
         "rte": RteProcessor
@@ -710,7 +711,7 @@ def main():
                 optimizer.zero_grad()
                 global_step += 1
                 iter_co+=1
-                if iter_co %20==0:
+                if iter_co %1==0:
                     '''
                     start evaluate on dev set after this epoch
                     '''

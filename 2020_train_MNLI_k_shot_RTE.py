@@ -23,14 +23,13 @@ from scipy.special import softmax
 from scipy.stats import pearsonr, spearmanr
 from sklearn.metrics import matthews_corrcoef, f1_score
 
-
+from bert_common_functions import store_transformers_models
 
 from transformers.tokenization_roberta import RobertaTokenizer
 from transformers.optimization import AdamW
 from transformers.modeling_roberta import RobertaModel, RobertaConfig, RobertaForSequenceClassification#, RobertaClassificationHead
 from transformers.modeling_bert import BertPreTrainedModel
 
-# from bert_common_functions import store_transformers_models, get_a_random_batch_from_dataloader, cosine_rowwise_two_matrices
 
 logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt = '%m/%d/%Y %H:%M:%S',
@@ -132,8 +131,8 @@ class RteProcessor(DataProcessor):
                 examples.append(
                         InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
             line_co+=1
-            # if line_co > 1000:
-            #     break
+            if line_co > 1000:
+                break
         readfile.close()
         print('loaded  size:', line_co)
         return examples
@@ -621,8 +620,9 @@ def main():
     # Prepare model
     # cache_dir = args.cache_dir if args.cache_dir else os.path.join(str(PYTORCH_TRANSFORMERS_CACHE), 'distributed_{}'.format(args.local_rank))
 
-    pretrain_model_dir = 'roberta-large-mnli' #'roberta-large' , 'roberta-large-mnli'
-    # model = Encoder.from_pretrained(pretrain_model_dir, num_labels=num_labels)
+    # pretrain_model_dir = 'roberta-large-mnli' #'roberta-large' , 'roberta-large-mnli'
+    '''we start from the pretrained MNLI model'''
+    pretrain_model_dir = '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE/0.8664259927797834-0.8106035345115038'
     model = Encoder.from_pretrained(pretrain_model_dir, num_labels=num_labels)
     # exit(0)
 
@@ -830,10 +830,13 @@ def main():
 
                             test_acc/=len(test_dataloader)
                             print('\t\t\t >>>>test acc:', test_acc)
+                            '''store the model, because we can test after a max_dev acc reached'''
+                            store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLI'+str(args.k_shot)+'shotRTE', str(max_dev_acc)+'-'+str(test_acc))
+
 if __name__ == "__main__":
     main()
     '''
     1, change the encoder to the full roberta-large-mnli
     2, change the k-shot size easily
     '''
-# CUDA_VISIBLE_DEVICES=0 python -u 2020_train_MNLI_k_shot_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3
+# CUDA_VISIBLE_DEVICES=0 python -u 2020_train_MNLI_k_shot_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3 --seed 42> /export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLI3shotRTE/log.train.mnli.kshot.rte.seed42.txt 2>&1

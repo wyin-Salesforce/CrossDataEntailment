@@ -434,7 +434,7 @@ def main():
                         type=float,
                         help="Total number of training epochs to perform.")
     parser.add_argument("--warmup_proportion",
-                        default=0.06,
+                        default=0.1,
                         type=float,
                         help="Proportion of training to perform linear learning rate warmup for. "
                              "E.g., 0.1 = 10%% of training.")
@@ -560,7 +560,7 @@ def main():
     param_optimizer = list(model.named_parameters())
     no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
     optimizer_grouped_parameters = [
-        {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.1},
+        {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
         {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
         ]
 
@@ -754,4 +754,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-# CUDA_VISIBLE_DEVICES=3 python -u 2020_train_RTE_test_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 2e-5 --num_train_epochs 15 --data_dir '' --output_dir '' > /export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainRTEtestRTE/log.train.rte.test.rte.txt 2>&1
+# CUDA_VISIBLE_DEVICES=3 python -u 2020_train_RTE_test_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 2e-5 --num_train_epochs 20 --data_dir '' --output_dir '' > /export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainRTEtestRTE/log.train.rte.test.rte.txt 2>&1

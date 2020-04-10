@@ -115,26 +115,7 @@ class DataProcessor(object):
 
 class RteProcessor(DataProcessor):
     """Processor for the RTE data set (GLUE version)."""
-    def get_train_examples_wenpeng(self, filename):
-        readfile = codecs.open(filename, 'r', 'utf-8')
-        line_co=0
-        examples=[]
-        for row in readfile:
-            if line_co>0:
-                line=row.strip().split('\t')
-                guid = "train-"+line[0]
-                text_a = line[1]
-                text_b = line[2]
-                label = line[-1]
-                examples.append(
-                    InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
-                line_co+=1
-            else:
-                line_co+=1
-                continue
-        readfile.close()
-        print('loaded training size:', line_co)
-        return examples
+
 
     def get_RTE_as_train(self, filename):
         '''
@@ -754,4 +735,8 @@ def main():
 
 if __name__ == "__main__":
     main()
-# CUDA_VISIBLE_DEVICES=3 python -u 2020_train_RTE_test_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 2e-5 --num_train_epochs 20 --data_dir '' --output_dir '' > /export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainRTEtestRTE/log.train.rte.test.rte.txt 2>&1
+    '''
+    because classifier not initlized, so smaller learning rate 2e-6
+    and fine-tune roberta-large needs more epochs
+    '''
+# CUDA_VISIBLE_DEVICES=3 python -u 2020_train_RTE_test_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 2e-6 --num_train_epochs 20 --data_dir '' --output_dir '' > /export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainRTEtestRTE/log.train.rte.test.rte.txt 2>&1

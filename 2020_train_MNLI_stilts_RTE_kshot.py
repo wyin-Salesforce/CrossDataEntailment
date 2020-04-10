@@ -505,7 +505,7 @@ def main():
     parser.add_argument('--server_port', type=str, default='', help="Can be used for distant debugging.")
     args = parser.parse_args()
 
-    args.train_batch_size = min(8, args.k_shot*3)
+    args.train_batch_size = args.k_shot#min(8, args.k_shot*3)
 
     processors = {
         "rte": RteProcessor

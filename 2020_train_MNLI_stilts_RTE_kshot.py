@@ -136,7 +136,7 @@ class RteProcessor(DataProcessor):
         print('loaded training size:', line_co)
         return examples
 
-    def get_RTE_as_train(self, filename, K):
+    def get_RTE_as_train(self, filename, K, sampling_seed):
         '''first load all into lists'''
         readfile = codecs.open(filename, 'r', 'utf-8')
         entail_list = []
@@ -160,13 +160,13 @@ class RteProcessor(DataProcessor):
         not_entail_size = len(not_entail_list)
         print('entail_size:', entail_size, 'not_entail_size:', not_entail_size)
         if K <= entail_size:
-            sampled_entail = random.sample(entail_list, K)
+            sampled_entail = random.Random(sampling_seed).sample(entail_list, K)
         else:
-            sampled_entail = random.choices(entail_list, k = K)
+            sampled_entail = random.Random(sampling_seed).choices(entail_list, k = K)
         if K <= int(not_entail_size/2):
-            sampled_not_entail = random.sample(not_entail_list, 2*K)
+            sampled_not_entail = random.Random(sampling_seed).sample(not_entail_list, 2*K)
         else:
-            sampled_not_entail = random.choices(not_entail_list, k = 2*K)
+            sampled_not_entail = random.Random(sampling_seed).choices(not_entail_list, k = 2*K)
 
         # print('sampled_entail size:', len(sampled_entail))
         # print('sampled_not_entail size:', len(sampled_not_entail))
@@ -411,6 +411,10 @@ def main():
     parser = argparse.ArgumentParser()
 
     ## Required parameters
+    parser.add_argument('--sampling_seed',
+                        type=int,
+                        default=42,
+                        help="random seed for initialization")
     parser.add_argument("--k_shot",
                         default=3,
                         type=int,
@@ -560,7 +564,7 @@ def main():
     num_train_optimization_steps = None
     if args.do_train:
         # train_examples = processor.get_RTE_as_train('/export/home/Dataset/glue_data/RTE/train.tsv') #train_pu_half_v1.txt
-        train_examples_entail_RTE, train_examples_neutral_RTE, train_examples_contra_RTE = processor.get_RTE_as_train('/export/home/Dataset/glue_data/RTE/train.tsv', args.k_shot)
+        train_examples_entail_RTE, train_examples_neutral_RTE, train_examples_contra_RTE = processor.get_RTE_as_train('/export/home/Dataset/glue_data/RTE/train.tsv', args.k_shot, args.sampling_seed)
         train_examples = train_examples_entail_RTE+train_examples_neutral_RTE+train_examples_contra_RTE
 
         num_train_optimization_steps = int(
@@ -796,4 +800,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-# CUDA_VISIBLE_DEVICES=3 python -u 2020_train_MNLI_stilts_RTE_kshot.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 2e-5 --num_train_epochs 3 --data_dir '' --output_dir '' --seed 42 > /export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLIstiltsRTE/log.train.mnli.stilts.rte.kshot.txt 2>&1
+# CUDA_VISIBLE_DEVICES=3 python -u 2020_train_MNLI_stilts_RTE_kshot.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 2e-5 --num_train_epochs 3 --data_dir '' --output_dir '' --sampling_seed 42 --k_shot 3 > /export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLIstiltsRTE/log.train.mnli.stilts.rte.3shot.samplingseed42.txt 2>&1

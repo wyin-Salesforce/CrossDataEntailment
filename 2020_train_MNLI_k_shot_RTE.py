@@ -839,4 +839,4 @@ if __name__ == "__main__":
     1, change the encoder to the full roberta-large-mnli
     2, change the k-shot size easily
     '''
-# CUDA_VISIBLE_DEVICES=0 python -u 2020_train_MNLI_k_shot_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3 --seed 42> /export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLI3shotRTE/log.train.mnli.kshot.rte.seed42.txt 2>&1
+# CUDA_VISIBLE_DEVICES=3 python -u 2020_train_MNLI_k_shot_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3 --seed 42 > /export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLI3shotRTE/log.train.mnli.kshot.rte.seed42.txt 2>&1

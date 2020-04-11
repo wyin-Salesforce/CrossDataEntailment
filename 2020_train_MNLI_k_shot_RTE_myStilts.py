@@ -743,9 +743,9 @@ def main():
                 # target_id_type_mask_batch = (train_target_input_ids_shot, None, train_target_input_mask_shot)
                 target_labels_batch = train_target_label_ids_batch
 
-                with torch.no_grad():
-                    logits_from_source_side = roberta_model(train_target_input_ids_batch, train_target_input_mask_batch, None, labels=None)
-                    sequence_output_from_source_side = roberta_model.sequence_output[:,0,:]
+                # with torch.no_grad():
+                logits_from_source_side = roberta_model(train_target_input_ids_batch, train_target_input_mask_batch, None, labels=None)
+                sequence_output_from_source_side = roberta_model.sequence_output[:,0,:]
 
                 model.train()
                 loss_cross_domain = model(sequence_output_from_source_side, target_labels_batch, logits_from_source_side[0], loss_fct=loss_fct)

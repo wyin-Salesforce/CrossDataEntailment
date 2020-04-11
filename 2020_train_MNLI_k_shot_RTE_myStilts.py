@@ -618,7 +618,7 @@ def main():
 
     # Prepare optimizer
     for param in model.parameters():
-        param.requires_grad = True
+        print('param:', param)
     param_optimizer = list(model.named_parameters())
     # print('param_optimizer:', param_optimizer)
     # exit(0)

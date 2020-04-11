@@ -745,7 +745,7 @@ def main():
 
                 with torch.no_grad():
                     logits_from_source_side = roberta_model(train_target_input_ids_batch, train_target_input_mask_batch, None, labels=None)
-                    sequence_output_from_source_side = roberta_model.sequence_output
+                    sequence_output_from_source_side = roberta_model.sequence_output[:,0,:]
 
                 model.train()
                 loss_cross_domain = model(sequence_output_from_source_side, target_labels_batch, logits_from_source_side, loss_fct=loss_fct)
@@ -772,7 +772,7 @@ def main():
                             target_labels_batch = target_dev_label_ids_batch
 
                             logits_from_source_side = roberta_model(target_dev_input_ids_batch, target_dev_input_mask_batch, None, labels=None)
-                            sequence_output_from_source_side = roberta_model.sequence_output
+                            sequence_output_from_source_side = roberta_model.sequence_output[:,0,:]
 
                             acc_i = model(sequence_output_from_source_side, target_labels_batch, logits_from_source_side, loss_fct=loss_fct)
                             dev_acc+=acc_i.item()
@@ -794,7 +794,7 @@ def main():
                                 target_labels_batch = target_test_label_ids_batch
 
                                 logits_from_source_side = roberta_model(target_test_input_ids_batch, target_test_input_mask_batch, None, labels=None)
-                                sequence_output_from_source_side = roberta_model.sequence_output
+                                sequence_output_from_source_side = roberta_model.sequence_output[:,0,:]
 
                                 acc_i = model(sequence_output_from_source_side, target_labels_batch, logits_from_source_side, loss_fct=loss_fct)
                                 test_acc+=acc_i.item()

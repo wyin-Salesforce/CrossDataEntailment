@@ -533,20 +533,6 @@ def main():
     pretrain_model_dir = '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE/0.8664259927797834-0.8106035345115038'
     model = RobertaForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
 
-    # print(model.classifier.weight)
-    # st_model = st_BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
-    # print(st_model.classifier.weight)
-    # model2 = BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
-    # print(model2.classifier.weight)
-    # exit(0)
-    # model = my_BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
-
-    # for np1, np2 in zip(list(model.named_parameters()),list(st_model.named_parameters())):
-    #     if np1[1].data.ne(np2[1].data).sum() > 0:
-    #         print(np1[0], np2[0])
-    #         print(np1[1].data)
-    #         print(np2[1].data)
-    # exit(0)
 
     tokenizer = RobertaTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
 

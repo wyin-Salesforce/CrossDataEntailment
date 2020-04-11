@@ -112,7 +112,7 @@ class DataProcessor(object):
 
 class RteProcessor(DataProcessor):
     """Processor for the RTE data set (GLUE version)."""
-    def get_MNLI_as_train(self, filename, size_limit):
+    def get_MNLI_as_train(self, filename):
         '''
         can read the training file, dev and test file
         '''
@@ -131,11 +131,11 @@ class RteProcessor(DataProcessor):
                 examples.append(
                         InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
             line_co+=1
-            # if line_co > 1000:
-            #     break
+            if line_co > 1000:
+                break
         readfile.close()
         print('loaded  size:', line_co)
-        return random.sample(examples, size_limit)
+        return examples
 
 
 
@@ -390,49 +390,30 @@ class Encoder(BertPreTrainedModel):
     def __init__(self, config):
         super(Encoder, self).__init__(config)
         self.num_labels = config.num_labels
-        self.roberta = RobertaModel(config)
-        self.classifier = RobertaClassificationHead(config)
+        # self.roberta = RobertaModel(config)
+        # self.classifier = RobertaClassificationHead(config)
         self.classifier_target = RobertaClassificationHead(config)
-        self.classifier_target.load_state_dict(self.classifier.state_dict())
+        # self.classifier_target.load_state_dict(self.classifier.state_dict())
 
-    def forward(self, target_id_type_mask, target_labels, source_id_type_mask, source_labels, loss_fct=None):
+    def forward(self, target_sequence_outputs, target_labels, LR_logits_source, loss_fct=None):
 
         '''
         samples: input_ids, token_type_ids, attention_mask; in class order
         minibatch: input_ids, token_type_ids, attention_mask
         '''
-        '''k-example in test'''
-        target_input_ids, target_token_type, target_attention_mask = target_id_type_mask
-        target_input_size = target_input_ids.shape[0]
-        '''mnli minibatch'''
-        if source_id_type_mask is not None:
-            source_input_ids, source_token_type, source_attention_mask = source_id_type_mask
-
-            input_ids = torch.cat([target_input_ids, source_input_ids], dim=0)
-            # token_type_ids =torch.cat([target_token_type, source_token_type], dim=0)
-            attention_mask = torch.cat([target_attention_mask, source_attention_mask], dim=0)
-        else:
-            input_ids = target_input_ids
-            # token_type_ids = target_token_type
-            attention_mask = target_attention_mask
-
-        '''pls note that roberta does not need token_type, especially when value more than 0 in the tensor, error report'''
-        outputs = self.roberta(input_ids, attention_mask, None)
-        pooled_outputs = outputs[1]#torch.max(outputs[0],dim=1)[0]+ outputs[1]#outputs[1]#torch.mean(outputs[0],dim=1)#outputs[1] #(batch, hidden_size)
-        '''mnli minibatch'''
-        if source_id_type_mask is not None:
-            LR_logits_source = self.classifier(pooled_outputs[target_input_size:]) #(9+batch, 3)
         '''target (k) examples'''
-        LR_logits_target = (self.classifier_target(pooled_outputs[:target_input_size])+
-            self.classifier(pooled_outputs[:target_input_size]))
+        LR_logits_target = self.classifier_target(target_sequence_outputs)
 
         target_loss = loss_fct(LR_logits_target.view(-1, self.num_labels), target_labels.view(-1))
-        if source_id_type_mask is not None:
-            source_loss = loss_fct(LR_logits_source.view(-1, self.num_labels), source_labels.view(-1))
-            loss = target_loss+source_loss
+
+
+        if LR_logits_source is  None:
+            '''just training'''
+            loss = target_loss
         else:
             '''testing, compute acc'''
-            pred_labels_batch = torch.softmax(LR_logits_target.view(-1, self.num_labels), dim=1).argmax(dim=1)
+            overall_logits = LR_logits_target+LR_logits_source
+            pred_labels_batch = torch.softmax(overall_logits.view(-1, self.num_labels), dim=1).argmax(dim=1)
             pred_labels_batch[pred_labels_batch!=0]=1
             gold_labels_batch = target_labels
             gold_labels_batch[gold_labels_batch!=0]=1
@@ -521,8 +502,7 @@ def main():
                         default=1e-5,
                         type=float,
                         help="The initial learning rate for Adam.")
-    parser.add_argument("--
-    ",
+    parser.add_argument("--num_train_epochs",
                         default=10.0,
                         type=float,
                         help="Total number of training epochs to perform.")
@@ -607,29 +587,24 @@ def main():
     num_labels = len(label_list)
 
 
-    '''we load MNLI the same size as kshot examples in RTE'''
-    train_examples_source = processor.get_MNLI_as_train('/export/home/Dataset/glue_data/MNLI/train.tsv', args.k_shot*num_labels) #train_pu_half_v1.txt
+
+    # train_examples_source = processor.get_MNLI_as_train('/export/home/Dataset/glue_data/MNLI/train.tsv') #train_pu_half_v1.txt
     '''load k-shot examples'''
     train_examples_entail_RTE, train_examples_neutral_RTE, train_examples_contra_RTE = processor.get_RTE_as_train('/export/home/Dataset/glue_data/RTE/train.tsv', args.k_shot)
-        # seen_classes=[0,2,4,6,8]
 
-        # num_train_optimization_steps = int(
-        #     len(train_examples) / args.train_batch_size / args.gradient_accumulation_steps) * args.num_train_epochs
-        # if args.local_rank != -1:
-        #     num_train_optimization_steps = num_train_optimization_steps // torch.distributed.get_world_size()
 
-    # Prepare model
-    # cache_dir = args.cache_dir if args.cache_dir else os.path.join(str(PYTORCH_TRANSFORMERS_CACHE), 'distributed_{}'.format(args.local_rank))
+    pretrain_model_dir = '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE/0.8664259927797834-0.8106035345115038'
+    roberta_model = RobertaForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
+    tokenizer = RobertaTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
+
+    roberta_model.to(device)
+    roberta_model.eval()
+
 
     # pretrain_model_dir = 'roberta-large-mnli' #'roberta-large' , 'roberta-large-mnli'
     '''we start from the pretrained MNLI model'''
-    pretrain_model_dir = '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE/0.8664259927797834-0.8106035345115038'
-    model = Encoder.from_pretrained(pretrain_model_dir, num_labels=num_labels)
-    # exit(0)
-
-
-    tokenizer = RobertaTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
-
+    # pretrain_model_dir = '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE/0.8664259927797834-0.8106035345115038'
+    model = Encoder(num_labels=num_labels)
     model.to(device)
     # store_bert_model(model, tokenizer.vocab, '/export/home/workspace/CrossDataEntailment/models', 'try')
     # exit(0)
@@ -654,27 +629,27 @@ def main():
     max_test_acc = 0.0
     max_dev_acc = 0.0
     if args.do_train:
-        train_source_features = convert_examples_to_features(
-            train_examples_source,
-            label_list, args.max_seq_length, tokenizer, output_mode,
-            cls_token_at_end=False,#bool(args.model_type in ['xlnet']),            # xlnet has a cls token at the end
-            cls_token=tokenizer.cls_token,
-            cls_token_segment_id=0,#2 if args.model_type in ['xlnet'] else 0,
-            sep_token=tokenizer.sep_token,
-            sep_token_extra=True,#bool(args.model_type in ['roberta']),           # roberta uses an extra separator b/w pairs of sentences, cf. github.com/pytorch/fairseq/commit/1684e166e3da03f5b600dbb7855cb98ddfcd0805
-            pad_on_left=False,#bool(args.model_type in ['xlnet']),                 # pad on the left for xlnet
-            pad_token=tokenizer.convert_tokens_to_ids([tokenizer.pad_token])[0],
-            pad_token_segment_id=0)#4 if args.model_type in ['xlnet'] else 0,)
-
-        train_source_input_ids = torch.tensor([f.input_ids for f in train_source_features], dtype=torch.long)
-        train_source_input_mask = torch.tensor([f.input_mask for f in train_source_features], dtype=torch.long)
-        train_source_segment_ids = torch.tensor([f.segment_ids for f in train_source_features], dtype=torch.long)
-        train_source_label_ids = torch.tensor([f.label_id for f in train_source_features], dtype=torch.long)
-
-        train_source_data = TensorDataset(train_source_input_ids, train_source_input_mask, train_source_segment_ids, train_source_label_ids)
-        train_source_sampler = RandomSampler(train_source_data)
-        '''create 3 samples per class'''
-        train_source_dataloader = DataLoader(train_source_data, sampler=train_source_sampler, batch_size=args.train_batch_size)
+        # train_source_features = convert_examples_to_features(
+        #     train_examples_source,
+        #     label_list, args.max_seq_length, tokenizer, output_mode,
+        #     cls_token_at_end=False,#bool(args.model_type in ['xlnet']),            # xlnet has a cls token at the end
+        #     cls_token=tokenizer.cls_token,
+        #     cls_token_segment_id=0,#2 if args.model_type in ['xlnet'] else 0,
+        #     sep_token=tokenizer.sep_token,
+        #     sep_token_extra=True,#bool(args.model_type in ['roberta']),           # roberta uses an extra separator b/w pairs of sentences, cf. github.com/pytorch/fairseq/commit/1684e166e3da03f5b600dbb7855cb98ddfcd0805
+        #     pad_on_left=False,#bool(args.model_type in ['xlnet']),                 # pad on the left for xlnet
+        #     pad_token=tokenizer.convert_tokens_to_ids([tokenizer.pad_token])[0],
+        #     pad_token_segment_id=0)#4 if args.model_type in ['xlnet'] else 0,)
+        #
+        # train_source_input_ids = torch.tensor([f.input_ids for f in train_source_features], dtype=torch.long)
+        # train_source_input_mask = torch.tensor([f.input_mask for f in train_source_features], dtype=torch.long)
+        # train_source_segment_ids = torch.tensor([f.segment_ids for f in train_source_features], dtype=torch.long)
+        # train_source_label_ids = torch.tensor([f.label_id for f in train_source_features], dtype=torch.long)
+        #
+        # train_source_data = TensorDataset(train_source_input_ids, train_source_input_mask, train_source_segment_ids, train_source_label_ids)
+        # train_source_sampler = RandomSampler(train_source_data)
+        # '''create 3 samples per class'''
+        # train_source_dataloader = DataLoader(train_source_data, sampler=train_source_sampler, batch_size=args.train_batch_size)
 
 
         '''load 3-shot data'''
@@ -701,11 +676,6 @@ def main():
         '''create 3 samples per class'''
         assert args.k_shot*3>=9
         train_target_dataloader = DataLoader(train_target_data, sampler=train_target_sampler, batch_size=9)
-
-        '''combine the MNLI and RTE as a single dataloader'''
-        train_combine_data = TensorDataset(train_target_input_ids_shot, train_target_input_mask_shot, train_target_segment_ids_shot, train_target_label_ids_shot, train_source_input_ids, train_source_input_mask, train_source_segment_ids, train_source_label_ids)
-        train_combine_sampler = RandomSampler(train_combine_data)
-        train_combine_dataloader = DataLoader(train_combine_data, sampler=train_combine_sampler, batch_size=9)
 
 
         '''load dev set'''
@@ -762,38 +732,22 @@ def main():
             '''
             loop on the k-shot examples
             '''
-            # for train_target_batch in train_target_dataloader:
-            #     train_target_batch = tuple(t.to(device) for t in train_target_batch)
-            #     train_target_input_ids_batch, train_target_input_mask_batch, train_target_segment_ids_batch, train_target_label_ids_batch = train_target_batch
-            #
-            #
-            #     target_id_type_mask_batch = (train_target_input_ids_batch, train_target_segment_ids_batch, train_target_input_mask_batch)
-            #     # target_id_type_mask_batch = (train_target_input_ids_shot, None, train_target_input_mask_shot)
-            #     target_labels_batch = train_target_label_ids_batch
-            #
-            #     # for step, train_source_batch in enumerate(tqdm(train_source_dataloader, desc="Iteration")):
-            #     for train_source_batch in train_source_dataloader:
-            #         '''we make sure one scan of train_target_dataloader corresponds to one scan of train_source_dataloader'''
-            #         rand_prob = random.uniform(0, 1)
-            #         if rand_prob > 1/len(train_target_dataloader):
-            #             continue
-            #
-            #         train_source_batch = tuple(t.to(device) for t in train_source_batch)
-            #         train_source_input_ids_batch, train_source_input_mask_batch, train_source_segment_ids_batch, train_source_label_ids_batch = train_source_batch
-            #
-            #         # assert train_source_input_ids_batch.shape[0] == args.train_batch_size
+            for train_target_batch in train_target_dataloader:
+                train_target_batch = tuple(t.to(device) for t in train_target_batch)
+                train_target_input_ids_batch, train_target_input_mask_batch, train_target_segment_ids_batch, train_target_label_ids_batch = train_target_batch
 
-            for train_combine_batch in train_combine_dataloader:
-                train_combine_batch = tuple(t.to(device) for t in train_combine_batch)
-                train_target_input_ids_batch, train_target_input_mask_batch, train_target_segment_ids_batch, train_target_label_ids_batch, train_source_input_ids_batch, train_source_input_mask_batch, train_source_segment_ids_batch, train_source_label_ids_batch = train_combine_batch
 
-                source_id_type_mask_batch = (train_source_input_ids_batch, train_source_segment_ids_batch, train_source_input_mask_batch)
-                source_labels_batch = train_source_label_ids_batch
                 target_id_type_mask_batch = (train_target_input_ids_batch, train_target_segment_ids_batch, train_target_input_mask_batch)
+                # target_id_type_mask_batch = (train_target_input_ids_shot, None, train_target_input_mask_shot)
                 target_labels_batch = train_target_label_ids_batch
 
+                with torch.no_grad():
+                    logits_from_source_side = roberta_model(train_target_input_ids_batch, train_target_input_mask_batch, None, labels=None)
+                    sequence_output_from_source_side = roberta_model.sequence_output
+
                 model.train()
-                loss_cross_domain = model(target_id_type_mask_batch, target_labels_batch, source_id_type_mask_batch, source_labels_batch, loss_fct=loss_fct)
+                loss_cross_domain = model(sequence_output_from_source_side, target_labels_batch, logits_from_source_side, loss_fct=loss_fct)
+
                 loss_cross_domain.backward()
                 optimizer.step()
                 optimizer.zero_grad()
@@ -803,7 +757,7 @@ def main():
                 iter_co+=1
 
 
-                if iter_co %50==0:
+                if iter_co %1==0:
                     model.eval()
                     dev_acc = 0.0
                     with torch.no_grad():
@@ -815,7 +769,10 @@ def main():
                             target_id_type_mask_batch = (target_dev_input_ids_batch, target_dev_segment_ids_batch, target_dev_input_mask_batch)
                             target_labels_batch = target_dev_label_ids_batch
 
-                            acc_i = model(target_id_type_mask_batch, target_labels_batch, None, None, loss_fct=loss_fct)
+                            logits_from_source_side = roberta_model(target_dev_input_ids_batch, target_dev_input_mask_batch, None, labels=None)
+                            sequence_output_from_source_side = roberta_model.sequence_output
+
+                            acc_i = model(sequence_output_from_source_side, target_labels_batch, logits_from_source_side, loss_fct=loss_fct)
                             dev_acc+=acc_i.item()
 
                     dev_acc/=len(dev_dataloader)
@@ -834,12 +791,15 @@ def main():
                                 target_id_type_mask_batch = (target_test_input_ids_batch, target_test_segment_ids_batch, target_test_input_mask_batch)
                                 target_labels_batch = target_test_label_ids_batch
 
-                                acc_i = model(target_id_type_mask_batch, target_labels_batch, None, None, loss_fct=loss_fct)
+                                logits_from_source_side = roberta_model(target_test_input_ids_batch, target_test_input_mask_batch, None, labels=None)
+                                sequence_output_from_source_side = roberta_model.sequence_output
+
+                                acc_i = model(sequence_output_from_source_side, target_labels_batch, logits_from_source_side, loss_fct=loss_fct)
                                 test_acc+=acc_i.item()
 
                         test_acc/=len(test_dataloader)
                         print('\t\t\t >>>>test acc:', test_acc)
-                        # '''store the model, because we can test after a max_dev acc reached'''
+                        '''store the model, because we can test after a max_dev acc reached'''
                         # store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLI'+str(args.k_shot)+'shotRTE', str(max_dev_acc)+'-'+str(test_acc))
 
 if __name__ == "__main__":
@@ -848,4 +808,4 @@ if __name__ == "__main__":
     1, change the encoder to the full roberta-large-mnli
     2, change the k-shot size easily
     '''
-# CUDA_VISIBLE_DEVICES=3 python -u 2020.forfun.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-6 --data_dir '' --output_dir '' --k_shot 1500 --seed 42 > /export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLI3shotRTE/log.train.mnli.kshot.rte.seed42.txt 2>&1
+# CUDA_VISIBLE_DEVICES=3 python -u 2020_train_MNLI_k_shot_RTE_myStilts.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3 --seed 42 > /export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLI3shotRTE/log.train.mnli.kshot.rte.seed42.txt 2>&1

@@ -755,7 +755,7 @@ def main():
 
                 model.train()
                 loss_cross_domain = model(sequence_output_from_source_side, target_labels_batch, logits_from_source_side[0], loss_fct=loss_fct)
-
+                print('loss_cross_domain:', loss_cross_domain)
                 loss_cross_domain.backward()
                 optimizer.step()
                 optimizer.zero_grad()

@@ -604,7 +604,7 @@ def main():
     # pretrain_model_dir = 'roberta-large-mnli' #'roberta-large' , 'roberta-large-mnli'
     '''we start from the pretrained MNLI model'''
     # pretrain_model_dir = '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE/0.8664259927797834-0.8106035345115038'
-    model = Encoder(num_labels=num_labels)
+    model = Encoder(roberta_model.config)
     model.to(device)
     # store_bert_model(model, tokenizer.vocab, '/export/home/workspace/CrossDataEntailment/models', 'try')
     # exit(0)
@@ -808,4 +808,4 @@ if __name__ == "__main__":
     1, change the encoder to the full roberta-large-mnli
     2, change the k-shot size easily
     '''
-# CUDA_VISIBLE_DEVICES=3 python -u 2020_train_MNLI_k_shot_RTE_myStilts.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3 --seed 42 > /export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLI3shotRTE/log.train.mnli.kshot.rte.seed42.txt 2>&1
+# CUDA_VISIBLE_DEVICES=2 python -u 2020_train_MNLI_k_shot_RTE_myStilts.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3 --seed 42 > /export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLI3shotRTE/log.train.mnli.kshot.rte.seed42.txt 2>&1

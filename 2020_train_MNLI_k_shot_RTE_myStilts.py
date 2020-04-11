@@ -15,6 +15,7 @@ import torch
 from collections import defaultdict
 from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,
                               TensorDataset)
+from torch.autograd import Variable
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm, trange
 import torch.nn as nn
@@ -746,7 +747,7 @@ def main():
                 with torch.no_grad():
                     logits_from_source_side = roberta_model(train_target_input_ids_batch, train_target_input_mask_batch, None, labels=None)
                     sequence_output_from_source_side = roberta_model.sequence_output[:,0,:]
-                sequence_output_from_source_side.requres_grad = True# = Variable(sequence_output_from_source_side.data, requires_grad=True)
+                sequence_output_from_source_side = Variable(sequence_output_from_source_side.data, requires_grad=True)
 
                 model.train()
                 loss_cross_domain = model(sequence_output_from_source_side, target_labels_batch, logits_from_source_side[0], loss_fct=loss_fct)

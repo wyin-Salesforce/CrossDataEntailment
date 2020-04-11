@@ -191,7 +191,7 @@ class RteProcessor(DataProcessor):
         assert len(examples_entail) == K
         assert len(examples_neutral) == K
         assert len(examples_contra) == K
-        return examples_entail, examples_neutral, []#examples_contra
+        return examples_entail, examples_neutral, examples_contra
 
     def get_RTE_as_dev(self, filename):
         '''
@@ -509,7 +509,7 @@ def main():
     parser.add_argument('--server_port', type=str, default='', help="Can be used for distant debugging.")
     args = parser.parse_args()
 
-    # args.train_batch_size = min(5, args.k_shot*3)
+    args.train_batch_size = min(5, args.k_shot*3)
 
     processors = {
         "rte": RteProcessor

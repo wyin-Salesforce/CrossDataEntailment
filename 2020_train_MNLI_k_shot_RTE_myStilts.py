@@ -408,7 +408,7 @@ class Encoder(BertPreTrainedModel):
         LR_logits_target = self.classifier_target(target_sequence_outputs)
         print('target_labels:', target_labels)
         # exit(0)
-
+        print('LR_logits_target:', LR_logits_target)
         target_loss = loss_fct(LR_logits_target.view(-1, self.num_labels), target_labels.view(-1))
 
 

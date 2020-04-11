@@ -191,7 +191,7 @@ class RteProcessor(DataProcessor):
         assert len(examples_entail) == K
         assert len(examples_neutral) == K
         assert len(examples_contra) == K
-        return examples_entail, examples_neutral, examples_contra
+        return examples_entail, examples_neutral, []#examples_contra
 
     def get_RTE_as_dev(self, filename):
         '''
@@ -509,7 +509,7 @@ def main():
     parser.add_argument('--server_port', type=str, default='', help="Can be used for distant debugging.")
     args = parser.parse_args()
 
-    args.train_batch_size = min(5, args.k_shot*3)
+    # args.train_batch_size = min(5, args.k_shot*3)
 
     processors = {
         "rte": RteProcessor
@@ -800,4 +800,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-# CUDA_VISIBLE_DEVICES=3 python -u 2020_train_MNLI_stilts_RTE_kshot.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 2e-5 --num_train_epochs 3 --data_dir '' --output_dir '' --sampling_seed 42 --k_shot 3 > /export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLIstiltsRTE/log.train.mnli.stilts.rte.3shot.samplingseed42.txt 2>&1
+# CUDA_VISIBLE_DEVICES=3 python -u 2020_train_MNLI_stilts_RTE_kshot.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 2e-5 --num_train_epochs 3 --data_dir '' --output_dir '' --sampling_seed 400 --k_shot 3 > /export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLIstiltsRTE3shot/log.train.mnli.stilts.rte.3shot.samplingseed400.txt 2>&1

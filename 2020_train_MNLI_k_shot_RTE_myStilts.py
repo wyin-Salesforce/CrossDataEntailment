@@ -403,7 +403,8 @@ class Encoder(BertPreTrainedModel):
         minibatch: input_ids, token_type_ids, attention_mask
         '''
         '''target (k) examples'''
-        # print('target_sequence_outputs:', target_sequence_outputs.shape)
+        print('target_sequence_outputs:', target_sequence_outputs)
+        exit(0)
         LR_logits_target = self.classifier_target(target_sequence_outputs)
         # print('LR_logits_target:', LR_logits_target.shape)
 

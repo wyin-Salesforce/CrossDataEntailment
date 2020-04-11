@@ -617,6 +617,8 @@ def main():
     #     model = torch.nn.DataParallel(model)
 
     # Prepare optimizer
+    for param in model.parameters():
+        param.requires_grad = True
     param_optimizer = list(model.named_parameters())
     # print('param_optimizer:', param_optimizer)
     # exit(0)

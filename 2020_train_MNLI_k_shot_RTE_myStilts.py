@@ -407,7 +407,7 @@ class Encoder(BertPreTrainedModel):
 
         LR_logits_target = self.classifier_target(target_sequence_outputs)
         print('target_labels:', target_labels)
-        exit(0)
+        # exit(0)
 
         target_loss = loss_fct(LR_logits_target.view(-1, self.num_labels), target_labels.view(-1))
 
@@ -750,6 +750,7 @@ def main():
                     logits_from_source_side = roberta_model(train_target_input_ids_batch, train_target_input_mask_batch, None, labels=None)
                     sequence_output_from_source_side = roberta_model.sequence_output[:,0,:]
                 sequence_output_from_source_side = Variable(sequence_output_from_source_side.data, requires_grad=True)
+                target_labels_batch = Variable(target_labels_batch.data, requires_grad=True)
 
                 model.train()
                 loss_cross_domain = model(sequence_output_from_source_side, target_labels_batch, logits_from_source_side[0], loss_fct=loss_fct)

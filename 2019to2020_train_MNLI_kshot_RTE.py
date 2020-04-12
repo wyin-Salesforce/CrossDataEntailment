@@ -23,11 +23,9 @@ from scipy.special import softmax
 from scipy.stats import pearsonr, spearmanr
 from sklearn.metrics import matthews_corrcoef, f1_score
 
-
-
 from transformers.tokenization_roberta import RobertaTokenizer
 from transformers.optimization import AdamW
-from transformers.modeling_roberta import RobertaModel, RobertaConfig#, RobertaClassificationHead
+from transformers.modeling_roberta import RobertaModel, RobertaConfig, RobertaForSequenceClassification#, RobertaClassificationHead
 from transformers.modeling_bert import BertPreTrainedModel
 
 from bert_common_functions import store_transformers_models, get_a_random_batch_from_dataloader, cosine_rowwise_two_matrices
@@ -139,8 +137,8 @@ class RteProcessor(DataProcessor):
                     examples_contra.append(
                         InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
             line_co+=1
-            # if line_co > 20000:
-            #     break
+            if line_co > 2000:
+                break
         readfile.close()
         print('loaded  size:', line_co)
         return examples_entail, examples_neutral, examples_contra

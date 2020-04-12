@@ -1005,13 +1005,13 @@ def main():
                                 test_batch_logits, test_batch_reps = roberta_seq_model(input_ids, input_mask, None, labels=None)
                                 test_batch_logits = test_batch_logits[0]
                                 test_batch_reps = test_batch_reps[:,0,:]
-                                test_batch_reps_logits = (test_batch_reps,test_batch_logits)
+                                test_batch_reps_logits_labels = (test_batch_reps,test_batch_logits, label_ids)
 
                     # def forward(self, target_sample_reps_logits_labels, source_sample_reps_logits, source_batch_reps_labels,
-                    #             test_batch_reps_logits, source_reps_logits_history, target_reps_logits_history,
+                    #             test_batch_reps_logits_labels, source_reps_logits_history, target_reps_logits_history,
                     #             mode='train_NN'):
-                                pred_labels_i = model(target_sample_reps_logits_labels, None, None,
-                                                            None, None, None, mode='test', loss_fct = loss_fct)
+                                pred_labels_i = model(None, None, None,
+                                                            test_batch_reps_logits_labels, None, None, mode='test', loss_fct = loss_fct)
                             # print('pred_labels_i:',pred_labels_i)
                             preds.append(pred_labels_i)
                             gold_label_ids.append(label_ids)

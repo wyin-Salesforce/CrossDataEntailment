@@ -488,7 +488,9 @@ class Encoder(BertPreTrainedModel):
             NN_logits_combine = NN_logits_from_source+NN_logits_from_target
             '''third, get logits from classification of the target domain'''
             CL_logits_from_target = self.classifier(test_batch_reps)
-
+            print('logits_from_pretrained:', logits_from_pretrained)
+            print('NN_logits_combine:', NN_logits_combine)
+            print('CL_logits_from_target:', CL_logits_from_target)
             overall_test_batch_logits = logits_from_pretrained+NN_logits_combine+CL_logits_from_target
             pred_labels_batch = torch.softmax(overall_test_batch_logits.view(-1, self.num_labels), dim=1).argmax(dim=1)
             return pred_labels_batch

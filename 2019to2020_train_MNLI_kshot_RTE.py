@@ -1011,11 +1011,11 @@ def main():
                     #             test_batch_reps_logits, source_reps_logits_history, target_reps_logits_history,
                     #             mode='train_NN'):
                                 pred_labels_i = model(target_sample_reps_logits_labels, None, None,
-                                                            None, None, None, mode='train_CL', loss_fct = loss_fct)
-                            print('pred_labels_i:',pred_labels_i)
+                                                            None, None, None, mode='test', loss_fct = loss_fct)
+                            # print('pred_labels_i:',pred_labels_i)
                             preds.append(pred_labels_i)
                             gold_label_ids.append(label_ids)
-                        print('preds:', preds)
+                        # print('preds:', preds)
                         pred_label_ids = torch.cat(preds,dim=0).detach().cpu().numpy()
                         gold_label_ids = torch.cat(gold_label_ids,dim=0).detach().cpu().numpy()
 

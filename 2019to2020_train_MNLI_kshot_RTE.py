@@ -137,8 +137,8 @@ class RteProcessor(DataProcessor):
                     examples_contra.append(
                         InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
             line_co+=1
-            # if line_co > 2000:
-            #     break
+            if line_co > 2000:
+                break
         readfile.close()
         print('loaded  size:', line_co)
         return examples_entail, examples_neutral, examples_contra
@@ -502,7 +502,7 @@ class Encoder(BertPreTrainedModel):
             combine_pred_labels_batch = torch.cat([pred_labels_batch_roberta,pred_labels_batch_NN , pred_labels_batch_CL], dim=1) #(batch, 3)
             print('combine_pred_labels_batch:', combine_pred_labels_batch)
             pred_labels_batch = (combine_pred_labels_batch==0).sum(dim=1)
-            pred_labels_batch[entail_size_batch>1]=0
+            pred_labels_batch = 1-(pred_labels_batch>1)#[entail_size_batch>1]=0
             print('pred_labels_batch:', pred_labels_batch)
             exit(0)
 

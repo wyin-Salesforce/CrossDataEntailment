@@ -1080,8 +1080,8 @@ def main():
 
 if __name__ == "__main__":
     # main()
-     a = torch.randn(4, 4)
-     print(torch.argmax(a, dim=1, keepdim=True))
+    a = torch.randn(4, 4)
+    print(torch.argmax(a, dim=1, keepdim=True))
 
 
     '''

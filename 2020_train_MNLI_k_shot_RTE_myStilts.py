@@ -810,7 +810,6 @@ def main():
 if __name__ == "__main__":
     main()
     '''
-    1, change the encoder to the full roberta-large-mnli
-    2, change the k-shot size easily
+    卖点是给RTE的kshot单独搞了一个classifier, 然后和roberta的合并作为测试结果
     '''
 # CUDA_VISIBLE_DEVICES=2 python -u 2020_train_MNLI_k_shot_RTE_myStilts.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3 --seed 42 > /export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLI3shotRTE/log.train.mnli.kshot.rte.seed42.txt 2>&1

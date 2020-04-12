@@ -496,12 +496,17 @@ class Encoder(BertPreTrainedModel):
             # overall_test_batch_logits = NN_logits_combine
             # overall_test_batch_logits = CL_logits_from_target
             '''majority voting'''
-            pred_labels_batch_roberta = torch.softmax(logits_from_pretrained.view(-1, self.num_labels), dim=1).argmax(dim=1)
-            pred_labels_batch_NN = torch.softmax(NN_logits_combine.view(-1, self.num_labels), dim=1).argmax(dim=1)
-            pred_labels_batch_CL = torch.softmax(CL_logits_from_target.view(-1, self.num_labels), dim=1).argmax(dim=1)
+            pred_labels_batch_roberta = torch.softmax(logits_from_pretrained.view(-1, self.num_labels), dim=1).argmax(dim=1, keepdim=True) #(batch, 1)
+            pred_labels_batch_NN = torch.softmax(NN_logits_combine.view(-1, self.num_labels), dim=1).argmax(dim=1, keepdim=True)
+            pred_labels_batch_CL = torch.softmax(CL_logits_from_target.view(-1, self.num_labels), dim=1).argmax(dim=1, keepdim=True)
+            combine_pred_labels_batch = torch.cat([pred_labels_batch_roberta,pred_labels_batch_NN , pred_labels_batch_CL], dim=1) #(batch, 3)
+            print('combine_pred_labels_batch:', combine_pred_labels_batch)
+            pred_labels_batch = (combine_pred_labels_batch==0).sum(dim=1)
+            pred_labels_batch[entail_size_batch>1]=0
+            print('pred_labels_batch:', pred_labels_batch)
+            exit(0)
 
-
-            pred_labels_batch = torch.softmax(overall_test_batch_logits.view(-1, self.num_labels), dim=1).argmax(dim=1)
+            # pred_labels_batch = torch.softmax(overall_test_batch_logits.view(-1, self.num_labels), dim=1).argmax(dim=1)
 
             return pred_labels_batch
 
@@ -1079,9 +1084,9 @@ def main():
 
 
 if __name__ == "__main__":
-    # main()
-    a = torch.randn(4, 4)
-    print(torch.argmax(a, dim=1, keepdim=True))
+    main()
+    # a = torch.randn(4, 4)
+    # print(torch.argmax(a, dim=1, keepdim=True))
 
 
     '''

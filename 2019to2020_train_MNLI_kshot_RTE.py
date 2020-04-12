@@ -491,16 +491,18 @@ class Encoder(BertPreTrainedModel):
             # print('logits_from_pretrained:', logits_from_pretrained)
             # print('NN_logits_combine:', NN_logits_combine)
             # print('CL_logits_from_target:', CL_logits_from_target)
-            overall_test_batch_logits = logits_from_pretrained+NN_logits_combine+CL_logits_from_target
+            # overall_test_batch_logits = logits_from_pretrained+NN_logits_combine+CL_logits_from_target
             # overall_test_batch_logits = logits_from_pretrained
             # overall_test_batch_logits = NN_logits_combine
             # overall_test_batch_logits = CL_logits_from_target
+            '''majority voting'''
+            pred_labels_batch_roberta = torch.softmax(logits_from_pretrained.view(-1, self.num_labels), dim=1).argmax(dim=1)
+            pred_labels_batch_NN = torch.softmax(NN_logits_combine.view(-1, self.num_labels), dim=1).argmax(dim=1)
+            pred_labels_batch_CL = torch.softmax(CL_logits_from_target.view(-1, self.num_labels), dim=1).argmax(dim=1)
 
-            # overall_test_batch_logits = (torch.softmax(logits_from_pretrained.view(-1, self.num_labels), dim=1)+
-            #                             torch.softmax(NN_logits_combine.view(-1, self.num_labels), dim=1)+
-            #                             torch.softmax(CL_logits_from_target.view(-1, self.num_labels), dim=1))
+
             pred_labels_batch = torch.softmax(overall_test_batch_logits.view(-1, self.num_labels), dim=1).argmax(dim=1)
-            # pred_labels_batch = overall_test_batch_logits.argmax(dim=1)
+
             return pred_labels_batch
 
 
@@ -1058,7 +1060,7 @@ def main():
 
 
                         if idd == 0: # this is dev
-                            if test_acc >= max_dev_acc:
+                            if test_acc > max_dev_acc:
                                 max_dev_acc = test_acc
                                 print('\ndev acc:', test_acc, ' max_mean_dev_acc:', max_dev_acc, '\n')
                                 '''store the model'''
@@ -1077,10 +1079,12 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # main()
+     a = torch.randn(4, 4)
+     print(torch.argmax(a, dim=1, keepdim=True))
 
 
     '''
     1, MNLI 只读取了1000
     '''
-# CUDA_VISIBLE_DEVICES=3 python -u 2019to2020_train_MNLI_kshot_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3 --sampling_seed 42 --stilts_epochs 20, --NN_epochs 1
+# CUDA_VISIBLE_DEVICES=3 python -u 2019to2020_train_MNLI_kshot_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3 --sampling_seed 42 --stilts_epochs 20 --NN_epochs 1

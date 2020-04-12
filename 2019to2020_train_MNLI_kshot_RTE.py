@@ -448,7 +448,7 @@ class Encoder(BertPreTrainedModel):
 
 
     def forward(self, target_sample_reps_logits_labels, source_sample_reps_logits, source_batch_reps_labels,
-                test_batch_reps_logits, source_reps_logits_history, target_reps_logits_history,
+                test_batch_reps_logits_labels, source_reps_logits_history, target_reps_logits_history,
                 mode='train_NN', loss_fct = None):
         '''
         mode: train_NN, train_CL, test
@@ -462,7 +462,7 @@ class Encoder(BertPreTrainedModel):
             source_batch_reps, source_batch_labels = source_batch_reps_labels
         '''input for testing'''
         if mode == 'test':
-            test_batch_reps, test_batch_logits = test_batch_reps_logits
+            test_batch_reps, test_batch_logits, test_batch_labels = test_batch_reps_logits_labels
             source_sample_reps_history, source_sample_logits_history = source_reps_logits_history
             target_sample_reps_history, target_sample_logits_history = target_reps_logits_history
 
@@ -490,7 +490,8 @@ class Encoder(BertPreTrainedModel):
             CL_logits_from_target = self.classifier(test_batch_reps)
 
             overall_test_batch_logits = logits_from_pretrained+NN_logits_combine+CL_logits_from_target
-            return overall_test_batch_logits
+            pred_labels_batch = torch.softmax(overall_test_batch_logits.view(-1, self.num_labels), dim=1).argmax(dim=1)
+            return pred_labels_batch
 
 
 
@@ -804,6 +805,8 @@ def main():
         target_sample_batch_start = [x*target_sample_batch_size for x in range(target_sample_size//target_sample_batch_size)]
 
         iter_co = 0
+        max_test_acc = 0.0
+        max_dev_acc = 0.0
 
         for _ in trange(int(args.num_train_epochs), desc="Epoch"):
             '''for each epoch, we do 100 iter of NN; then full iter of target classification'''
@@ -821,15 +824,30 @@ def main():
                 source_samples_batch = tuple(t.to(device) for t in source_samples_batch)
                 source_samples_input_ids, source_samples_input_mask, source_samples_segment_ids, source_samples_label_ids = source_samples_batch
                 # assert input_ids.shape[0] == args.train_batch_size
+                entail_size_i = (source_samples_label_ids==0)#.sum()
+                neutral_size_i = (source_samples_label_ids==1)#.sum()
+                contra_size_i = (source_samples_label_ids==2)#.sum()
+
                 with torch.no_grad():
                     source_sample_logits, source_sample_reps = roberta_seq_model(source_samples_input_ids, source_samples_input_mask, None, labels=None)
-                source_sample_reps_logits = (source_sample_reps[:,0,:], source_sample_logits[0])
+                    source_sample_logits = source_sample_logits[0]
+                    source_sample_reps = source_sample_reps[:,0,:]
+                source_sample_reps_logits = (source_sample_reps, source_sample_logits)
 
-                source_sample_entail_reps_i = source_sample_reps[:,0,:][source_samples_label_ids==0]
-                source_sample_entail_reps_i = source_sample_entail_reps_i.sum(dim=0)
-                source_sample_neutral_reps_i = source_sample_reps[:,0,:][source_samples_label_ids==1]
-                source_sample_contra_reps_i = source_sample_reps[:,0,:][source_samples_label_ids==2]
+                source_sample_entail_reps_i = source_sample_reps[entail_size_i].mean(dim=0)
+                source_sample_neutral_reps_i = source_sample_reps[neutral_size_i].mean(dim=0)
+                source_sample_contra_reps_i = source_sample_reps[contra_size_i].mean(dim=0)
 
+                source_sample_entail_logits_i = source_sample_logits[entail_size_i].mean(dim=0)
+                source_sample_neutral_logits_i = source_sample_logits[neutral_size_i].mean(dim=0)
+                source_sample_contra_logits_i = source_sample_logits[contra_size_i].mean(dim=0)
+
+                source_sample_entail_reps_history.append(source_sample_entail_reps_i)
+                source_sample_neutral_reps_history.append(source_sample_neutral_reps_i)
+                source_sample_contra_reps_history.append(source_sample_contra_reps_i)
+                source_sample_entail_logits_history.append(source_sample_entail_logits_i)
+                source_sample_neutral_logits_history.append(source_sample_neutral_logits_i)
+                source_sample_contra_logits_history.append(source_sample_contra_logits_i)
 
                 '''choose one batch in target samples'''
                 selected_target_sample_start_list = random.Random(args.sampling_seed).sample(target_sample_batch_start, 1)
@@ -873,14 +891,52 @@ def main():
 
                 if step == 5:#100:
                     break
+
+            source_sample_entail_reps_history = torch.cat(source_sample_entail_reps_history, dim=0).mean(dim=0)
+            source_sample_neutral_reps_history = torch.cat(source_sample_neutral_reps_history, dim=0).mean(dim=0)
+            source_sample_contra_reps_history = torch.cat(source_sample_contra_reps_history, dim=0).mean(dim=0)
+            source_sample_entail_logits_history = torch.cat(source_sample_entail_logits_history, dim=0).mean(dim=0)
+            source_sample_neutral_logits_history = torch.cat(source_sample_neutral_logits_history, dim=0).mean(dim=0)
+            source_sample_contra_logits_history = torch.cat(source_sample_contra_logits_history, dim=0).mean(dim=0)
+            source_sample_reps_history = torch.cat([source_sample_entail_reps_history, source_sample_neutral_reps_history, source_sample_contra_reps_history], dim=0)
+            source_sample_logits_history = torch.cat([source_sample_entail_logits_history, source_sample_neutral_logits_history, source_sample_contra_logits_history], dim=0)
+            source_reps_logits_history = (source_sample_reps_history, source_sample_logits_history)
+
             '''now, train target classifier'''
+            target_sample_entail_reps_history = []
+            target_sample_neutral_reps_history = []
+            target_sample_contra_reps_history = []
+            target_sample_entail_logits_history = []
+            target_sample_neutral_logits_history = []
+            target_sample_contra_logits_history = []
             for target_sample_batch in target_samples_dataloader:
                 target_sample_batch = tuple(t.to(device) for t in target_sample_batch)
                 target_sample_input_ids_batch, target_sample_input_mask_batch, target_sample_segment_ids_batch, target_sample_label_ids_batch = target_sample_batch
                 # assert input_ids.shape[0] == args.train_batch_size
+                entail_size_i = (target_sample_label_ids_batch==0)#.sum()
+                neutral_size_i = (target_sample_label_ids_batch==1)#.sum()
+                contra_size_i = (target_sample_label_ids_batch==2)#.sum()
                 with torch.no_grad():
                     target_sample_logits, target_sample_reps = roberta_seq_model(target_sample_input_ids_batch, target_sample_input_mask_batch, None, labels=None)
-                target_sample_reps_logits_labels = (target_sample_reps[:,0,:], target_sample_logits[0], target_sample_label_ids_batch)
+                    target_sample_logits = target_sample_logits[0]
+                    target_sample_reps = target_sample_reps[:,0,:]
+                target_sample_reps_logits_labels = (target_sample_reps, target_sample_logits, target_sample_label_ids_batch)
+
+                target_sample_entail_reps_i = target_sample_reps[entail_size_i].mean(dim=0)
+                target_sample_neutral_reps_i = target_sample_reps[neutral_size_i].mean(dim=0)
+                target_sample_contra_reps_i = target_sample_reps[contra_size_i].mean(dim=0)
+
+                target_sample_entail_logits_i = target_sample_logits[entail_size_i].mean(dim=0)
+                target_sample_neutral_logits_i = target_sample_logits[neutral_size_i].mean(dim=0)
+                target_sample_contra_logits_i = target_sample_logits[contra_size_i].mean(dim=0)
+
+                target_sample_entail_reps_history.append(target_sample_entail_reps_i)
+                target_sample_neutral_reps_history.append(target_sample_neutral_reps_i)
+                target_sample_contra_reps_history.append(target_sample_contra_reps_i)
+                target_sample_entail_logits_history.append(target_sample_entail_logits_i)
+                target_sample_neutral_logits_history.append(target_sample_neutral_logits_i)
+                target_sample_contra_logits_history.append(target_sample_contra_logits_i)
+
 
                 model.train()
                 loss_cl = model(target_sample_reps_logits_labels, None, None,
@@ -891,149 +947,94 @@ def main():
                 optimizer.zero_grad()
 
                 iter_co+=1
-                # if iter_co % 50 ==0:
-                #     '''dev or test'''
+                if iter_co % 50 ==0:
+                    '''dev or test'''
+                    target_sample_entail_reps_history = torch.cat(target_sample_entail_reps_history, dim=0).mean(dim=0)
+                    target_sample_neutral_reps_history = torch.cat(target_sample_neutral_reps_history, dim=0).mean(dim=0)
+                    target_sample_contra_reps_history = torch.cat(target_sample_contra_reps_history, dim=0).mean(dim=0)
+                    target_sample_entail_logits_history = torch.cat(target_sample_entail_logits_history, dim=0).mean(dim=0)
+                    target_sample_neutral_logits_history = torch.cat(target_sample_neutral_logits_history, dim=0).mean(dim=0)
+                    target_sample_contra_logits_history = torch.cat(target_sample_contra_logits_history, dim=0).mean(dim=0)
+                    target_sample_reps_history = torch.cat([target_sample_entail_reps_history, target_sample_neutral_reps_history, target_sample_contra_reps_history], dim=0)
+                    target_sample_logits_history = torch.cat([target_sample_entail_logits_history, target_sample_neutral_logits_history, target_sample_contra_logits_history], dim=0)
+                    target_reps_logits_history = (target_sample_reps_history, target_sample_logits_history)
 
+
+
+
+
+                    '''
+                    start evaluate on dev set after this epoch
+                    '''
+                    model.eval()
+                    for idd, dev_or_test_dataloader in enumerate([dev_dataloader, eval_dataloader]):
+                        logger.info("***** Running evaluation *****")
+                        if idd == 0:
+                            logger.info("  Num examples = %d", len(dev_examples))
+                        else:
+                            logger.info("  Num examples = %d", len(eval_examples))
+                        logger.info("  Batch size = %d", args.eval_batch_size)
+
+                        preds = []
+                        gold_label_ids = []
+                        print('Evaluating...')
+                        for input_ids, input_mask, segment_ids, label_ids in dev_or_test_dataloader:
+                            input_ids = input_ids.to(device)
+                            input_mask = input_mask.to(device)
+                            segment_ids = segment_ids.to(device)
+                            label_ids = label_ids.to(device)
+                            # gold_label_ids+=list(label_ids.detach().cpu().numpy())
+
+                            with torch.no_grad():
+                                test_batch_logits, test_batch_reps = roberta_seq_model(input_ids, input_mask, None, labels=None)
+                                test_batch_logits = test_batch_logits[0]
+                                test_batch_reps = test_batch_reps[:,0,:]
+                                test_batch_reps_logits = (test_batch_reps,test_batch_logits)
 
                     # def forward(self, target_sample_reps_logits_labels, source_sample_reps_logits, source_batch_reps_labels,
                     #             test_batch_reps_logits, source_reps_logits_history, target_reps_logits_history,
                     #             mode='train_NN'):
+                                pred_labels_i = model(target_sample_reps_logits_labels, None, None,
+                                                            None, None, None, mode='train_CL', loss_fct = loss_fct)
+
+                            preds.append(pred_labels_i)
+                            gold_label_ids.append(label_ids)
+
+                        pred_label_ids = torch.cat(preds,dim=0).detach().cpu().numpy()
+                        gold_label_ids = torch.cat(gold_label_ids,dim=0).detach().cpu().numpy()
 
 
-                #
-                # iter_co+=1
-                #
-                # check_freq = 10
-                # if iter_co %check_freq==0:
-                #     '''first get info from MNLI by sampling'''
-                #     assert len(sample_input_ids_each_iter) == check_freq
-                #     mnli_sample_hidden_list = []
-                #     mnli_sample_logits_list = []
-                #     for ff in range(len(sample_input_ids_each_iter)):
-                #         model.eval()
-                #         with torch.no_grad():
-                #             mnli_sample_hidden_i, mnli_sample_logits_i = model(sample_input_ids_each_iter[ff], None, sample_input_mask_each_iter[ff], sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = None, few_shot_training=False, is_train=False, fetch_hidden_only=True, loss_fct=None)
-                #             mnli_sample_hidden_list.append(mnli_sample_hidden_i[None,:,:])
-                #             mnli_sample_logits_list.append(mnli_sample_logits_i[None,:,:])
-                #     sample_input_ids_each_iter = []
-                #     sample_input_mask_each_iter = []
-                #     '''sum or mean does not make big difference'''
-                #     prior_mnli_samples_outputs = torch.cat(mnli_sample_hidden_list,dim=0)
-                #     prior_mnli_samples_outputs = torch.mean(prior_mnli_samples_outputs,dim=0)
-                #     prior_mnli_samples_logits = torch.cat(mnli_sample_logits_list,dim=0)
-                #     prior_mnli_samples_logits = torch.mean(prior_mnli_samples_logits,dim=0)
-                #
-                #     '''second do few-shot training'''
-                #     for ff in range(2):
-                #         model.train()
-                #         few_loss = model(eval_all_input_ids_shot.to(device), None, eval_all_input_mask_shot.to(device), sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,1,1,1]), prior_samples_outputs = None, few_shot_training=True, is_train=True, loss_fct=loss_fct)
-                #         few_loss.backward()
-                #         optimizer.step()
-                #         optimizer.zero_grad()
-                #         print('few_loss:', few_loss)
-                #     '''
-                #     start evaluate on dev set after this epoch
-                #     '''
-                #     model.eval()
-                #     for idd, dev_or_test_dataloader in enumerate([dev_dataloader, eval_dataloader]):
-                #         logger.info("***** Running evaluation *****")
-                #         if idd == 0:
-                #             logger.info("  Num examples = %d", len(dev_examples))
-                #         else:
-                #             logger.info("  Num examples = %d", len(eval_examples))
-                #         logger.info("  Batch size = %d", args.eval_batch_size)
-                #
-                #         eval_loss = 0
-                #         nb_eval_steps = 0
-                #         preds = []
-                #         preds_LR= []
-                #         preds_NN = []
-                #         gold_label_ids = []
-                #         print('Evaluating...')
-                #         for input_ids, input_mask, segment_ids, label_ids in dev_or_test_dataloader:
-                #             input_ids = input_ids.to(device)
-                #             input_mask = input_mask.to(device)
-                #             segment_ids = segment_ids.to(device)
-                #             label_ids = label_ids.to(device)
-                #             gold_label_ids+=list(label_ids.detach().cpu().numpy())
-                #
-                #             all_input_ids = torch.cat([eval_all_input_ids_shot.to(device),input_ids],dim=0)
-                #             all_input_mask = torch.cat([eval_all_input_mask_shot.to(device),input_mask], dim=0)
-                #
-                #
-                #             with torch.no_grad():
-                #                 logits_LR, logits_NN, logits = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = prior_mnli_samples_outputs, prior_samples_logits = prior_mnli_samples_logits, is_train=False, loss_fct=None)
-                #
-                #             nb_eval_steps += 1
-                #             if len(preds) == 0:
-                #                 preds.append(logits.detach().cpu().numpy())
-                #                 preds_LR.append(logits_LR.detach().cpu().numpy())
-                #                 preds_NN.append(logits_NN.detach().cpu().numpy())
-                #             else:
-                #                 preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
-                #                 preds_LR[0] = np.append(preds_LR[0], logits_LR.detach().cpu().numpy(), axis=0)
-                #                 preds_NN[0] = np.append(preds_NN[0], logits_NN.detach().cpu().numpy(), axis=0)
-                #
-                #         preds = preds[0]
-                #         preds_LR = preds_LR[0]
-                #         preds_NN = preds_NN[0]
-                #
-                #         '''
-                #         preds: size*3 ["entailment", "neutral", "contradiction"]
-                #         wenpeng added a softxmax so that each row is a prob vec
-                #         '''
-                #         acc_list = []
-                #         for preds_i in [preds_LR, preds_NN, preds]:
-                #             pred_probs = softmax(preds_i,axis=1)
-                #             pred_indices = np.argmax(pred_probs, axis=1)
-                #             pred_label_ids = []
-                #             for p in pred_indices:
-                #                 pred_label_ids.append(0 if p == 0 else 1)
-                #             gold_label_ids = gold_label_ids
-                #             assert len(pred_label_ids) == len(gold_label_ids)
-                #             hit_co = 0
-                #             for k in range(len(pred_label_ids)):
-                #                 if pred_label_ids[k] == gold_label_ids[k]:
-                #                     hit_co +=1
-                #             test_acc = hit_co/len(gold_label_ids)
-                #
-                #             acc_list.append(test_acc)
-                #
-                #
-                #         softmax_LR = array_2_softmax(preds_LR)
-                #         softmax_NN = array_2_softmax(preds_NN)
-                #         preds_ensemble = []
-                #         for i in range(softmax_LR.shape[0]):
-                #             if softmax_LR[i][0] > softmax_LR[i][1] and softmax_NN[i][0] > softmax_NN[i][1]:
-                #                 preds_ensemble.append(0)
-                #             elif softmax_LR[i][0] < softmax_LR[i][1] and softmax_NN[i][0] < softmax_NN[i][1]:
-                #                 preds_ensemble.append(1)
-                #             elif softmax_LR[i][0] > softmax_LR[i][1] and softmax_LR[i][0] > softmax_NN[i][1]:
-                #                 preds_ensemble.append(0)
-                #             else:
-                #                 preds_ensemble.append(1)
-                #         hit_co = 0
-                #         for k in range(len(preds_ensemble)):
-                #             if preds_ensemble[k] == gold_label_ids[k]:
-                #                 hit_co +=1
-                #         test_acc = hit_co/len(gold_label_ids)
-                #         acc_list.append(test_acc)
-                #
-                #
-                #         if idd == 0: # this is dev
-                #             if acc_list[0] >= max_dev_acc:
-                #                 max_dev_acc = acc_list[0]
-                #                 print('\ndev acc_list:', acc_list, ' max_mean_dev_acc:', max_dev_acc, '\n')
-                #                 '''store the model'''
-                #                 # store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE', str(max_dev_acc))
-                #
-                #             else:
-                #                 print('\ndev acc_list:', acc_list, ' max_dev_acc:', max_dev_acc, '\n')
-                #                 break
-                #         else: # this is test
-                #             if acc_list[-2] > max_test_acc:
-                #                 max_test_acc = acc_list[-2]
-                #             print('\ntest acc_list:', acc_list, ' max_test_acc:', max_test_acc, '\n')
+                        pred_label_ids_binary = []
+                        for p in pred_label_ids:
+                            pred_label_ids_binary.append(0 if p == 0 else 1)
+                        gold_label_ids_binary = []
+                        for p in gold_label_ids:
+                            gold_label_ids_binary.append(0 if p == 0 else 1)
+
+                        assert len(pred_label_ids_binary) ==  len(gold_label_ids_binary)
+
+
+                        hit_co = 0
+                        for k in range(len(pred_label_ids_binary)):
+                            if pred_label_ids_binary[k] == gold_label_ids_binary[k]:
+                                hit_co +=1
+                        test_acc = hit_co/len(gold_label_ids_binary)
+
+
+                        if idd == 0: # this is dev
+                            if test_acc >= max_dev_acc:
+                                max_dev_acc = test_acc
+                                print('\ndev acc:', test_acc, ' max_mean_dev_acc:', max_dev_acc, '\n')
+                                '''store the model'''
+                                # store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE', str(max_dev_acc))
+
+                            else:
+                                print('\ndev acc:', test_acc, ' max_mean_dev_acc:', max_dev_acc, '\n')
+                                break
+                        else: # this is test
+                            if test_acc > max_test_acc:
+                                max_test_acc = test_acc
+                            print('\ntest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
                 #
 
 def array_2_softmax(a):
@@ -1043,18 +1044,51 @@ def array_2_softmax(a):
     sub_a = a[:,:2]
     return softmax(sub_a)
 
-if __name__ == "__main__":
-    # main()
-    import numpy as np
-    arr = np.asarray([[1,2,3],[4,5,6],[7,8,9],[10,11,12]])
-    tens = torch.from_numpy(arr).float()
-    ind = np.asarray([0,1,2,1])
-    ind_tens = torch.from_numpy(ind)
-    print('tens:', tens, 'ind_tens:', ind_tens)
+# def build_history():
+#     entail_reps_history = []
+#     neutral_reps_history = []
+#     contra_reps_history = []
+#
+#     entail_logits_history = []
+#     neutral_logits_history = []
+#     contra_logits_history = []
+#
+#     entail_size = []
+#     neutral_size = []
+#     contral_size = []
+#     for step, source_samples_batch in enumerate(source_samples_dataloader):
+#
+#         source_samples_batch = tuple(t.to(device) for t in source_samples_batch)
+#         source_samples_input_ids, source_samples_input_mask, source_samples_segment_ids, source_samples_label_ids = source_samples_batch
+#         # assert input_ids.shape[0] == args.train_batch_size
+#         with torch.no_grad():
+#             source_sample_logits, source_sample_reps = roberta_seq_model(source_samples_input_ids, source_samples_input_mask, None, labels=None)
+#         source_sample_reps_logits = (source_sample_reps[:,0,:], source_sample_logits[0])
+#
+#         source_sample_entail_reps_i = source_sample_reps[:,0,:][source_samples_label_ids==0]
+#         source_sample_entail_reps_i = source_sample_entail_reps_i.sum(dim=0)
+#         entail_size_i = (source_samples_label_ids==0).sum()
+#
+#         source_sample_neutral_reps_i = source_sample_reps[:,0,:][source_samples_label_ids==1]
+#         source_sample_neutral_reps_i = source_sample_neutral_reps_i.sum(dim=0)
+#         neutral_size_i = (source_samples_label_ids==1).sum()
+#
+#         source_sample_contra_reps_i = source_sample_reps[:,0,:][source_samples_label_ids==2]
+#         source_sample_contra_reps_i = source_sample_contra_reps_i.sum(dim=0)
+#         contra_size_i = (source_samples_label_ids==2).sum()
 
-    sub_tens = tens[ind_tens==1]
-    print('sub_tens:', sub_tens)
-    print('ind sum:', (ind_tens==1).sum())
+if __name__ == "__main__":
+    main()
+    # import numpy as np
+    # arr = np.asarray([[1,2,3],[4,5,6],[7,8,9],[10,11,12]])
+    # tens = torch.from_numpy(arr).float()
+    # ind = np.asarray([0,1,2,1])
+    # ind_tens = torch.from_numpy(ind)
+    # print('tens:', tens, 'ind_tens:', ind_tens)
+    #
+    # sub_tens = tens[ind_tens==1]
+    # print('sub_tens:', sub_tens)
+    # print('ind sum:', (ind_tens==1).sum())
 
 
     '''

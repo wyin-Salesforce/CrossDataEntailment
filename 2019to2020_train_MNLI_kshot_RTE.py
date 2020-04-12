@@ -940,12 +940,12 @@ def main():
         '''STILTS Phase, train target classifier'''
         iter_co = 0
         for _ in trange(int(args.stilts_epochs), desc="STILTS Epoch"):
-            target_sample_entail_reps_history = []
-            target_sample_neutral_reps_history = []
-            target_sample_contra_reps_history = []
-            target_sample_entail_logits_history = []
-            target_sample_neutral_logits_history = []
-            target_sample_contra_logits_history = []
+            target_sample_entail_reps_history_list = []
+            target_sample_neutral_reps_history_list = []
+            target_sample_contra_reps_history_list = []
+            target_sample_entail_logits_history_list = []
+            target_sample_neutral_logits_history_list = []
+            target_sample_contra_logits_history_list = []
             for target_sample_batch in target_samples_dataloader:
                 target_sample_batch = tuple(t.to(device) for t in target_sample_batch)
                 target_sample_input_ids_batch, target_sample_input_mask_batch, target_sample_segment_ids_batch, target_sample_label_ids_batch = target_sample_batch
@@ -968,14 +968,14 @@ def main():
                 target_sample_contra_logits_i = target_sample_logits[contra_size_i].mean(dim=0, keepdim=True)
 
                 if entail_size_i.sum()!=0:
-                    target_sample_entail_reps_history.append(target_sample_entail_reps_i)
-                    target_sample_entail_logits_history.append(target_sample_entail_logits_i)
+                    target_sample_entail_reps_history_list.append(target_sample_entail_reps_i)
+                    target_sample_entail_logits_history_list.append(target_sample_entail_logits_i)
                 if neutral_size_i.sum()!=0:
-                    target_sample_neutral_reps_history.append(target_sample_neutral_reps_i)
-                    target_sample_neutral_logits_history.append(target_sample_neutral_logits_i)
+                    target_sample_neutral_reps_history_list.append(target_sample_neutral_reps_i)
+                    target_sample_neutral_logits_history_list.append(target_sample_neutral_logits_i)
                 if contra_size_i.sum()!=0:
-                    target_sample_contra_reps_history.append(target_sample_contra_reps_i)
-                    target_sample_contra_logits_history.append(target_sample_contra_logits_i)
+                    target_sample_contra_reps_history_list.append(target_sample_contra_reps_i)
+                    target_sample_contra_logits_history_list.append(target_sample_contra_logits_i)
 
 
                 model.train()
@@ -989,12 +989,12 @@ def main():
                 iter_co+=1
                 if iter_co % 1 ==0:
                     '''dev or test'''
-                    target_sample_entail_reps_history = torch.cat(target_sample_entail_reps_history, dim=0).mean(dim=0, keepdim=True)
-                    target_sample_neutral_reps_history = torch.cat(target_sample_neutral_reps_history, dim=0).mean(dim=0, keepdim=True)
-                    target_sample_contra_reps_history = torch.cat(target_sample_contra_reps_history, dim=0).mean(dim=0, keepdim=True)
-                    target_sample_entail_logits_history = torch.cat(target_sample_entail_logits_history, dim=0).mean(dim=0, keepdim=True)
-                    target_sample_neutral_logits_history = torch.cat(target_sample_neutral_logits_history, dim=0).mean(dim=0, keepdim=True)
-                    target_sample_contra_logits_history = torch.cat(target_sample_contra_logits_history, dim=0).mean(dim=0, keepdim=True)
+                    target_sample_entail_reps_history = torch.cat(target_sample_entail_reps_history_list, dim=0).mean(dim=0, keepdim=True)
+                    target_sample_neutral_reps_history = torch.cat(target_sample_neutral_reps_history_list, dim=0).mean(dim=0, keepdim=True)
+                    target_sample_contra_reps_history = torch.cat(target_sample_contra_reps_history_list, dim=0).mean(dim=0, keepdim=True)
+                    target_sample_entail_logits_history = torch.cat(target_sample_entail_logits_history_list, dim=0).mean(dim=0, keepdim=True)
+                    target_sample_neutral_logits_history = torch.cat(target_sample_neutral_logits_history_list, dim=0).mean(dim=0, keepdim=True)
+                    target_sample_contra_logits_history = torch.cat(target_sample_contra_logits_history_list, dim=0).mean(dim=0, keepdim=True)
                     target_sample_reps_history = torch.cat([target_sample_entail_reps_history, target_sample_neutral_reps_history, target_sample_contra_reps_history], dim=0)
                     target_sample_logits_history = torch.cat([target_sample_entail_logits_history, target_sample_neutral_logits_history, target_sample_contra_logits_history], dim=0)
                     target_reps_logits_history = (target_sample_reps_history, target_sample_logits_history)

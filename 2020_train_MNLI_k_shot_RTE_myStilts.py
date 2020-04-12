@@ -754,7 +754,7 @@ def main():
                 # sequence_output_from_source_side = Variable(sequence_output_from_source_side.data, requires_grad=True)
 
                 model.train()
-                loss_cross_domain = model(sequence_output_from_source_side, target_labels_batch, logits_from_source_side[0], loss_fct=loss_fct)
+                loss_cross_domain = model(sequence_output_from_source_side[:,0,:], target_labels_batch, logits_from_source_side[0], loss_fct=loss_fct)
                 print('loss_cross_domain:', loss_cross_domain)
                 loss_cross_domain.backward()
                 optimizer.step()
@@ -780,7 +780,7 @@ def main():
                             logits_from_source_side, sequence_output_from_source_side = roberta_model(target_dev_input_ids_batch, target_dev_input_mask_batch, None, labels=None)
                             # sequence_output_from_source_side = roberta_model.sequence_output[:,0,:]
 
-                            acc_i = model(sequence_output_from_source_side, target_labels_batch, logits_from_source_side[0], loss_fct=loss_fct)
+                            acc_i = model(sequence_output_from_source_side[:,0,:], target_labels_batch, logits_from_source_side[0], loss_fct=loss_fct)
                             dev_acc+=acc_i.item()
 
                     dev_acc/=len(dev_dataloader)
@@ -802,7 +802,7 @@ def main():
                                 logits_from_source_side, sequence_output_from_source_side = roberta_model(target_test_input_ids_batch, target_test_input_mask_batch, None, labels=None)
                                 # sequence_output_from_source_side = roberta_model.sequence_output[:,0,:]
 
-                                acc_i = model(sequence_output_from_source_side, target_labels_batch, logits_from_source_side[0], loss_fct=loss_fct)
+                                acc_i = model(sequence_output_from_source_side[:,0,:], target_labels_batch, logits_from_source_side[0], loss_fct=loss_fct)
                                 test_acc+=acc_i.item()
 
                         test_acc/=len(test_dataloader)

@@ -491,19 +491,21 @@ class Encoder(BertPreTrainedModel):
             # print('logits_from_pretrained:', logits_from_pretrained)
             # print('NN_logits_combine:', NN_logits_combine)
             # print('CL_logits_from_target:', CL_logits_from_target)
-            # overall_test_batch_logits = logits_from_pretrained+NN_logits_combine+CL_logits_from_target
+            overall_test_batch_logits = logits_from_pretrained+NN_logits_combine+CL_logits_from_target
             # overall_test_batch_logits = logits_from_pretrained
-            # overall_test_batch_logits = NN_logits_combine
+            overall_test_batch_logits = NN_logits_combine
             # overall_test_batch_logits = CL_logits_from_target
-            '''majority voting'''
-            pred_labels_batch_roberta = torch.softmax(logits_from_pretrained.view(-1, self.num_labels), dim=1).argmax(dim=1, keepdim=True) #(batch, 1)
-            pred_labels_batch_NN = torch.softmax(NN_logits_combine.view(-1, self.num_labels), dim=1).argmax(dim=1, keepdim=True)
-            pred_labels_batch_CL = torch.softmax(CL_logits_from_target.view(-1, self.num_labels), dim=1).argmax(dim=1, keepdim=True)
-            combine_pred_labels_batch = torch.cat([pred_labels_batch_roberta,pred_labels_batch_NN , pred_labels_batch_CL], dim=1) #(batch, 3)
-            pred_labels_batch = (combine_pred_labels_batch==0).sum(dim=1)
-            pred_labels_batch = 1-(pred_labels_batch>1).type(torch.cuda.LongTensor)#[entail_size_batch>1]=0
+            pred_labels_batch = torch.softmax(overall_test_batch_logits.view(-1, self.num_labels), dim=1).argmax(dim=1)
 
-            # pred_labels_batch = torch.softmax(overall_test_batch_logits.view(-1, self.num_labels), dim=1).argmax(dim=1)
+            '''majority voting'''
+            # pred_labels_batch_roberta = torch.softmax(logits_from_pretrained.view(-1, self.num_labels), dim=1).argmax(dim=1, keepdim=True) #(batch, 1)
+            # pred_labels_batch_NN = torch.softmax(NN_logits_combine.view(-1, self.num_labels), dim=1).argmax(dim=1, keepdim=True)
+            # pred_labels_batch_CL = torch.softmax(CL_logits_from_target.view(-1, self.num_labels), dim=1).argmax(dim=1, keepdim=True)
+            # combine_pred_labels_batch = torch.cat([pred_labels_batch_roberta,pred_labels_batch_NN , pred_labels_batch_CL], dim=1) #(batch, 3)
+            # pred_labels_batch = (combine_pred_labels_batch==0).sum(dim=1)
+            # pred_labels_batch = 1-(pred_labels_batch>1).type(torch.cuda.LongTensor)#[entail_size_batch>1]=0
+
+
 
             return pred_labels_batch
 

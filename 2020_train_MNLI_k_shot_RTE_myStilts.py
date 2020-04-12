@@ -609,7 +609,7 @@ def main():
     # pretrain_model_dir = 'roberta-large-mnli' #'roberta-large' , 'roberta-large-mnli'
     '''we start from the pretrained MNLI model'''
     # pretrain_model_dir = '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE/0.8664259927797834-0.8106035345115038'
-    model = Encoder(roberta_model.config)
+    model = Encoder()#roberta_model.config)
     model.to(device)
     # store_bert_model(model, tokenizer.vocab, '/export/home/workspace/CrossDataEntailment/models', 'try')
     # exit(0)

@@ -750,7 +750,6 @@ def main():
 
                 # with torch.no_grad():
                 logits_from_source_side, sequence_output_from_source_side = roberta_model(train_target_input_ids_batch, train_target_input_mask_batch, None, labels=None)
-                # sequence_output_from_source_side = roberta_model.sequence_output[:,0,:]
                 sequence_output_from_source_side = Variable(sequence_output_from_source_side.data, requires_grad=False)
 
                 model.train()

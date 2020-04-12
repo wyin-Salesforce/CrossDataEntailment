@@ -1034,7 +1034,7 @@ if __name__ == "__main__":
     # main()
     import numpy as np
     arr = np.asarray([[1,2,3],[4,5,6],[7,8,9],[10,11,12]])
-    tens = torch.from_numpy(img).float()
+    tens = torch.from_numpy(arr).float()
     ind = np.asarray([0,1,2,1])
     ind_tens = torch.from_numpy(ind)
     print('tens:', tens, 'ind_tens:', ind_tens)

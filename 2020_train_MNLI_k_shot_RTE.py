@@ -390,7 +390,7 @@ class Encoder(BertPreTrainedModel):
     def __init__(self, config):
         super(Encoder, self).__init__(config)
         self.num_labels = config.num_labels
-        self.roberta = RobertaModel(config)
+        self.roberta = None#RobertaModel(config)
         self.classifier = RobertaClassificationHead(config)
         self.classifier_target = RobertaClassificationHead(config)
         self.classifier_target.load_state_dict(self.classifier.state_dict())

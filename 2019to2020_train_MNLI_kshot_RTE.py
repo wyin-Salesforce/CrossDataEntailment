@@ -502,7 +502,7 @@ class Encoder(BertPreTrainedModel):
             combine_pred_labels_batch = torch.cat([pred_labels_batch_roberta,pred_labels_batch_NN , pred_labels_batch_CL], dim=1) #(batch, 3)
             print('combine_pred_labels_batch:', combine_pred_labels_batch)
             pred_labels_batch = (combine_pred_labels_batch==0).sum(dim=1)
-            pred_labels_batch = 1-(pred_labels_batch>1)#[entail_size_batch>1]=0
+            pred_labels_batch = 1-(pred_labels_batch>1).type(torch.cuda.LongTensor)#[entail_size_batch>1]=0
             print('pred_labels_batch:', pred_labels_batch)
             exit(0)
 
@@ -920,7 +920,7 @@ def main():
                     optimizer.step()
                     optimizer.zero_grad()
 
-                if step == 100:#100:
+                if step == 10:#100:
                     break
 
             # print('source_sample_entail_reps_history before:', source_sample_entail_reps_history)

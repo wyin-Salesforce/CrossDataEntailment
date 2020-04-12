@@ -844,7 +844,6 @@ def main():
 if __name__ == "__main__":
     main()
     '''
-    1, change the encoder to the full roberta-large-mnli
-    2, change the k-shot size easily
+    主要卖点是搞了个combine的把RTE的全部对应抽MNLI那么多，然后就不逊在遍历两边的成本了， 然后kshot 1200最好
     '''
-# CUDA_VISIBLE_DEVICES=3 python -u 2020.forfun.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-6 --data_dir '' --output_dir '' --k_shot 1500 --seed 42 > /export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLI3shotRTE/log.train.mnli.kshot.rte.seed42.txt 2>&1
+# CUDA_VISIBLE_DEVICES=3 python -u 2020.forfun.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-6 --data_dir '' --output_dir '' --k_shot 1200 --seed 42 --num_train_epochs 10 > /export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLI3shotRTE/log.train.mnli.kshot.rte.seed42.txt 2>&1

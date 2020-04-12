@@ -892,7 +892,7 @@ def main():
                 if step == 5:#100:
                     break
 
-            print('source_sample_entail_reps_history before:', source_sample_entail_reps_history.shape)
+            print('source_sample_entail_reps_history before:', source_sample_entail_reps_history)
 
             source_sample_entail_reps_history = torch.cat(source_sample_entail_reps_history, dim=0).mean(dim=0)
             source_sample_neutral_reps_history = torch.cat(source_sample_neutral_reps_history, dim=0).mean(dim=0)

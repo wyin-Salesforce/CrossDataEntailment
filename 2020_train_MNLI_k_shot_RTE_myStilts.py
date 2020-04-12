@@ -754,7 +754,7 @@ def main():
                 logits_from_source_side = Variable(logits_from_source_side[0].data, requires_grad=False)
 
                 model.train()
-                loss_cross_domain = model(sequence_output_from_source_side, target_labels_batch, logits_from_source_side, loss_fct=loss_fct)
+                loss_cross_domain = model(sequence_output_from_source_side, target_labels_batch, None, loss_fct=loss_fct)
                 print('loss_cross_domain:', loss_cross_domain)
                 loss_cross_domain.backward()
                 optimizer.step()

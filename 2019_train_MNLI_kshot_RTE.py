@@ -1045,8 +1045,8 @@ def main():
 
 
                         if idd == 0: # this is dev
-                            if np.mean(acc_list) >= max_dev_acc:
-                                max_dev_acc = np.mean(acc_list)
+                            if acc_list[0] >= max_dev_acc:
+                                max_dev_acc = acc_list[0]
                                 print('\ndev acc_list:', acc_list, ' max_mean_dev_acc:', max_dev_acc, '\n')
                                 '''store the model'''
                                 # store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE', str(max_dev_acc))

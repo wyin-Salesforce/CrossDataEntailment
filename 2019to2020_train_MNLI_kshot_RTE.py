@@ -810,7 +810,7 @@ def main():
 
         for _ in trange(int(args.num_train_epochs), desc="Epoch"):
             '''for each epoch, we do 100 iter of NN; then full iter of target classification'''
-            '''NN training'''
+            '''NN training Phase'''
             random.Random(args.sampling_seed).shuffle(source_id_list)
 
             source_sample_entail_reps_history = []
@@ -914,8 +914,9 @@ def main():
             source_sample_reps_history = torch.cat([source_sample_entail_reps_history, source_sample_neutral_reps_history, source_sample_contra_reps_history], dim=0)
             source_sample_logits_history = torch.cat([source_sample_entail_logits_history, source_sample_neutral_logits_history, source_sample_contra_logits_history], dim=0)
             source_reps_logits_history = (source_sample_reps_history, source_sample_logits_history)
+            print('source_sample_logits_history:', source_sample_logits_history)
 
-            '''now, train target classifier'''
+            '''STILTS Phase, train target classifier'''
             target_sample_entail_reps_history = []
             target_sample_neutral_reps_history = []
             target_sample_contra_reps_history = []
@@ -974,6 +975,7 @@ def main():
                     target_sample_reps_history = torch.cat([target_sample_entail_reps_history, target_sample_neutral_reps_history, target_sample_contra_reps_history], dim=0)
                     target_sample_logits_history = torch.cat([target_sample_entail_logits_history, target_sample_neutral_logits_history, target_sample_contra_logits_history], dim=0)
                     target_reps_logits_history = (target_sample_reps_history, target_sample_logits_history)
+                    print('target_sample_logits_history:', target_sample_logits_history)
 
 
 
@@ -1011,7 +1013,8 @@ def main():
                     #             test_batch_reps_logits_labels, source_reps_logits_history, target_reps_logits_history,
                     #             mode='train_NN'):
                                 pred_labels_i = model(None, None, None,
-                                                            test_batch_reps_logits_labels, source_reps_logits_history, target_reps_logits_history, mode='test', loss_fct = loss_fct)
+                                                    test_batch_reps_logits_labels, source_reps_logits_history, target_reps_logits_history,
+                                                    mode='test', loss_fct = loss_fct)
                             # print('pred_labels_i:',pred_labels_i)
                             preds.append(pred_labels_i)
                             gold_label_ids.append(label_ids)
@@ -1053,58 +1056,11 @@ def main():
                             print('\ntest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
                 #
 
-def array_2_softmax(a):
-    for i in range(a.shape[0]):
-        if a[i][2]>a[i][1]:
-            a[i][1] = a[i][2]
-    sub_a = a[:,:2]
-    return softmax(sub_a)
 
-# def build_history():
-#     entail_reps_history = []
-#     neutral_reps_history = []
-#     contra_reps_history = []
-#
-#     entail_logits_history = []
-#     neutral_logits_history = []
-#     contra_logits_history = []
-#
-#     entail_size = []
-#     neutral_size = []
-#     contral_size = []
-#     for step, source_samples_batch in enumerate(source_samples_dataloader):
-#
-#         source_samples_batch = tuple(t.to(device) for t in source_samples_batch)
-#         source_samples_input_ids, source_samples_input_mask, source_samples_segment_ids, source_samples_label_ids = source_samples_batch
-#         # assert input_ids.shape[0] == args.train_batch_size
-#         with torch.no_grad():
-#             source_sample_logits, source_sample_reps = roberta_seq_model(source_samples_input_ids, source_samples_input_mask, None, labels=None)
-#         source_sample_reps_logits = (source_sample_reps[:,0,:], source_sample_logits[0])
-#
-#         source_sample_entail_reps_i = source_sample_reps[:,0,:][source_samples_label_ids==0]
-#         source_sample_entail_reps_i = source_sample_entail_reps_i.sum(dim=0)
-#         entail_size_i = (source_samples_label_ids==0).sum()
-#
-#         source_sample_neutral_reps_i = source_sample_reps[:,0,:][source_samples_label_ids==1]
-#         source_sample_neutral_reps_i = source_sample_neutral_reps_i.sum(dim=0)
-#         neutral_size_i = (source_samples_label_ids==1).sum()
-#
-#         source_sample_contra_reps_i = source_sample_reps[:,0,:][source_samples_label_ids==2]
-#         source_sample_contra_reps_i = source_sample_contra_reps_i.sum(dim=0)
-#         contra_size_i = (source_samples_label_ids==2).sum()
+
 
 if __name__ == "__main__":
     main()
-    # import numpy as np
-    # arr = np.asarray([[1,2,3],[4,5,6],[7,8,9],[10,11,12]])
-    # tens = torch.from_numpy(arr).float()
-    # ind = np.asarray([0,1,2,1])
-    # ind_tens = torch.from_numpy(ind)
-    # print('tens:', tens, 'ind_tens:', ind_tens)
-    #
-    # sub_tens = tens[ind_tens==1]
-    # print('sub_tens:', sub_tens)
-    # print('ind sum:', (ind_tens==1).sum())
 
 
     '''

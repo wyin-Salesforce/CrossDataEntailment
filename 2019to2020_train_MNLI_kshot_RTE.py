@@ -201,7 +201,7 @@ class RteProcessor(DataProcessor):
         assert len(examples_entail) == K
         assert len(examples_neutral) == K
         assert len(examples_contra) == K
-        return examples_entail, examples_neutral, examples_contra
+        return examples_entail, examples_neutral, []#examples_contra
 
     def get_RTE_as_dev(self, filename):
         '''
@@ -1011,12 +1011,6 @@ def main():
                     '''
                     model.eval()
                     for idd, dev_or_test_dataloader in enumerate([dev_dataloader, eval_dataloader]):
-                        logger.info("***** Running evaluation *****")
-                        if idd == 0:
-                            logger.info("  Num examples = %d", len(dev_examples))
-                        else:
-                            logger.info("  Num examples = %d", len(eval_examples))
-                        logger.info("  Batch size = %d", args.eval_batch_size)
 
                         preds = []
                         gold_label_ids = []

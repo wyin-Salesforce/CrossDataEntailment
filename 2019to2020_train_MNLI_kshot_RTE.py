@@ -1031,9 +1031,19 @@ def array_2_softmax(a):
     return softmax(sub_a)
 
 if __name__ == "__main__":
-    main()
+    # main()
+    import numpy as np
+    arr = np.asarray([[1,2,3],[4,5,6],[7,8,9],[10,11,12]])
+    tens = torch.from_numpy(img).float()
+    ind = np.asarray([0,1,2,1])
+    ind_tens = torch.from_numpy(ind)
+    print('tens:', tens, 'ind_tens:', ind_tens)
+
+    sub_tens = tens[ind_tens=0]
+    print('sub_tens:', sub_tens)
+
+
     '''
-    这儿针对以前的train_MNLI_test_3shotRTE_meta_learning.v2.py的改动就是在RTE sampling的时候；
-    然后就是只care acc_list[0]的测试标准，
+    1, MNLI 只读取了1000
     '''
 # CUDA_VISIBLE_DEVICES=3 python -u 2019to2020_train_MNLI_kshot_3shot_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3 --sampling_seed 42

@@ -836,9 +836,9 @@ def main():
 
 
                 source_sample_entail_reps_i = source_sample_reps[entail_size_i].mean(dim=0)
-                print('source_sample_entail_reps_i:', source_sample_entail_reps_i)
-                print('entail_size_i:', entail_size_i, 'source_samples_label_ids:', source_samples_label_ids)
-                exit(0)
+                # print('source_sample_entail_reps_i:', source_sample_entail_reps_i)
+                # print('entail_size_i:', entail_size_i, 'source_samples_label_ids:', source_samples_label_ids)
+                # exit(0)
                 source_sample_neutral_reps_i = source_sample_reps[neutral_size_i].mean(dim=0)
                 source_sample_contra_reps_i = source_sample_reps[contra_size_i].mean(dim=0)
 
@@ -846,12 +846,17 @@ def main():
                 source_sample_neutral_logits_i = source_sample_logits[neutral_size_i].mean(dim=0)
                 source_sample_contra_logits_i = source_sample_logits[contra_size_i].mean(dim=0)
 
-                source_sample_entail_reps_history.append(source_sample_entail_reps_i)
-                source_sample_neutral_reps_history.append(source_sample_neutral_reps_i)
-                source_sample_contra_reps_history.append(source_sample_contra_reps_i)
-                source_sample_entail_logits_history.append(source_sample_entail_logits_i)
-                source_sample_neutral_logits_history.append(source_sample_neutral_logits_i)
-                source_sample_contra_logits_history.append(source_sample_contra_logits_i)
+                if entail_size_i.sum()!=0:
+                    source_sample_entail_reps_history.append(source_sample_entail_reps_i)
+                    source_sample_entail_logits_history.append(source_sample_entail_logits_i)
+
+                if neutral_size_i.sum()!=0:
+                    source_sample_neutral_reps_history.append(source_sample_neutral_reps_i)
+                    source_sample_neutral_logits_history.append(source_sample_neutral_logits_i)
+
+                if contra_size_i.sum()!=0:
+                    source_sample_contra_reps_history.append(source_sample_contra_reps_i)
+                    source_sample_contra_logits_history.append(source_sample_contra_logits_i)
 
                 '''choose one batch in target samples'''
                 selected_target_sample_start_list = random.Random(args.sampling_seed).sample(target_sample_batch_start, 1)
@@ -938,12 +943,15 @@ def main():
                 target_sample_neutral_logits_i = target_sample_logits[neutral_size_i].mean(dim=0)
                 target_sample_contra_logits_i = target_sample_logits[contra_size_i].mean(dim=0)
 
-                target_sample_entail_reps_history.append(target_sample_entail_reps_i)
-                target_sample_neutral_reps_history.append(target_sample_neutral_reps_i)
-                target_sample_contra_reps_history.append(target_sample_contra_reps_i)
-                target_sample_entail_logits_history.append(target_sample_entail_logits_i)
-                target_sample_neutral_logits_history.append(target_sample_neutral_logits_i)
-                target_sample_contra_logits_history.append(target_sample_contra_logits_i)
+                if entail_size_i.sum()!=0:
+                    target_sample_entail_reps_history.append(target_sample_entail_reps_i)
+                    target_sample_entail_logits_history.append(target_sample_entail_logits_i)
+                if neutral_size_i.sum()!=0:
+                    target_sample_neutral_reps_history.append(target_sample_neutral_reps_i)
+                    target_sample_neutral_logits_history.append(target_sample_neutral_logits_i)
+                if contra_size_i.sum()!=0:
+                    target_sample_contra_reps_history.append(target_sample_contra_reps_i)
+                    target_sample_contra_logits_history.append(target_sample_contra_logits_i)
 
 
                 model.train()

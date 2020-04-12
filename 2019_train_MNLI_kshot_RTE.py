@@ -148,54 +148,61 @@ class RteProcessor(DataProcessor):
 
 
 
-    def get_RTE_as_train(self, filename):
-        '''
-        can read the training file, dev and test file
-        '''
-        examples_entail=[]
-        examples_neutral=[]
-        examples_contra=[]
+    def get_RTE_as_train(self, filename, K, sampling_seed):
+        '''first load all into lists'''
         readfile = codecs.open(filename, 'r', 'utf-8')
-        class2size = defaultdict(int)
+        entail_list = []
+        not_entail_list = []
         line_co=0
         for row in readfile:
             if line_co>0:
                 line=row.strip().split('\t')
-                guid = "train-"+str(line_co-1)
-                text_a = line[1].strip()
-                text_b = line[2].strip()
-                if random.uniform(0, 1) < 0.85:
-                    continue
-                # label = line[3].strip() #["entailment", "not_entailment"]
-                # label = 'entailment'  if line[3].strip() == 'entailment' else 'neutral'
-                if line[3].strip() == 'entailment':
-                    labels = ['entailment']
+                premise = line[1].strip()
+                hypothesis = line[2].strip()
+                label = line[3].strip()
+                if label == 'entailment':
+                    entail_list.append((premise, hypothesis))
                 else:
-                    labels = ['neutral', 'contradiction']
-                for label in labels:
-                    if class2size.get(label, 0) < 3:
-                        if label == 'entailment':
-                            examples_entail.append(
-                                InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
-                        elif label == 'neutral':
-                            examples_neutral.append(
-                                InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
-                        else:
-                            examples_contra.append(
-                                InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
-                        class2size[label]+=1
-                    else:
-                        continue
-                if len(class2size.keys()) == 3 and sum(class2size.values()) == 9:
-                    break
+                    not_entail_list.append((premise, hypothesis))
             line_co+=1
-            # if line_co > 20000:
-            #     break
         readfile.close()
-        print('loaded  size:', line_co)
-        assert len(examples_entail) == 3
-        assert len(examples_neutral) == 3
-        assert len(examples_contra) == 3
+
+        '''now randomly sampling'''
+        entail_size = len(entail_list)
+        not_entail_size = len(not_entail_list)
+        print('entail_size:', entail_size, 'not_entail_size:', not_entail_size)
+        if K <= entail_size:
+            sampled_entail = random.Random(sampling_seed).sample(entail_list, K)
+        else:
+            sampled_entail = random.Random(sampling_seed).choices(entail_list, k = K)
+        if K <= int(not_entail_size/2):
+            sampled_not_entail = random.Random(sampling_seed).sample(not_entail_list, 2*K)
+        else:
+            sampled_not_entail = random.Random(sampling_seed).choices(not_entail_list, k = 2*K)
+
+        # print('sampled_entail size:', len(sampled_entail))
+        # print('sampled_not_entail size:', len(sampled_not_entail))
+        examples_entail=[]
+        examples_neutral=[]
+        examples_contra=[]
+
+        for idd, pair in enumerate(sampled_entail):
+            examples_entail.append(
+                InputExample(guid='entail_'+str(idd), text_a=pair[0], text_b=pair[1], label='entailment'))
+
+        for idd, pair in enumerate(sampled_not_entail):
+            if idd < K:
+                '''neutral'''
+                examples_neutral.append(
+                    InputExample(guid='neutral_'+str(idd), text_a=pair[0], text_b=pair[1], label='neutral'))
+            else:
+                '''contradiction'''
+                examples_contra.append(
+                    InputExample(guid='contra_'+str(idd), text_a=pair[0], text_b=pair[1], label='contradiction'))
+
+        assert len(examples_entail) == K
+        assert len(examples_neutral) == K
+        assert len(examples_contra) == K
         return examples_entail, examples_neutral, examples_contra
 
     def get_RTE_as_dev(self, filename):
@@ -486,63 +493,63 @@ class Encoder(BertPreTrainedModel):
 
 
 
-            #
-            # '''??? output samples_outputs for accumulating info for testing phase'''
-            # samples_outputs = pooled_outputs[:sample_size*class_size,:] #(9, hidden_size)
-            # if fetch_hidden_only:
-            #     return samples_outputs, LR_logits[:sample_size*class_size,:]
-            #
-            # '''这儿将MNLI 的class rep与kshot的reps结合一起'''
-            # samples_outputs =  torch.cat([prior_samples_outputs, samples_outputs], dim=0)
-            # batch_outputs = pooled_outputs[sample_size*class_size:,:] #(batch, hidden_size)
-            # # print('samples_outputs shaoe:', samples_outputs.shape)
-            # # sample_logits = self.classifier(samples_outputs) #(9, 3)
-            # # if few_shot_training:
-            # #     loss_fct = CrossEntropyLoss()
-            # #     '''This criterion combines :func:`nn.LogSoftmax` and :func:`nn.NLLLoss` in one single class.'''
-            # #     # loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
-            # #     sample_loss = loss_fct(sample_logits.view(-1, self.num_labels), sample_labels.view(-1))
-            # #     return sample_loss
-            #
-            #
-            # batch_size = batch_outputs.shape[0]
-            # hidden_size = batch_outputs.shape[1]
-            # # print('batch_size:',batch_size, 'hidden_size:', hidden_size)
-            #
-            #
-            # # samples_outputs = samples_outputs.reshape(sample_size, class_size, samples_outputs.shape[1])
-            # '''we use average for class embedding'''
-            # # class_rep = torch.mean(samples_outputs,dim=0) #(class_size, hidden_size)
-            # repeat_sample_rep = torch.cat([samples_outputs]*batch_size, dim=0) #(9*batch_size, hidden)
-            # repeat_batch_outputs = batch_outputs.repeat(1, samples_outputs.shape[0]).view(-1, hidden_size)#(9*batch_size, hidden)
-            # '''? add similarity or something similar?'''
-            # mlp_input = torch.cat([
-            # repeat_batch_outputs, repeat_sample_rep,
-            # # repeat_batch_outputs - repeat_sample_rep,
-            # # cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep),
-            # repeat_batch_outputs*repeat_sample_rep
-            # ], dim=1) #(batch*class_size, hidden*2)
-            # '''??? add drop out here'''
-            # group_scores = torch.tanh(self.mlp_2(self.dropout(torch.tanh(self.mlp_1(self.dropout(mlp_input))))))#(batch*class_size, 1)
-            # group_scores_with_simi = group_scores + cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)
-            # # group_scores = torch.tanh(self.mlp_2((torch.tanh(mlp_input))))#(9*batch_size, 1)
-            # # print('group_scores:',group_scores)
-            #
-            # similarity_matrix = group_scores_with_simi.reshape(batch_size, samples_outputs.shape[0])
-            #
-            # if prior_samples_logits is not None:
-            #     sample_logits = torch.cuda.FloatTensor(9, 3).fill_(0)
-            #     sample_logits[torch.arange(0, 9).long(), sample_labels] = 1.0
-            #     sample_logits = sample_logits.repeat(2,1)
-            # else:
-            #     '''the results now that using LR predicted logits is better'''
-            #     sample_logits = prior_samples_logits
-            #     sample_logits = torch.cat([sample_logits, LR_logits[:sample_size*class_size,:]],dim=0)
-            # batch_logits_from_NN = nn.Softmax(dim=1)(torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits)) #(batch, 3)
-            # # print('batch_logits_from_LR:',batch_logits_from_LR)
-            # # print('batch_logits_from_NN:', batch_logits_from_NN)
-            # logits = batch_logits_from_LR+batch_logits_from_NN
-            return batch_logits_from_LR#, batch_logits_from_NN, logits
+
+            '''??? output samples_outputs for accumulating info for testing phase'''
+            samples_outputs = pooled_outputs[:sample_size*class_size,:] #(9, hidden_size)
+            if fetch_hidden_only:
+                return samples_outputs, LR_logits[:sample_size*class_size,:]
+
+            '''这儿将MNLI 的class rep与kshot的reps结合一起'''
+            samples_outputs =  torch.cat([prior_samples_outputs, samples_outputs], dim=0)
+            batch_outputs = pooled_outputs[sample_size*class_size:,:] #(batch, hidden_size)
+            # print('samples_outputs shaoe:', samples_outputs.shape)
+            # sample_logits = self.classifier(samples_outputs) #(9, 3)
+            # if few_shot_training:
+            #     loss_fct = CrossEntropyLoss()
+            #     '''This criterion combines :func:`nn.LogSoftmax` and :func:`nn.NLLLoss` in one single class.'''
+            #     # loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+            #     sample_loss = loss_fct(sample_logits.view(-1, self.num_labels), sample_labels.view(-1))
+            #     return sample_loss
+
+
+            batch_size = batch_outputs.shape[0]
+            hidden_size = batch_outputs.shape[1]
+            # print('batch_size:',batch_size, 'hidden_size:', hidden_size)
+
+
+            # samples_outputs = samples_outputs.reshape(sample_size, class_size, samples_outputs.shape[1])
+            '''we use average for class embedding'''
+            # class_rep = torch.mean(samples_outputs,dim=0) #(class_size, hidden_size)
+            repeat_sample_rep = torch.cat([samples_outputs]*batch_size, dim=0) #(9*batch_size, hidden)
+            repeat_batch_outputs = batch_outputs.repeat(1, samples_outputs.shape[0]).view(-1, hidden_size)#(9*batch_size, hidden)
+            '''? add similarity or something similar?'''
+            mlp_input = torch.cat([
+            repeat_batch_outputs, repeat_sample_rep,
+            # repeat_batch_outputs - repeat_sample_rep,
+            # cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep),
+            repeat_batch_outputs*repeat_sample_rep
+            ], dim=1) #(batch*class_size, hidden*2)
+            '''??? add drop out here'''
+            group_scores = torch.tanh(self.mlp_2(self.dropout(torch.tanh(self.mlp_1(self.dropout(mlp_input))))))#(batch*class_size, 1)
+            group_scores_with_simi = group_scores + cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)
+            # group_scores = torch.tanh(self.mlp_2((torch.tanh(mlp_input))))#(9*batch_size, 1)
+            # print('group_scores:',group_scores)
+
+            similarity_matrix = group_scores_with_simi.reshape(batch_size, samples_outputs.shape[0])
+
+            if prior_samples_logits is not None:
+                sample_logits = torch.cuda.FloatTensor(9, 3).fill_(0)
+                sample_logits[torch.arange(0, 9).long(), sample_labels] = 1.0
+                sample_logits = sample_logits.repeat(2,1)
+            else:
+                '''the results now that using LR predicted logits is better'''
+                sample_logits = prior_samples_logits
+                sample_logits = torch.cat([sample_logits, LR_logits[:sample_size*class_size,:]],dim=0)
+            batch_logits_from_NN = nn.Softmax(dim=1)(torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits)) #(batch, 3)
+            # print('batch_logits_from_LR:',batch_logits_from_LR)
+            # print('batch_logits_from_NN:', batch_logits_from_NN)
+            logits = batch_logits_from_LR+batch_logits_from_NN
+            return batch_logits_from_LR, batch_logits_from_NN, logits
 
 
 class RobertaClassificationHead(nn.Module):
@@ -568,6 +575,10 @@ def main():
     parser = argparse.ArgumentParser()
 
     ## Required parameters
+    parser.add_argument('--sampling_seed',
+                        type=int,
+                        default=42,
+                        help="random seed for initialization")
     parser.add_argument("--data_dir",
                         default=None,
                         type=str,
@@ -707,7 +718,7 @@ def main():
 
 
     train_examples_entail, train_examples_neutral, train_examples_contra = processor.get_MNLI_as_train('/export/home/Dataset/glue_data/MNLI/train.tsv') #train_pu_half_v1.txt
-    train_examples_entail_RTE, train_examples_neutral_RTE, train_examples_contra_RTE = processor.get_RTE_as_train('/export/home/Dataset/glue_data/RTE/train.tsv')
+    train_examples_entail_RTE, train_examples_neutral_RTE, train_examples_contra_RTE = processor.get_RTE_as_train('/export/home/Dataset/glue_data/RTE/train.tsv',3, args.sampling_seed)
         # seen_classes=[0,2,4,6,8]
 
         # num_train_optimization_steps = int(
@@ -975,28 +986,28 @@ def main():
 
 
                             with torch.no_grad():
-                                logits_LR= model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = prior_mnli_samples_outputs, prior_samples_logits = prior_mnli_samples_logits, is_train=False, loss_fct=None)
+                                logits_LR, logits_NN, logits = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = prior_mnli_samples_outputs, prior_samples_logits = prior_mnli_samples_logits, is_train=False, loss_fct=None)
 
                             nb_eval_steps += 1
                             if len(preds) == 0:
-                                # preds.append(logits.detach().cpu().numpy())
+                                preds.append(logits.detach().cpu().numpy())
                                 preds_LR.append(logits_LR.detach().cpu().numpy())
-                                # preds_NN.append(logits_NN.detach().cpu().numpy())
+                                preds_NN.append(logits_NN.detach().cpu().numpy())
                             else:
-                                # preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
+                                preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
                                 preds_LR[0] = np.append(preds_LR[0], logits_LR.detach().cpu().numpy(), axis=0)
-                                # preds_NN[0] = np.append(preds_NN[0], logits_NN.detach().cpu().numpy(), axis=0)
+                                preds_NN[0] = np.append(preds_NN[0], logits_NN.detach().cpu().numpy(), axis=0)
 
-                        # preds = preds[0]
+                        preds = preds[0]
                         preds_LR = preds_LR[0]
-                        # preds_NN = preds_NN[0]
+                        preds_NN = preds_NN[0]
 
                         '''
                         preds: size*3 ["entailment", "neutral", "contradiction"]
                         wenpeng added a softxmax so that each row is a prob vec
                         '''
                         acc_list = []
-                        for preds_i in [preds_LR]:
+                        for preds_i in [preds_LR, preds_NN, preds]:
                             pred_probs = softmax(preds_i,axis=1)
                             pred_indices = np.argmax(pred_probs, axis=1)
                             pred_label_ids = []
@@ -1013,29 +1024,29 @@ def main():
                             acc_list.append(test_acc)
 
 
-                        # softmax_LR = array_2_softmax(preds_LR)
-                        # softmax_NN = array_2_softmax(preds_NN)
-                        # preds_ensemble = []
-                        # for i in range(softmax_LR.shape[0]):
-                        #     if softmax_LR[i][0] > softmax_LR[i][1] and softmax_NN[i][0] > softmax_NN[i][1]:
-                        #         preds_ensemble.append(0)
-                        #     elif softmax_LR[i][0] < softmax_LR[i][1] and softmax_NN[i][0] < softmax_NN[i][1]:
-                        #         preds_ensemble.append(1)
-                        #     elif softmax_LR[i][0] > softmax_LR[i][1] and softmax_LR[i][0] > softmax_NN[i][1]:
-                        #         preds_ensemble.append(0)
-                        #     else:
-                        #         preds_ensemble.append(1)
-                        # hit_co = 0
-                        # for k in range(len(preds_ensemble)):
-                        #     if preds_ensemble[k] == gold_label_ids[k]:
-                        #         hit_co +=1
-                        # test_acc = hit_co/len(gold_label_ids)
-                        # acc_list.append(test_acc)
+                        softmax_LR = array_2_softmax(preds_LR)
+                        softmax_NN = array_2_softmax(preds_NN)
+                        preds_ensemble = []
+                        for i in range(softmax_LR.shape[0]):
+                            if softmax_LR[i][0] > softmax_LR[i][1] and softmax_NN[i][0] > softmax_NN[i][1]:
+                                preds_ensemble.append(0)
+                            elif softmax_LR[i][0] < softmax_LR[i][1] and softmax_NN[i][0] < softmax_NN[i][1]:
+                                preds_ensemble.append(1)
+                            elif softmax_LR[i][0] > softmax_LR[i][1] and softmax_LR[i][0] > softmax_NN[i][1]:
+                                preds_ensemble.append(0)
+                            else:
+                                preds_ensemble.append(1)
+                        hit_co = 0
+                        for k in range(len(preds_ensemble)):
+                            if preds_ensemble[k] == gold_label_ids[k]:
+                                hit_co +=1
+                        test_acc = hit_co/len(gold_label_ids)
+                        acc_list.append(test_acc)
 
 
                         if idd == 0: # this is dev
-                            if acc_list[0] >= max_dev_acc:
-                                max_dev_acc = acc_list[0]
+                            if np.mean(acc_list) >= max_dev_acc:
+                                max_dev_acc = np.mean(acc_list)
                                 print('\ndev acc_list:', acc_list, ' max_mean_dev_acc:', max_dev_acc, '\n')
                                 '''store the model'''
                                 # store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE', str(max_dev_acc))
@@ -1044,8 +1055,8 @@ def main():
                                 print('\ndev acc_list:', acc_list, ' max_dev_acc:', max_dev_acc, '\n')
                                 break
                         else: # this is test
-                            if acc_list[0] > max_test_acc:
-                                max_test_acc = acc_list[0]
+                            if acc_list[-2] > max_test_acc:
+                                max_test_acc = acc_list[-2]
                             print('\ntest acc_list:', acc_list, ' max_test_acc:', max_test_acc, '\n')
 
 

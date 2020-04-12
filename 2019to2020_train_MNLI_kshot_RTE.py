@@ -981,7 +981,7 @@ def main():
                 model.train()
                 loss_cl = model(target_sample_reps_logits_labels, None, None,
                                             None, None, None, mode='train_CL', loss_fct = loss_fct)
-                # print('loss_cl:  ', loss_cl.item())
+                print('loss_cl:  ', loss_cl.item())
                 loss_cl.backward()
                 optimizer.step()
                 optimizer.zero_grad()
@@ -1085,5 +1085,6 @@ if __name__ == "__main__":
 
     '''
     1, NN gets worse with more epochs
+    2, CL does not change much with 1e-6
     '''
 # CUDA_VISIBLE_DEVICES=3 python -u 2019to2020_train_MNLI_kshot_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3 --sampling_seed 42 --stilts_epochs 20 --NN_epochs 1

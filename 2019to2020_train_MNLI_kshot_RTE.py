@@ -989,6 +989,12 @@ def main():
                 iter_co+=1
                 if iter_co % 1 ==0:
                     '''dev or test'''
+                    if (len(target_sample_entail_reps_history_list)==0 or
+                        len(target_sample_neutral_reps_history_list)==0 or
+                        len(target_sample_contra_reps_history_list)==0):
+                        '''train next target_sample batch'''
+                        continue
+
                     target_sample_entail_reps_history = torch.cat(target_sample_entail_reps_history_list, dim=0).mean(dim=0, keepdim=True)
                     target_sample_neutral_reps_history = torch.cat(target_sample_neutral_reps_history_list, dim=0).mean(dim=0, keepdim=True)
                     target_sample_contra_reps_history = torch.cat(target_sample_contra_reps_history_list, dim=0).mean(dim=0, keepdim=True)

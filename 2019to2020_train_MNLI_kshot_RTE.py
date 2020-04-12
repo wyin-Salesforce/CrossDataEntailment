@@ -835,16 +835,16 @@ def main():
                 source_sample_reps_logits = (source_sample_reps, source_sample_logits)
 
 
-                source_sample_entail_reps_i = source_sample_reps[entail_size_i].mean(dim=0)
+                source_sample_entail_reps_i = source_sample_reps[entail_size_i].mean(dim=0, keepdim=True)
                 # print('source_sample_entail_reps_i:', source_sample_entail_reps_i)
                 # print('entail_size_i:', entail_size_i, 'source_samples_label_ids:', source_samples_label_ids)
                 # exit(0)
-                source_sample_neutral_reps_i = source_sample_reps[neutral_size_i].mean(dim=0)
-                source_sample_contra_reps_i = source_sample_reps[contra_size_i].mean(dim=0)
+                source_sample_neutral_reps_i = source_sample_reps[neutral_size_i].mean(dim=0, keepdim=True)
+                source_sample_contra_reps_i = source_sample_reps[contra_size_i].mean(dim=0, keepdim=True)
 
-                source_sample_entail_logits_i = source_sample_logits[entail_size_i].mean(dim=0)
-                source_sample_neutral_logits_i = source_sample_logits[neutral_size_i].mean(dim=0)
-                source_sample_contra_logits_i = source_sample_logits[contra_size_i].mean(dim=0)
+                source_sample_entail_logits_i = source_sample_logits[entail_size_i].mean(dim=0, keepdim=True)
+                source_sample_neutral_logits_i = source_sample_logits[neutral_size_i].mean(dim=0, keepdim=True)
+                source_sample_contra_logits_i = source_sample_logits[contra_size_i].mean(dim=0, keepdim=True)
 
                 if entail_size_i.sum()!=0:
                     source_sample_entail_reps_history.append(source_sample_entail_reps_i)
@@ -903,12 +903,12 @@ def main():
 
             print('source_sample_entail_reps_history before:', source_sample_entail_reps_history)
 
-            source_sample_entail_reps_history = torch.cat(source_sample_entail_reps_history, dim=0).mean(dim=0)
-            source_sample_neutral_reps_history = torch.cat(source_sample_neutral_reps_history, dim=0).mean(dim=0)
-            source_sample_contra_reps_history = torch.cat(source_sample_contra_reps_history, dim=0).mean(dim=0)
-            source_sample_entail_logits_history = torch.cat(source_sample_entail_logits_history, dim=0).mean(dim=0)
-            source_sample_neutral_logits_history = torch.cat(source_sample_neutral_logits_history, dim=0).mean(dim=0)
-            source_sample_contra_logits_history = torch.cat(source_sample_contra_logits_history, dim=0).mean(dim=0)
+            source_sample_entail_reps_history = torch.cat(source_sample_entail_reps_history, dim=0).mean(dim=0, keepdim=True)
+            source_sample_neutral_reps_history = torch.cat(source_sample_neutral_reps_history, dim=0).mean(dim=0, keepdim=True)
+            source_sample_contra_reps_history = torch.cat(source_sample_contra_reps_history, dim=0).mean(dim=0, keepdim=True)
+            source_sample_entail_logits_history = torch.cat(source_sample_entail_logits_history, dim=0).mean(dim=0, keepdim=True)
+            source_sample_neutral_logits_history = torch.cat(source_sample_neutral_logits_history, dim=0).mean(dim=0, keepdim=True)
+            source_sample_contra_logits_history = torch.cat(source_sample_contra_logits_history, dim=0).mean(dim=0, keepdim=True)
 
             print('source_sample_entail_reps_history:', source_sample_entail_reps_history.shape)
             source_sample_reps_history = torch.cat([source_sample_entail_reps_history, source_sample_neutral_reps_history, source_sample_contra_reps_history], dim=0)
@@ -935,13 +935,13 @@ def main():
                     target_sample_reps = target_sample_reps[:,0,:]
                 target_sample_reps_logits_labels = (target_sample_reps, target_sample_logits, target_sample_label_ids_batch)
 
-                target_sample_entail_reps_i = target_sample_reps[entail_size_i].mean(dim=0)
-                target_sample_neutral_reps_i = target_sample_reps[neutral_size_i].mean(dim=0)
-                target_sample_contra_reps_i = target_sample_reps[contra_size_i].mean(dim=0)
+                target_sample_entail_reps_i = target_sample_reps[entail_size_i].mean(dim=0, keepdim=True)
+                target_sample_neutral_reps_i = target_sample_reps[neutral_size_i].mean(dim=0, keepdim=True)
+                target_sample_contra_reps_i = target_sample_reps[contra_size_i].mean(dim=0, keepdim=True)
 
-                target_sample_entail_logits_i = target_sample_logits[entail_size_i].mean(dim=0)
-                target_sample_neutral_logits_i = target_sample_logits[neutral_size_i].mean(dim=0)
-                target_sample_contra_logits_i = target_sample_logits[contra_size_i].mean(dim=0)
+                target_sample_entail_logits_i = target_sample_logits[entail_size_i].mean(dim=0, keepdim=True)
+                target_sample_neutral_logits_i = target_sample_logits[neutral_size_i].mean(dim=0, keepdim=True)
+                target_sample_contra_logits_i = target_sample_logits[contra_size_i].mean(dim=0, keepdim=True)
 
                 if entail_size_i.sum()!=0:
                     target_sample_entail_reps_history.append(target_sample_entail_reps_i)
@@ -965,12 +965,12 @@ def main():
                 iter_co+=1
                 if iter_co % 1 ==0:
                     '''dev or test'''
-                    target_sample_entail_reps_history = torch.cat(target_sample_entail_reps_history, dim=0).mean(dim=0)
-                    target_sample_neutral_reps_history = torch.cat(target_sample_neutral_reps_history, dim=0).mean(dim=0)
-                    target_sample_contra_reps_history = torch.cat(target_sample_contra_reps_history, dim=0).mean(dim=0)
-                    target_sample_entail_logits_history = torch.cat(target_sample_entail_logits_history, dim=0).mean(dim=0)
-                    target_sample_neutral_logits_history = torch.cat(target_sample_neutral_logits_history, dim=0).mean(dim=0)
-                    target_sample_contra_logits_history = torch.cat(target_sample_contra_logits_history, dim=0).mean(dim=0)
+                    target_sample_entail_reps_history = torch.cat(target_sample_entail_reps_history, dim=0).mean(dim=0, keepdim=True)
+                    target_sample_neutral_reps_history = torch.cat(target_sample_neutral_reps_history, dim=0).mean(dim=0, keepdim=True)
+                    target_sample_contra_reps_history = torch.cat(target_sample_contra_reps_history, dim=0).mean(dim=0, keepdim=True)
+                    target_sample_entail_logits_history = torch.cat(target_sample_entail_logits_history, dim=0).mean(dim=0, keepdim=True)
+                    target_sample_neutral_logits_history = torch.cat(target_sample_neutral_logits_history, dim=0).mean(dim=0, keepdim=True)
+                    target_sample_contra_logits_history = torch.cat(target_sample_contra_logits_history, dim=0).mean(dim=0, keepdim=True)
                     target_sample_reps_history = torch.cat([target_sample_entail_reps_history, target_sample_neutral_reps_history, target_sample_contra_reps_history], dim=0)
                     target_sample_logits_history = torch.cat([target_sample_entail_logits_history, target_sample_neutral_logits_history, target_sample_contra_logits_history], dim=0)
                     target_reps_logits_history = (target_sample_reps_history, target_sample_logits_history)

@@ -901,7 +901,7 @@ def main():
                 if step == 5:#100:
                     break
 
-            print('source_sample_entail_reps_history before:', source_sample_entail_reps_history)
+            # print('source_sample_entail_reps_history before:', source_sample_entail_reps_history)
 
             source_sample_entail_reps_history = torch.cat(source_sample_entail_reps_history, dim=0).mean(dim=0, keepdim=True)
             source_sample_neutral_reps_history = torch.cat(source_sample_neutral_reps_history, dim=0).mean(dim=0, keepdim=True)
@@ -910,7 +910,7 @@ def main():
             source_sample_neutral_logits_history = torch.cat(source_sample_neutral_logits_history, dim=0).mean(dim=0, keepdim=True)
             source_sample_contra_logits_history = torch.cat(source_sample_contra_logits_history, dim=0).mean(dim=0, keepdim=True)
 
-            print('source_sample_entail_reps_history:', source_sample_entail_reps_history.shape)
+            # print('source_sample_entail_reps_history:', source_sample_entail_reps_history.shape)
             source_sample_reps_history = torch.cat([source_sample_entail_reps_history, source_sample_neutral_reps_history, source_sample_contra_reps_history], dim=0)
             source_sample_logits_history = torch.cat([source_sample_entail_logits_history, source_sample_neutral_logits_history, source_sample_contra_logits_history], dim=0)
             source_reps_logits_history = (source_sample_reps_history, source_sample_logits_history)
@@ -1012,10 +1012,10 @@ def main():
                     #             mode='train_NN'):
                                 pred_labels_i = model(target_sample_reps_logits_labels, None, None,
                                                             None, None, None, mode='train_CL', loss_fct = loss_fct)
-
+                            print('pred_labels_i:',pred_labels_i)
                             preds.append(pred_labels_i)
                             gold_label_ids.append(label_ids)
-
+                        print('preds:', preds)
                         pred_label_ids = torch.cat(preds,dim=0).detach().cpu().numpy()
                         gold_label_ids = torch.cat(gold_label_ids,dim=0).detach().cpu().numpy()
 

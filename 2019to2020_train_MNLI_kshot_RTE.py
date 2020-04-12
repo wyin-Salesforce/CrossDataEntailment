@@ -415,9 +415,12 @@ class Encoder(BertPreTrainedModel):
         query_size = query_reps.shape[0]
         hidden_size = query_reps.shape[1]
 
+        print('sample_size:', sample_size, 'query_size:', query_size, 'hidden_size:', hidden_size)
 
 
         repeat_sample_rep = torch.cat([sample_reps]*query_size, dim=0) #(9*batch_size, hidden)
+        print('repeat_sample_rep shape:', repeat_sample_rep.shape)
+        print('query_reps:', query_reps.shape)
         repeat_query_rep = query_reps.repeat(1, sample_size).view(-1, hidden_size)#(9*batch_size, hidden)
 
         '''? add similarity or something similar?'''

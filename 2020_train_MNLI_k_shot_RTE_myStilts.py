@@ -383,17 +383,17 @@ def _truncate_seq_pair(tokens_a, tokens_b, max_length):
         else:
             tokens_b.pop()
 
-class Encoder(nn.Module):
-    # config_class = RobertaConfig
-    # pretrained_model_archive_map = ROBERTA_PRETRAINED_MODEL_ARCHIVE_MAP
-    # base_model_prefix = "roberta"
+class Encoder(BertPreTrainedModel):
+    config_class = RobertaConfig
+    pretrained_model_archive_map = ROBERTA_PRETRAINED_MODEL_ARCHIVE_MAP
+    base_model_prefix = "roberta"
 
-    def __init__(self):
-        super(Encoder, self).__init__()
-        self.num_labels = 3#config.num_labels
+    def __init__(self, config):
+        super(Encoder, self).__init__(config)
+        self.num_labels = config.num_labels
         # self.roberta = RobertaModel(config)
         # self.classifier = RobertaClassificationHead(config)
-        self.classifier_target = RobertaClassificationHead()
+        self.classifier_target = RobertaClassificationHead(config)
         # self.classifier_target.load_state_dict(self.classifier.state_dict())
 
     def forward(self, target_sequence_outputs, target_labels, LR_logits_source, loss_fct=None):
@@ -430,13 +430,13 @@ class Encoder(nn.Module):
 class RobertaClassificationHead(nn.Module):
     """wenpeng overwrite it so to accept matrix as input"""
 
-    def __init__(self):
+    def __init__(self, config):
         super(RobertaClassificationHead, self).__init__()
-        self.dense = nn.Linear(1024, 1024)#nn.Linear(config.hidden_size, config.hidden_size)
-        self.dropout = nn.Dropout(0.1)#nn.Dropout(config.hidden_dropout_prob)
-        self.out_proj = nn.Linear(1024, 3)#nn.Linear(config.hidden_size, config.num_labels)
+        self.dense = nn.Linear(config.hidden_size, config.hidden_size)
+        self.dropout = nn.Dropout(config.hidden_dropout_prob)
+        self.out_proj = nn.Linear(config.hidden_size, config.num_labels)
 
-    def forward(self, features):
+    def forward(self, features, **kwargs):
         x = features[:, 0, :]  # take <s> token (equiv. to [CLS])
         x = self.dropout(x)
         x = self.dense(x)
@@ -609,7 +609,7 @@ def main():
     # pretrain_model_dir = 'roberta-large-mnli' #'roberta-large' , 'roberta-large-mnli'
     '''we start from the pretrained MNLI model'''
     # pretrain_model_dir = '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE/0.8664259927797834-0.8106035345115038'
-    model = Encoder()#roberta_model.config)
+    model = Encoder(roberta_model.config)
     model.to(device)
     # store_bert_model(model, tokenizer.vocab, '/export/home/workspace/CrossDataEntailment/models', 'try')
     # exit(0)
@@ -750,8 +750,8 @@ def main():
 
                 with torch.no_grad():
                     logits_from_source_side, sequence_output_from_source_side = roberta_model(train_target_input_ids_batch, train_target_input_mask_batch, None, labels=None)
-                sequence_output_from_source_side = Variable(sequence_output_from_source_side.data, requires_grad=False)
-                logits_from_source_side = Variable(logits_from_source_side[0].data, requires_grad=False)
+                # sequence_output_from_source_side = Variable(sequence_output_from_source_side.data, requires_grad=False)
+                # logits_from_source_side = Variable(logits_from_source_side[0].data, requires_grad=False)
 
                 model.train()
                 loss_cross_domain = model(sequence_output_from_source_side, target_labels_batch, None, loss_fct=loss_fct)

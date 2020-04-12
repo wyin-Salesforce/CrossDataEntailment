@@ -390,7 +390,7 @@ class Encoder(BertPreTrainedModel):
     def __init__(self, config):
         super(Encoder, self).__init__(config)
         self.num_labels = config.num_labels
-        self.roberta = None#RobertaModel(config)
+        self.roberta = RobertaModel(config)
         self.classifier = RobertaClassificationHead(config)
         self.classifier_target = RobertaClassificationHead(config)
         self.classifier_target.load_state_dict(self.classifier.state_dict())
@@ -831,7 +831,7 @@ def main():
                             test_acc/=len(test_dataloader)
                             print('\t\t\t >>>>test acc:', test_acc)
                             '''store the model, because we can test after a max_dev acc reached'''
-                            # store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLI'+str(args.k_shot)+'shotRTE', str(max_dev_acc)+'-'+str(test_acc))
+                            store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLI'+str(args.k_shot)+'shotRTE', str(max_dev_acc)+'-'+str(test_acc))
 
 if __name__ == "__main__":
     main()

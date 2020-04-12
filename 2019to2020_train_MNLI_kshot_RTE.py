@@ -491,10 +491,10 @@ class Encoder(BertPreTrainedModel):
             # print('logits_from_pretrained:', logits_from_pretrained)
             # print('NN_logits_combine:', NN_logits_combine)
             # print('CL_logits_from_target:', CL_logits_from_target)
-            # overall_test_batch_logits = logits_from_pretrained+NN_logits_combine+CL_logits_from_target
+            overall_test_batch_logits = logits_from_pretrained+NN_logits_combine+CL_logits_from_target
             # overall_test_batch_logits = logits_from_pretrained
             # overall_test_batch_logits = NN_logits_combine
-            overall_test_batch_logits = CL_logits_from_target
+            # overall_test_batch_logits = CL_logits_from_target
 
             # overall_test_batch_logits = (torch.softmax(logits_from_pretrained.view(-1, self.num_labels), dim=1)+
             #                             torch.softmax(NN_logits_combine.view(-1, self.num_labels), dim=1)+
@@ -577,6 +577,7 @@ def main():
     parser.add_argument("--do_lower_case",
                         action='store_true',
                         help="Set this flag if you are using an uncased model.")
+
     parser.add_argument("--train_batch_size",
                         default=10,
                         type=int,
@@ -589,8 +590,12 @@ def main():
                         default=1e-5,
                         type=float,
                         help="The initial learning rate for Adam.")
-    parser.add_argument("--num_train_epochs",
+    parser.add_argument("--stilts_epochs",
                         default=3.0,
+                        type=float,
+                        help="Total number of training epochs to perform.")
+    parser.add_argument("--NN_epochs",
+                        default=1.0,
                         type=float,
                         help="Total number of training epochs to perform.")
     parser.add_argument("--warmup_proportion",
@@ -814,11 +819,11 @@ def main():
         target_sample_batch_size = 9
         target_sample_batch_start = [x*target_sample_batch_size for x in range(target_sample_size//target_sample_batch_size)]
 
-        iter_co = 0
+
         max_test_acc = 0.0
         max_dev_acc = 0.0
 
-        for _ in trange(int(args.num_train_epochs), desc="Epoch"):
+        for _ in trange(int(args.NN_epochs), desc="Epoch"):
             '''for each epoch, we do 100 iter of NN; then full iter of target classification'''
             '''NN training Phase'''
             random.Random(args.sampling_seed).shuffle(source_id_list)
@@ -927,6 +932,8 @@ def main():
             # print('source_sample_logits_history:', source_sample_logits_history)
 
             '''STILTS Phase, train target classifier'''
+        iter_co = 0
+        for _ in trange(int(args.stilts_epochs), desc="Epoch"):
             target_sample_entail_reps_history = []
             target_sample_neutral_reps_history = []
             target_sample_contra_reps_history = []
@@ -1076,4 +1083,4 @@ if __name__ == "__main__":
     '''
     1, MNLI 只读取了1000
     '''
-# CUDA_VISIBLE_DEVICES=3 python -u 2019to2020_train_MNLI_kshot_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3 --sampling_seed 42
+# CUDA_VISIBLE_DEVICES=3 python -u 2019to2020_train_MNLI_kshot_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3 --sampling_seed 42 --stilts_epochs 20, --NN_epochs 1

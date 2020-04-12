@@ -488,10 +488,10 @@ class Encoder(BertPreTrainedModel):
             NN_logits_combine = NN_logits_from_source+NN_logits_from_target
             '''third, get logits from classification of the target domain'''
             CL_logits_from_target = self.classifier(test_batch_reps)
-            print('logits_from_pretrained:', logits_from_pretrained)
-            print('NN_logits_combine:', NN_logits_combine)
-            print('CL_logits_from_target:', CL_logits_from_target)
-            overall_test_batch_logits = logits_from_pretrained+NN_logits_combine+CL_logits_from_target
+            # print('logits_from_pretrained:', logits_from_pretrained)
+            # print('NN_logits_combine:', NN_logits_combine)
+            # print('CL_logits_from_target:', CL_logits_from_target)
+            overall_test_batch_logits = logits_from_pretrained+NN_logits_combine+0.1*CL_logits_from_target
             pred_labels_batch = torch.softmax(overall_test_batch_logits.view(-1, self.num_labels), dim=1).argmax(dim=1)
             return pred_labels_batch
 
@@ -916,7 +916,7 @@ def main():
             source_sample_reps_history = torch.cat([source_sample_entail_reps_history, source_sample_neutral_reps_history, source_sample_contra_reps_history], dim=0)
             source_sample_logits_history = torch.cat([source_sample_entail_logits_history, source_sample_neutral_logits_history, source_sample_contra_logits_history], dim=0)
             source_reps_logits_history = (source_sample_reps_history, source_sample_logits_history)
-            print('source_sample_logits_history:', source_sample_logits_history)
+            # print('source_sample_logits_history:', source_sample_logits_history)
 
             '''STILTS Phase, train target classifier'''
             target_sample_entail_reps_history = []
@@ -977,7 +977,7 @@ def main():
                     target_sample_reps_history = torch.cat([target_sample_entail_reps_history, target_sample_neutral_reps_history, target_sample_contra_reps_history], dim=0)
                     target_sample_logits_history = torch.cat([target_sample_entail_logits_history, target_sample_neutral_logits_history, target_sample_contra_logits_history], dim=0)
                     target_reps_logits_history = (target_sample_reps_history, target_sample_logits_history)
-                    print('target_sample_logits_history:', target_sample_logits_history)
+                    # print('target_sample_logits_history:', target_sample_logits_history)
 
 
 

@@ -834,10 +834,11 @@ def main():
                     source_sample_reps = source_sample_reps[:,0,:]
                 source_sample_reps_logits = (source_sample_reps, source_sample_logits)
 
+
+                source_sample_entail_reps_i = source_sample_reps[entail_size_i].mean(dim=0)
                 print('source_sample_entail_reps_i:', source_sample_entail_reps_i)
                 print('entail_size_i:', entail_size_i, 'source_samples_label_ids:', source_samples_label_ids)
                 exit(0)
-                source_sample_entail_reps_i = source_sample_reps[entail_size_i].mean(dim=0)
                 source_sample_neutral_reps_i = source_sample_reps[neutral_size_i].mean(dim=0)
                 source_sample_contra_reps_i = source_sample_reps[contra_size_i].mean(dim=0)
 

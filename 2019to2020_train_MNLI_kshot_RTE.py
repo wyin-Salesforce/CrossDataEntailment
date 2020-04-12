@@ -400,156 +400,98 @@ class Encoder(BertPreTrainedModel):
         super(Encoder, self).__init__(config)
         self.num_labels = config.num_labels
         '''??? why a different name will not get initialized'''
-        self.roberta = RobertaModel(config)
+        # self.roberta = RobertaModel(config)
+        '''classifier for target domain'''
         self.classifier = RobertaClassificationHead(config)
+
+        '''nearest neighbor parameters'''
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.mlp_1 = nn.Linear(config.hidden_size*3, config.hidden_size)
         self.mlp_2 = nn.Linear(config.hidden_size, 1, bias=False)
-        # self.init_weights()
-        # self.apply(self.init_bert_weights)
-    def forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None, sample_labels=None, prior_samples_outputs=None, prior_samples_logits = None, few_shot_training=False, is_train = True, fetch_hidden_only=False, loss_fct = None):
 
+    def NearestNeighbor(self, sample_reps, sample_logits, query_reps, query_labels, mode='train_NN', loss_fct = None):
         '''
-        samples: input_ids, token_type_ids, attention_mask; in class order
-        minibatch: input_ids, token_type_ids, attention_mask
+        mode: train_NN, train_CL, test
         '''
-        # print('input_ids shape0 :', input_ids.shape[0])
-        outputs = self.roberta(input_ids, attention_mask, None) #(batch, max_len, hidden_size)
-        pooled_outputs = outputs[1]#torch.max(outputs[0],dim=1)[0]+ outputs[1]#outputs[1]#torch.mean(outputs[0],dim=1)#outputs[1] #(batch, hidden_size)
-        LR_logits = self.classifier(pooled_outputs) #(9+batch, 3)
-        if is_train:
-
-            '''??? output samples_outputs for accumulating info for testing phase'''
-            samples_outputs = pooled_outputs[:sample_size*class_size,:] #(9, hidden_size)
-            # if prior_samples_outputs is not None:
-            #     '''testing'''
-            #     # samples_outputs = (samples_outputs+prior_samples_outputs)*0.5
-            #     samples_outputs =  torch.cat([prior_samples_outputs, samples_outputs], dim=0)
-            # print('samples_outputs shaoe:', samples_outputs.shape)
-            '''we use all into LR'''
-
-            sample_logits = LR_logits[:sample_size*class_size,:] #(9,3)
-            batch_logits_from_LR = nn.Softmax(dim=1)(LR_logits[sample_size*class_size:,:]) #(10,3)
-            # if few_shot_training:
-
-
-            '''This criterion combines :func:`nn.LogSoftmax` and :func:`nn.NLLLoss` in one single class.'''
-            # loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
-            sample_loss = loss_fct(sample_logits.view(-1, self.num_labels), sample_labels.view(-1))
-            if few_shot_training:
-                return sample_loss
-            '''nearest neighber'''
-            batch_outputs = pooled_outputs[sample_size*class_size:,:] #(batch, hidden_size)
-
-            batch_size = batch_outputs.shape[0]
-            hidden_size = batch_outputs.shape[1]
-            # print('batch_size:',batch_size, 'hidden_size:', hidden_size)
-
-
-            # samples_outputs = samples_outputs.reshape(sample_size, class_size, samples_outputs.shape[1])
-            '''we use average for class embedding'''
-            # class_rep = torch.mean(samples_outputs,dim=0) #(class_size, hidden_size)
-            repeat_sample_rep = torch.cat([samples_outputs]*batch_size, dim=0) #(9*batch_size, hidden)
+        sample_size = sample_reps.shape[0]
+        query_size = query_reps.shape[0]
+        hidden_size = query_reps.shape[1]
 
 
 
+        repeat_sample_rep = torch.cat([sample_reps]*query_size, dim=0) #(9*batch_size, hidden)
+        repeat_query_rep = query_reps.repeat(1, sample_size).view(-1, hidden_size)#(9*batch_size, hidden)
 
-            # repeat_batch_outputs = tile(batch_outputs,0,class_size) #(batch*class_size, hidden)
-            repeat_batch_outputs = batch_outputs.repeat(1, samples_outputs.shape[0]).view(-1, hidden_size)#(9*batch_size, hidden)
-            '''? add similarity or something similar?'''
-            mlp_input = torch.cat([
-            repeat_batch_outputs, repeat_sample_rep,
-            # repeat_batch_outputs - repeat_sample_rep,
-            # cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep),
-            repeat_batch_outputs*repeat_sample_rep
-            ], dim=1) #(batch*class_size, hidden*2)
-            '''??? add drop out here'''
-            group_scores = torch.tanh(self.mlp_2(self.dropout(torch.tanh(self.mlp_1(self.dropout(mlp_input))))))#(batch*class_size, 1)
-            group_scores_with_simi = group_scores + cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)
-            # group_scores = torch.tanh(self.mlp_2((torch.tanh(mlp_input))))#(9*batch_size, 1)
-            # print('group_scores:',group_scores)
+        '''? add similarity or something similar?'''
+        mlp_input = torch.cat([
+        repeat_query_rep, repeat_sample_rep,
+        # repeat_batch_outputs - repeat_sample_rep,
+        # cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep),
+        repeat_query_rep*repeat_sample_rep
+        ], dim=1) #(batch*class_size, hidden*2)
+        '''??? add drop out here'''
+        group_scores = torch.tanh(self.mlp_2(self.dropout(torch.tanh(self.mlp_1(self.dropout(mlp_input))))))#(batch*class_size, 1)
+        group_scores_with_simi = group_scores + cosine_rowwise_two_matrices(repeat_query_rep, repeat_sample_rep)
+        # group_scores = torch.tanh(self.mlp_2((torch.tanh(mlp_input))))#(9*batch_size, 1)
+        # print('group_scores:',group_scores)
 
-            similarity_matrix = group_scores_with_simi.reshape(batch_size, samples_outputs.shape[0])
-            '''???note that the softmax will make the resulting logits smaller than LR'''
-            batch_logits_from_NN = torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits) #(batch, 3)
-            '''???use each of the logits for loss compute'''
-            batch_logits = batch_logits_from_LR+batch_logits_from_NN
+        similarity_matrix = group_scores_with_simi.reshape(query_size, sample_size)
+        '''???note that the softmax will make the resulting logits smaller than LR'''
+        query_logits_from_NN = torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits) #(batch, 3)
+        if mode == 'test':
+            return query_logits_from_NN
+        else:
+            loss_i = loss_fct(query_logits_from_NN.view(-1, self.num_labels), query_labels.view(-1))
+            return loss_i
 
 
-            '''??? add bias here'''
 
-            '''This criterion combines :func:`nn.LogSoftmax` and :func:`nn.NLLLoss` in one single class.'''
-            batch_loss = (loss_fct(batch_logits_from_LR.view(-1, self.num_labels), labels.view(-1))+
-                        loss_fct(batch_logits_from_NN.view(-1, self.num_labels), labels.view(-1)))
-            '''最后的traiinng loss是将sample分类的和mnli minibatch 的分类加NN的loss都算上的'''
-            loss = sample_loss+batch_loss
-            return loss, samples_outputs
+    def forward(self, target_sample_reps_logits_labels, source_sample_reps_logits, source_batch_reps_labels,
+                test_batch_reps_logits, source_reps_logits_history, target_reps_logits_history,
+                mode='train_NN', loss_fct = None):
+        '''
+        mode: train_NN, train_CL, test
+        '''
+        '''input for training'''
+        if mode == 'train_CL':
+            target_sample_reps, target_sample_logits, target_sample_labels = target_sample_reps_logits_labels
+        if mode == 'train_NN':
+            target_sample_reps, target_sample_logits, target_sample_labels = target_sample_reps_logits_labels
+            source_sample_reps, source_sample_logits = source_sample_reps_logits
+            source_batch_reps, source_batch_labels = source_batch_reps_labels
+        '''input for testing'''
+        if mode == 'test':
+            test_batch_reps, test_batch_logits = test_batch_reps_logits
+            source_sample_reps_history, source_sample_logits_history = source_reps_logits_history
+            target_sample_reps_history, target_sample_logits_history = target_reps_logits_history
 
+
+        if mode == 'train_NN':
+            loss_target_pred_source = self.NearestNeighbor(target_sample_reps, target_sample_logits, source_batch_reps, source_batch_labels, mode='train_NN', loss_fct = loss_fct)
+            loss_source_pred_source = self.NearestNeighbor(source_sample_reps, source_sample_logits, source_batch_reps, source_batch_labels, mode='train_NN', loss_fct = loss_fct)
+            loss_source_pred_target = self.NearestNeighbor(source_sample_reps, source_sample_logits, target_sample_reps, target_sample_labels, mode='train_NN', loss_fct = loss_fct)
+
+            NN_loss = loss_target_pred_source+loss_source_pred_source+loss_source_pred_target
+            return NN_loss
+        elif mode == 'train_CL':
+            target_sample_CL_logits = self.classifier(target_sample_reps)
+            CL_loss = loss_fct(target_sample_CL_logits.view(-1, self.num_labels), target_sample_labels.view(-1))
+            return CL_loss
         else:
             '''testing'''
-            batch_logits_from_LR = nn.Softmax(dim=1)(LR_logits[sample_size*class_size:,:]) #(10,3)
+            '''first, get logits from RobertaForSequenceClassification'''
+            logits_from_pretrained = test_batch_logits
+            '''second, get logits from NN, two parts, one from source. one from target samples'''
+            NN_logits_from_source = self.NearestNeighbor(source_sample_reps_history, source_sample_logits_history, test_batch_reps, None, mode='test', loss_fct = loss_fct)
+            NN_logits_from_target = self.NearestNeighbor(target_sample_reps_history, target_sample_logits_history, test_batch_reps, None, mode='test', loss_fct = loss_fct)
+            NN_logits_combine = NN_logits_from_source+NN_logits_from_target
+            '''third, get logits from classification of the target domain'''
+            CL_logits_from_target = self.classifier(test_batch_reps)
+
+            overall_test_batch_logits = logits_from_pretrained+NN_logits_combine+CL_logits_from_target
+            return overall_test_batch_logits
 
 
-
-
-
-
-            '''??? output samples_outputs for accumulating info for testing phase'''
-            samples_outputs = pooled_outputs[:sample_size*class_size,:] #(9, hidden_size)
-            if fetch_hidden_only:
-                return samples_outputs, LR_logits[:sample_size*class_size,:]
-
-            '''这儿将MNLI 的class rep与kshot的reps结合一起'''
-            samples_outputs =  torch.cat([prior_samples_outputs, samples_outputs], dim=0)
-            batch_outputs = pooled_outputs[sample_size*class_size:,:] #(batch, hidden_size)
-            # print('samples_outputs shaoe:', samples_outputs.shape)
-            # sample_logits = self.classifier(samples_outputs) #(9, 3)
-            # if few_shot_training:
-            #     loss_fct = CrossEntropyLoss()
-            #     '''This criterion combines :func:`nn.LogSoftmax` and :func:`nn.NLLLoss` in one single class.'''
-            #     # loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
-            #     sample_loss = loss_fct(sample_logits.view(-1, self.num_labels), sample_labels.view(-1))
-            #     return sample_loss
-
-
-            batch_size = batch_outputs.shape[0]
-            hidden_size = batch_outputs.shape[1]
-            # print('batch_size:',batch_size, 'hidden_size:', hidden_size)
-
-
-            # samples_outputs = samples_outputs.reshape(sample_size, class_size, samples_outputs.shape[1])
-            '''we use average for class embedding'''
-            # class_rep = torch.mean(samples_outputs,dim=0) #(class_size, hidden_size)
-            repeat_sample_rep = torch.cat([samples_outputs]*batch_size, dim=0) #(9*batch_size, hidden)
-            repeat_batch_outputs = batch_outputs.repeat(1, samples_outputs.shape[0]).view(-1, hidden_size)#(9*batch_size, hidden)
-            '''? add similarity or something similar?'''
-            mlp_input = torch.cat([
-            repeat_batch_outputs, repeat_sample_rep,
-            # repeat_batch_outputs - repeat_sample_rep,
-            # cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep),
-            repeat_batch_outputs*repeat_sample_rep
-            ], dim=1) #(batch*class_size, hidden*2)
-            '''??? add drop out here'''
-            group_scores = torch.tanh(self.mlp_2(self.dropout(torch.tanh(self.mlp_1(self.dropout(mlp_input))))))#(batch*class_size, 1)
-            group_scores_with_simi = group_scores + cosine_rowwise_two_matrices(repeat_batch_outputs, repeat_sample_rep)
-            # group_scores = torch.tanh(self.mlp_2((torch.tanh(mlp_input))))#(9*batch_size, 1)
-            # print('group_scores:',group_scores)
-
-            similarity_matrix = group_scores_with_simi.reshape(batch_size, samples_outputs.shape[0])
-
-            if prior_samples_logits is not None:
-                sample_logits = torch.cuda.FloatTensor(9, 3).fill_(0)
-                sample_logits[torch.arange(0, 9).long(), sample_labels] = 1.0
-                sample_logits = sample_logits.repeat(2,1)
-            else:
-                '''the results now that using LR predicted logits is better'''
-                sample_logits = prior_samples_logits
-                sample_logits = torch.cat([sample_logits, LR_logits[:sample_size*class_size,:]],dim=0)
-            batch_logits_from_NN = nn.Softmax(dim=1)(torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits)) #(batch, 3)
-            # print('batch_logits_from_LR:',batch_logits_from_LR)
-            # print('batch_logits_from_NN:', batch_logits_from_NN)
-            logits = batch_logits_from_LR+batch_logits_from_NN
-            return batch_logits_from_LR, batch_logits_from_NN, logits
 
 
 class RobertaClassificationHead(nn.Module):
@@ -575,6 +517,10 @@ def main():
     parser = argparse.ArgumentParser()
 
     ## Required parameters
+    parser.add_argument('--k_shot',
+                        type=int,
+                        default=3,
+                        help="random seed for initialization")
     parser.add_argument('--sampling_seed',
                         type=int,
                         default=42,
@@ -717,26 +663,16 @@ def main():
 
 
 
-    train_examples_entail, train_examples_neutral, train_examples_contra = processor.get_MNLI_as_train('/export/home/Dataset/glue_data/MNLI/train.tsv') #train_pu_half_v1.txt
-    train_examples_entail_RTE, train_examples_neutral_RTE, train_examples_contra_RTE = processor.get_RTE_as_train('/export/home/Dataset/glue_data/RTE/train.tsv',3, args.sampling_seed)
-        # seen_classes=[0,2,4,6,8]
+    source_examples_entail, source_examples_neutral, source_examples_contra = processor.get_MNLI_as_train('/export/home/Dataset/glue_data/MNLI/train.tsv') #train_pu_half_v1.txt
+    target_samples_entail, target_samples_neutral, target_samples_contra = processor.get_RTE_as_train('/export/home/Dataset/glue_data/RTE/train.tsv', args.k_shot, args.sampling_seed)
 
-        # num_train_optimization_steps = int(
-        #     len(train_examples) / args.train_batch_size / args.gradient_accumulation_steps) * args.num_train_epochs
-        # if args.local_rank != -1:
-        #     num_train_optimization_steps = num_train_optimization_steps // torch.distributed.get_world_size()
-
-    # Prepare model
-    # cache_dir = args.cache_dir if args.cache_dir else os.path.join(str(PYTORCH_TRANSFORMERS_CACHE), 'distributed_{}'.format(args.local_rank))
-
-    # pretrain_model_dir = 'roberta-large-mnli' #'roberta-large' , 'roberta-large-mnli'
     pretrain_model_dir = '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE/0.8664259927797834-0.8106035345115038'
+    roberta_seq_model = RobertaForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
+    roberta_seq_model.to(device)
+    roberta_seq_model.eval()
+
     model = Encoder.from_pretrained(pretrain_model_dir, num_labels=num_labels)
-    # exit(0)
-
-
     tokenizer = RobertaTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
-
     model.to(device)
     # store_bert_model(model, tokenizer.vocab, '/export/home/workspace/CrossDataEntailment/models', 'try')
     # exit(0)
@@ -759,8 +695,8 @@ def main():
     max_test_acc = 0.0
     max_dev_acc = 0.0
     if args.do_train:
-        train_features = convert_examples_to_features(
-            train_examples_entail + train_examples_neutral + train_examples_contra,
+        source_features = convert_examples_to_features(
+            source_examples_entail + source_examples_neutral + source_examples_contra,
             label_list, args.max_seq_length, tokenizer, output_mode,
             cls_token_at_end=False,#bool(args.model_type in ['xlnet']),            # xlnet has a cls token at the end
             cls_token=tokenizer.cls_token,
@@ -771,16 +707,21 @@ def main():
             pad_token=tokenizer.convert_tokens_to_ids([tokenizer.pad_token])[0],
             pad_token_segment_id=0)#4 if args.model_type in ['xlnet'] else 0,)
 
-        train_features_entail = train_features[:len(train_examples_entail)]
-        train_features_neutral = train_features[len(train_examples_entail):(len(train_examples_entail)+len(train_examples_neutral))]
-        train_features_contra = train_features[(len(train_examples_entail)+len(train_examples_neutral)):]
-        assert len(train_features_entail) == len(train_examples_entail)
-        assert len(train_features_neutral) == len(train_examples_neutral)
-        assert len(train_features_contra) == len(train_examples_contra)
+        source_all_input_ids = torch.tensor([f.input_ids for f in source_features], dtype=torch.long)
+        source_all_input_mask = torch.tensor([f.input_mask for f in source_features], dtype=torch.long)
+        source_all_segment_ids = torch.tensor([f.segment_ids for f in source_features], dtype=torch.long)
+        source_all_label_ids = torch.tensor([f.label_id for f in source_features], dtype=torch.long)
 
-        '''load 3-shot data'''
-        eval_features_shot = convert_examples_to_features(
-            train_examples_entail_RTE+train_examples_neutral_RTE + train_examples_contra_RTE,
+        source_data = TensorDataset(source_all_input_ids, source_all_input_mask, source_all_segment_ids, source_all_label_ids)
+        source_sampler = RandomSampler(source_data)
+        source_samples_dataloader = DataLoader(source_data, sampler=source_sampler, batch_size=9)
+        # source_batch_dataloader = DataLoader(source_data, sampler=source_sampler, batch_size=args.train_batch_size)
+
+
+
+        '''load target k-shot data'''
+        target_samples_features = convert_examples_to_features(
+            target_samples_entail+target_samples_neutral + target_samples_contra,
             label_list, args.max_seq_length, tokenizer, output_mode,
             cls_token_at_end=False,#bool(args.model_type in ['xlnet']),            # xlnet has a cls token at the end
             cls_token=tokenizer.cls_token,
@@ -791,10 +732,14 @@ def main():
             pad_token=tokenizer.convert_tokens_to_ids([tokenizer.pad_token])[0],
             pad_token_segment_id=0)#4 if args.model_type in ['xlnet'] else 0,)
 
-        eval_all_input_ids_shot = torch.tensor([f.input_ids for f in eval_features_shot], dtype=torch.long)
-        eval_all_input_mask_shot = torch.tensor([f.input_mask for f in eval_features_shot], dtype=torch.long)
-        eval_all_segment_ids_shot = torch.tensor([f.segment_ids for f in eval_features_shot], dtype=torch.long)
-        eval_all_label_ids_shot = torch.tensor([f.label_id for f in eval_features_shot], dtype=torch.long)
+        target_samples_input_ids = torch.tensor([f.input_ids for f in target_samples_features], dtype=torch.long)
+        target_samples_input_mask = torch.tensor([f.input_mask for f in target_samples_features], dtype=torch.long)
+        target_samples_segment_ids = torch.tensor([f.segment_ids for f in target_samples_features], dtype=torch.long)
+        target_samples_label_ids = torch.tensor([f.label_id for f in target_samples_features], dtype=torch.long)
+
+        target_samples_data = TensorDataset(target_samples_input_ids, target_samples_input_mask, target_samples_segment_ids, target_samples_label_ids)
+        target_samples_sampler = RandomSampler(target_samples_data)
+        target_samples_dataloader = DataLoader(target_samples_data, sampler=target_samples_sampler, batch_size=9)
 
         '''load dev set'''
         dev_examples = processor.get_RTE_as_dev('/export/home/Dataset/glue_data/RTE/dev.tsv')
@@ -840,225 +785,243 @@ def main():
         eval_sampler = SequentialSampler(eval_data)
         eval_dataloader = DataLoader(eval_data, sampler=eval_sampler, batch_size=args.eval_batch_size)
 
+
+
         logger.info("***** Running training *****")
         iter_co = 0
         tr_loss = 0
         loss_fct = CrossEntropyLoss()
+
+        source_size = source_all_input_ids.shape[0]
+        source_id_list = list(range(source_size))
+        source_batch_size = 10
+        source_batch_start = [x*source_batch_size for x in range(source_size//source_batch_size)]
+
+        target_sample_size = target_samples_input_ids.shape[0]
+        target_sample_id_list = list(range(target_sample_size))
+        target_sample_batch_size = 9
+        target_sample_batch_start = [x*target_sample_batch_size for x in range(target_sample_size//target_sample_batch_size)]
+
+        iter_co = 0
+
         for _ in trange(int(args.num_train_epochs), desc="Epoch"):
-            dataloader_list = []
-            for idd, train_features in enumerate([train_features_entail, train_features_neutral, train_features_contra,
-            train_features_entail + train_features_neutral + train_features_contra]):
-                all_input_ids = torch.tensor([f.input_ids for f in train_features], dtype=torch.long)
-                all_input_mask = torch.tensor([f.input_mask for f in train_features], dtype=torch.long)
-                all_segment_ids = torch.tensor([f.segment_ids for f in train_features], dtype=torch.long)
-                all_label_ids = torch.tensor([f.label_id for f in train_features], dtype=torch.long)
+            '''for each epoch, we do 100 iter of NN; then full iter of target classification'''
+            '''NN training'''
+            random.Random(args.sampling_seed).shuffle(source_id_list)
+            for step, source_samples_batch in enumerate(source_samples_dataloader):
 
-                train_data = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids)
-                train_sampler = RandomSampler(train_data)
-                '''create 3 samples per class'''
-                if idd < 3:
-                    train_dataloader = DataLoader(train_data, sampler=train_sampler, batch_size=3)
-                else:
-                    train_dataloader = DataLoader(train_data, sampler=train_sampler, batch_size=args.train_batch_size)
-                dataloader_list.append(train_dataloader)
+                source_samples_batch = tuple(t.to(device) for t in source_samples_batch)
+                source_samples_input_ids, source_samples_input_mask, source_samples_segment_ids, source_samples_label_ids = source_samples_batch
+                # assert input_ids.shape[0] == args.train_batch_size
+                with torch.no_grad():
+                    source_sample_logits, source_sample_reps = roberta_seq_model(source_samples_input_ids, source_samples_input_mask, None, labels=None)
+                source_sample_reps_logits = (source_sample_reps, source_sample_logits)
 
-            MNLI_entail_dataloader = dataloader_list[0]
-            MNLI_neutra_dataloader = dataloader_list[1]
-            MNLI_contra_dataloader = dataloader_list[2]
-            MNLI_dataloader = dataloader_list[3]
-
-            '''start training'''
-
-            nb_tr_examples, nb_tr_steps = 0, 0
-            sample_input_ids_each_iter = []
-            sample_input_mask_each_iter = []
-
-            for step, batch in enumerate(tqdm(MNLI_dataloader, desc="Iteration")):
-
-                batch = tuple(t.to(device) for t in batch)
-                input_ids, input_mask, segment_ids, label_ids = batch
-                assert input_ids.shape[0] == args.train_batch_size
-
-                mnli_entail_batch = get_a_random_batch_from_dataloader(MNLI_entail_dataloader, 3)
-                # print('random batch len:', len(mnli_entail_batch[0]))
-                mnli_entail_batch_input_ids, mnli_entail_batch_input_mask, mnli_entail_batch_segment_ids, mnli_entail_batch_label_ids = tuple(t.to(device) for t in mnli_entail_batch) #mnli_entail_batch
-                # print('sample entail:', mnli_entail_batch_input_ids.shape[0], mnli_entail_batch_label_ids.shape, mnli_entail_batch_label_ids)
-
-                mnli_neutra_batch = get_a_random_batch_from_dataloader(MNLI_neutra_dataloader, 3)
-                mnli_neutra_batch_input_ids, mnli_neutra_batch_input_mask, mnli_neutra_batch_segment_ids, mnli_neutra_batch_label_ids = tuple(t.to(device) for t in mnli_neutra_batch) #mnli_neutra_batch
-                # print('sample neutra:', mnli_neutra_batch_input_ids.shape[0], mnli_neutra_batch_label_ids.shape, mnli_neutra_batch_label_ids)
-
-                mnli_contra_batch = get_a_random_batch_from_dataloader(MNLI_contra_dataloader, 3)
-                mnli_contra_batch_input_ids, mnli_contra_batch_input_mask, mnli_contra_batch_segment_ids, mnli_contra_batch_label_ids = tuple(t.to(device) for t in mnli_contra_batch) #mnli_contra_batch
-                # print('sample contra:', mnli_contra_batch_input_ids.shape[0], mnli_contra_batch_label_ids.shape, mnli_contra_batch_label_ids)
-
-                sample_input_ids_i = torch.cat([mnli_entail_batch_input_ids,mnli_neutra_batch_input_ids,mnli_contra_batch_input_ids],dim=0)
-                sample_input_ids_each_iter.append(sample_input_ids_i)
-                all_input_ids = torch.cat([sample_input_ids_i,input_ids],dim=0)
-                assert all_input_ids.shape[0] == args.train_batch_size+9
-                sample_input_mask_i = torch.cat([mnli_entail_batch_input_mask,mnli_neutra_batch_input_mask,mnli_contra_batch_input_mask], dim=0)
-                sample_input_mask_each_iter.append(sample_input_mask_i)
-                all_input_mask = torch.cat([sample_input_mask_i,input_mask], dim=0)
-
-                '''
-                forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None):
-                '''
+                '''choose one batch in target samples'''
+                selected_target_sample_start_list = random.Random(args.sampling_seed).sample(target_sample_batch_start, 1)
+                # for start_i in selected_source_batch_start_list:
+                start_i = selected_target_sample_start_list[0]
+                ids_single = target_sample_id_list[start_i:start_i+target_sample_batch_size]
+                #target_samples_input_ids, target_samples_input_mask, target_samples_segment_ids, target_samples_label_ids
+                single_target_sample_input_ids = target_samples_input_ids[ids_single].to(device)
+                single_target_sample_input_mask = target_samples_input_mask[ids_single].to(device)
+                single_target_sample_segment_ids = target_samples_segment_ids[ids_single].to(device)
+                single_target_sample_label_ids = target_samples_label_ids[ids_single].to(device)
+                # single_input = (single_source_batch_input_ids, single_source_batch_input_mask, single_source_batch_segment_ids, single_source_batch_label_ids)
+                with torch.no_grad():
+                    target_sample_logits, target_sample_reps = roberta_seq_model(single_target_sample_input_ids, single_target_sample_input_mask, None, labels=None)
+                target_sample_reps_logits_labels = (target_sample_reps, target_sample_logits, single_target_sample_label_ids)
 
 
-                '''(1) SciTail samples --> MNLI batch'''
+                '''randomly select M batches from source'''
+
+
+                selected_source_batch_start_list = random.Random(args.sampling_seed).sample(source_batch_start, 5)
+                for start_i in selected_source_batch_start_list:
+                    ids_single = source_id_list[start_i:start_i+source_batch_size]
+                    #source_all_input_ids, source_all_input_mask, source_all_segment_ids, source_all_label_ids
+                    single_source_batch_input_ids = source_all_input_ids[ids_single].to(device)
+                    single_source_batch_input_mask = source_all_input_mask[ids_single].to(device)
+                    single_source_batch_segment_ids = source_all_segment_ids[ids_single].to(device)
+                    single_source_batch_label_ids = source_all_label_ids[ids_single].to(device)
+                    # single_input = (single_source_batch_input_ids, single_source_batch_input_mask, single_source_batch_segment_ids, single_source_batch_label_ids)
+                    with torch.no_grad():
+                        _, source_batch_reps = roberta_seq_model(single_source_batch_input_ids, single_source_batch_input_mask, None, labels=None)
+                    source_batch_reps_labels = (source_batch_reps, single_source_batch_label_ids)
+
+                    model.train()
+                    loss_nn = model(target_sample_reps_logits_labels, source_sample_reps_logits, source_batch_reps_labels,
+                                                None, None, None, mode='train_NN', loss_fct = loss_fct)
+                    print('loss_nn:  ', loss_nn.item())
+                    loss_nn.backward()
+                    optimizer.step()
+                    optimizer.zero_grad()
+
+                if step == 5#100:
+                    break
+            '''now, train target classifier'''
+            for target_sample_batch in target_samples_dataloader:
+                target_sample_batch = tuple(t.to(device) for t in target_sample_batch)
+                target_sample_input_ids_batch, target_sample_input_mask_batch, target_sample_segment_ids_batch, target_sample_label_ids_batch = target_sample_batch
+                # assert input_ids.shape[0] == args.train_batch_size
+                with torch.no_grad():
+                    target_sample_logits, target_sample_reps = roberta_seq_model(target_sample_input_ids_batch, target_sample_input_mask_batch, None, labels=None)
+                target_sample_reps_logits_labels = (target_sample_reps, target_sample_logits, target_sample_label_ids_batch)
+
                 model.train()
-                loss_cross_domain, _ = model(torch.cat([eval_all_input_ids_shot.to(device),input_ids],dim=0), None, torch.cat([eval_all_input_mask_shot.to(device),input_mask], dim=0), sample_size=3, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,1,1,1]), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
-                loss_cross_domain.backward()
-                optimizer.step()
-                optimizer.zero_grad()
-                '''(2) MNLI samples --> MNLI batch'''
-                model.train()
-                loss, _ = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=label_ids, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
-                loss.backward()
-                optimizer.step()
-                optimizer.zero_grad()
-                '''(3) MNLI samples --> SciTail samples'''
-                model.train()
-                loss_cross_sample, mnli_samples_outputs_i = model(torch.cat([sample_input_ids_i,eval_all_input_ids_shot.to(device)],dim=0), None, torch.cat([sample_input_mask_i,eval_all_input_mask_shot.to(device)], dim=0), sample_size=3, class_size =num_labels, labels=torch.cuda.LongTensor([0,0,0,1,1,1,1,1,1]), sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs=None, is_train=True, loss_fct=loss_fct)
-                loss_cross_sample.backward()
+                loss_cl = model(target_sample_reps_logits_labels, None, None,
+                                            None, None, None, mode='train_CL', loss_fct = loss_fct)
+                print('loss_cl:  ', loss_cl.item())
+                loss_cl.backward()
                 optimizer.step()
                 optimizer.zero_grad()
 
-                global_step += 1
+
                 iter_co+=1
-
-                check_freq = 10
-                if iter_co %check_freq==0:
-                    '''first get info from MNLI by sampling'''
-                    assert len(sample_input_ids_each_iter) == check_freq
-                    mnli_sample_hidden_list = []
-                    mnli_sample_logits_list = []
-                    for ff in range(len(sample_input_ids_each_iter)):
-                        model.eval()
-                        with torch.no_grad():
-                            mnli_sample_hidden_i, mnli_sample_logits_i = model(sample_input_ids_each_iter[ff], None, sample_input_mask_each_iter[ff], sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = None, few_shot_training=False, is_train=False, fetch_hidden_only=True, loss_fct=None)
-                            mnli_sample_hidden_list.append(mnli_sample_hidden_i[None,:,:])
-                            mnli_sample_logits_list.append(mnli_sample_logits_i[None,:,:])
-                    sample_input_ids_each_iter = []
-                    sample_input_mask_each_iter = []
-                    '''sum or mean does not make big difference'''
-                    prior_mnli_samples_outputs = torch.cat(mnli_sample_hidden_list,dim=0)
-                    prior_mnli_samples_outputs = torch.mean(prior_mnli_samples_outputs,dim=0)
-                    prior_mnli_samples_logits = torch.cat(mnli_sample_logits_list,dim=0)
-                    prior_mnli_samples_logits = torch.mean(prior_mnli_samples_logits,dim=0)
-
-                    '''second do few-shot training'''
-                    for ff in range(2):
-                        model.train()
-                        few_loss = model(eval_all_input_ids_shot.to(device), None, eval_all_input_mask_shot.to(device), sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,1,1,1]), prior_samples_outputs = None, few_shot_training=True, is_train=True, loss_fct=loss_fct)
-                        few_loss.backward()
-                        optimizer.step()
-                        optimizer.zero_grad()
-                        print('few_loss:', few_loss)
-                    '''
-                    start evaluate on dev set after this epoch
-                    '''
-                    model.eval()
-                    for idd, dev_or_test_dataloader in enumerate([dev_dataloader, eval_dataloader]):
-                        logger.info("***** Running evaluation *****")
-                        if idd == 0:
-                            logger.info("  Num examples = %d", len(dev_examples))
-                        else:
-                            logger.info("  Num examples = %d", len(eval_examples))
-                        logger.info("  Batch size = %d", args.eval_batch_size)
-
-                        eval_loss = 0
-                        nb_eval_steps = 0
-                        preds = []
-                        preds_LR= []
-                        preds_NN = []
-                        gold_label_ids = []
-                        print('Evaluating...')
-                        for input_ids, input_mask, segment_ids, label_ids in dev_or_test_dataloader:
-                            input_ids = input_ids.to(device)
-                            input_mask = input_mask.to(device)
-                            segment_ids = segment_ids.to(device)
-                            label_ids = label_ids.to(device)
-                            gold_label_ids+=list(label_ids.detach().cpu().numpy())
-
-                            all_input_ids = torch.cat([eval_all_input_ids_shot.to(device),input_ids],dim=0)
-                            all_input_mask = torch.cat([eval_all_input_mask_shot.to(device),input_mask], dim=0)
+                # if iter_co % 50 ==0:
+                #     '''dev or test'''
 
 
-                            with torch.no_grad():
-                                logits_LR, logits_NN, logits = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = prior_mnli_samples_outputs, prior_samples_logits = prior_mnli_samples_logits, is_train=False, loss_fct=None)
-
-                            nb_eval_steps += 1
-                            if len(preds) == 0:
-                                preds.append(logits.detach().cpu().numpy())
-                                preds_LR.append(logits_LR.detach().cpu().numpy())
-                                preds_NN.append(logits_NN.detach().cpu().numpy())
-                            else:
-                                preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
-                                preds_LR[0] = np.append(preds_LR[0], logits_LR.detach().cpu().numpy(), axis=0)
-                                preds_NN[0] = np.append(preds_NN[0], logits_NN.detach().cpu().numpy(), axis=0)
-
-                        preds = preds[0]
-                        preds_LR = preds_LR[0]
-                        preds_NN = preds_NN[0]
-
-                        '''
-                        preds: size*3 ["entailment", "neutral", "contradiction"]
-                        wenpeng added a softxmax so that each row is a prob vec
-                        '''
-                        acc_list = []
-                        for preds_i in [preds_LR, preds_NN, preds]:
-                            pred_probs = softmax(preds_i,axis=1)
-                            pred_indices = np.argmax(pred_probs, axis=1)
-                            pred_label_ids = []
-                            for p in pred_indices:
-                                pred_label_ids.append(0 if p == 0 else 1)
-                            gold_label_ids = gold_label_ids
-                            assert len(pred_label_ids) == len(gold_label_ids)
-                            hit_co = 0
-                            for k in range(len(pred_label_ids)):
-                                if pred_label_ids[k] == gold_label_ids[k]:
-                                    hit_co +=1
-                            test_acc = hit_co/len(gold_label_ids)
-
-                            acc_list.append(test_acc)
+                    # def forward(self, target_sample_reps_logits_labels, source_sample_reps_logits, source_batch_reps_labels,
+                    #             test_batch_reps_logits, source_reps_logits_history, target_reps_logits_history,
+                    #             mode='train_NN'):
 
 
-                        softmax_LR = array_2_softmax(preds_LR)
-                        softmax_NN = array_2_softmax(preds_NN)
-                        preds_ensemble = []
-                        for i in range(softmax_LR.shape[0]):
-                            if softmax_LR[i][0] > softmax_LR[i][1] and softmax_NN[i][0] > softmax_NN[i][1]:
-                                preds_ensemble.append(0)
-                            elif softmax_LR[i][0] < softmax_LR[i][1] and softmax_NN[i][0] < softmax_NN[i][1]:
-                                preds_ensemble.append(1)
-                            elif softmax_LR[i][0] > softmax_LR[i][1] and softmax_LR[i][0] > softmax_NN[i][1]:
-                                preds_ensemble.append(0)
-                            else:
-                                preds_ensemble.append(1)
-                        hit_co = 0
-                        for k in range(len(preds_ensemble)):
-                            if preds_ensemble[k] == gold_label_ids[k]:
-                                hit_co +=1
-                        test_acc = hit_co/len(gold_label_ids)
-                        acc_list.append(test_acc)
-
-
-                        if idd == 0: # this is dev
-                            if acc_list[0] >= max_dev_acc:
-                                max_dev_acc = acc_list[0]
-                                print('\ndev acc_list:', acc_list, ' max_mean_dev_acc:', max_dev_acc, '\n')
-                                '''store the model'''
-                                # store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE', str(max_dev_acc))
-
-                            else:
-                                print('\ndev acc_list:', acc_list, ' max_dev_acc:', max_dev_acc, '\n')
-                                break
-                        else: # this is test
-                            if acc_list[-2] > max_test_acc:
-                                max_test_acc = acc_list[-2]
-                            print('\ntest acc_list:', acc_list, ' max_test_acc:', max_test_acc, '\n')
-
+                #
+                # iter_co+=1
+                #
+                # check_freq = 10
+                # if iter_co %check_freq==0:
+                #     '''first get info from MNLI by sampling'''
+                #     assert len(sample_input_ids_each_iter) == check_freq
+                #     mnli_sample_hidden_list = []
+                #     mnli_sample_logits_list = []
+                #     for ff in range(len(sample_input_ids_each_iter)):
+                #         model.eval()
+                #         with torch.no_grad():
+                #             mnli_sample_hidden_i, mnli_sample_logits_i = model(sample_input_ids_each_iter[ff], None, sample_input_mask_each_iter[ff], sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = None, few_shot_training=False, is_train=False, fetch_hidden_only=True, loss_fct=None)
+                #             mnli_sample_hidden_list.append(mnli_sample_hidden_i[None,:,:])
+                #             mnli_sample_logits_list.append(mnli_sample_logits_i[None,:,:])
+                #     sample_input_ids_each_iter = []
+                #     sample_input_mask_each_iter = []
+                #     '''sum or mean does not make big difference'''
+                #     prior_mnli_samples_outputs = torch.cat(mnli_sample_hidden_list,dim=0)
+                #     prior_mnli_samples_outputs = torch.mean(prior_mnli_samples_outputs,dim=0)
+                #     prior_mnli_samples_logits = torch.cat(mnli_sample_logits_list,dim=0)
+                #     prior_mnli_samples_logits = torch.mean(prior_mnli_samples_logits,dim=0)
+                #
+                #     '''second do few-shot training'''
+                #     for ff in range(2):
+                #         model.train()
+                #         few_loss = model(eval_all_input_ids_shot.to(device), None, eval_all_input_mask_shot.to(device), sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,1,1,1]), prior_samples_outputs = None, few_shot_training=True, is_train=True, loss_fct=loss_fct)
+                #         few_loss.backward()
+                #         optimizer.step()
+                #         optimizer.zero_grad()
+                #         print('few_loss:', few_loss)
+                #     '''
+                #     start evaluate on dev set after this epoch
+                #     '''
+                #     model.eval()
+                #     for idd, dev_or_test_dataloader in enumerate([dev_dataloader, eval_dataloader]):
+                #         logger.info("***** Running evaluation *****")
+                #         if idd == 0:
+                #             logger.info("  Num examples = %d", len(dev_examples))
+                #         else:
+                #             logger.info("  Num examples = %d", len(eval_examples))
+                #         logger.info("  Batch size = %d", args.eval_batch_size)
+                #
+                #         eval_loss = 0
+                #         nb_eval_steps = 0
+                #         preds = []
+                #         preds_LR= []
+                #         preds_NN = []
+                #         gold_label_ids = []
+                #         print('Evaluating...')
+                #         for input_ids, input_mask, segment_ids, label_ids in dev_or_test_dataloader:
+                #             input_ids = input_ids.to(device)
+                #             input_mask = input_mask.to(device)
+                #             segment_ids = segment_ids.to(device)
+                #             label_ids = label_ids.to(device)
+                #             gold_label_ids+=list(label_ids.detach().cpu().numpy())
+                #
+                #             all_input_ids = torch.cat([eval_all_input_ids_shot.to(device),input_ids],dim=0)
+                #             all_input_mask = torch.cat([eval_all_input_mask_shot.to(device),input_mask], dim=0)
+                #
+                #
+                #             with torch.no_grad():
+                #                 logits_LR, logits_NN, logits = model(all_input_ids, None, all_input_mask, sample_size=3, class_size =num_labels, labels=None, sample_labels = torch.cuda.LongTensor([0,0,0,1,1,1,2,2,2]), prior_samples_outputs = prior_mnli_samples_outputs, prior_samples_logits = prior_mnli_samples_logits, is_train=False, loss_fct=None)
+                #
+                #             nb_eval_steps += 1
+                #             if len(preds) == 0:
+                #                 preds.append(logits.detach().cpu().numpy())
+                #                 preds_LR.append(logits_LR.detach().cpu().numpy())
+                #                 preds_NN.append(logits_NN.detach().cpu().numpy())
+                #             else:
+                #                 preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
+                #                 preds_LR[0] = np.append(preds_LR[0], logits_LR.detach().cpu().numpy(), axis=0)
+                #                 preds_NN[0] = np.append(preds_NN[0], logits_NN.detach().cpu().numpy(), axis=0)
+                #
+                #         preds = preds[0]
+                #         preds_LR = preds_LR[0]
+                #         preds_NN = preds_NN[0]
+                #
+                #         '''
+                #         preds: size*3 ["entailment", "neutral", "contradiction"]
+                #         wenpeng added a softxmax so that each row is a prob vec
+                #         '''
+                #         acc_list = []
+                #         for preds_i in [preds_LR, preds_NN, preds]:
+                #             pred_probs = softmax(preds_i,axis=1)
+                #             pred_indices = np.argmax(pred_probs, axis=1)
+                #             pred_label_ids = []
+                #             for p in pred_indices:
+                #                 pred_label_ids.append(0 if p == 0 else 1)
+                #             gold_label_ids = gold_label_ids
+                #             assert len(pred_label_ids) == len(gold_label_ids)
+                #             hit_co = 0
+                #             for k in range(len(pred_label_ids)):
+                #                 if pred_label_ids[k] == gold_label_ids[k]:
+                #                     hit_co +=1
+                #             test_acc = hit_co/len(gold_label_ids)
+                #
+                #             acc_list.append(test_acc)
+                #
+                #
+                #         softmax_LR = array_2_softmax(preds_LR)
+                #         softmax_NN = array_2_softmax(preds_NN)
+                #         preds_ensemble = []
+                #         for i in range(softmax_LR.shape[0]):
+                #             if softmax_LR[i][0] > softmax_LR[i][1] and softmax_NN[i][0] > softmax_NN[i][1]:
+                #                 preds_ensemble.append(0)
+                #             elif softmax_LR[i][0] < softmax_LR[i][1] and softmax_NN[i][0] < softmax_NN[i][1]:
+                #                 preds_ensemble.append(1)
+                #             elif softmax_LR[i][0] > softmax_LR[i][1] and softmax_LR[i][0] > softmax_NN[i][1]:
+                #                 preds_ensemble.append(0)
+                #             else:
+                #                 preds_ensemble.append(1)
+                #         hit_co = 0
+                #         for k in range(len(preds_ensemble)):
+                #             if preds_ensemble[k] == gold_label_ids[k]:
+                #                 hit_co +=1
+                #         test_acc = hit_co/len(gold_label_ids)
+                #         acc_list.append(test_acc)
+                #
+                #
+                #         if idd == 0: # this is dev
+                #             if acc_list[0] >= max_dev_acc:
+                #                 max_dev_acc = acc_list[0]
+                #                 print('\ndev acc_list:', acc_list, ' max_mean_dev_acc:', max_dev_acc, '\n')
+                #                 '''store the model'''
+                #                 # store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE', str(max_dev_acc))
+                #
+                #             else:
+                #                 print('\ndev acc_list:', acc_list, ' max_dev_acc:', max_dev_acc, '\n')
+                #                 break
+                #         else: # this is test
+                #             if acc_list[-2] > max_test_acc:
+                #                 max_test_acc = acc_list[-2]
+                #             print('\ntest acc_list:', acc_list, ' max_test_acc:', max_test_acc, '\n')
+                #
 
 def array_2_softmax(a):
     for i in range(a.shape[0]):
@@ -1073,4 +1036,4 @@ if __name__ == "__main__":
     这儿针对以前的train_MNLI_test_3shotRTE_meta_learning.v2.py的改动就是在RTE sampling的时候；
     然后就是只care acc_list[0]的测试标准，
     '''
-# CUDA_VISIBLE_DEVICES=3 python -u train_MNLI_test_3shotRTE_meta_learning.v2.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --num_train_epochs 3 --data_dir '' --output_dir ''
+# CUDA_VISIBLE_DEVICES=3 python -u 2019to2020_train_MNLI_kshot_3shot_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3 --sampling_seed 42

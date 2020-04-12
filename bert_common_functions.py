@@ -306,6 +306,17 @@ def get_a_random_batch_from_dataloader(dataloader, size):
                     return batch
                 else:
                     break
+
+# def get_a_random_list_batches_from_dataloader(dataloader, size):
+#     while True:
+#         ith = randrange(len(dataloader))
+#         for step, batch in enumerate(dataloader):
+#             if step == ith:
+#                 if len(batch[0]) ==  size:
+#                     return batch
+#                 else:
+#                     break
+
 def cosine_rowwise_two_matrices(a,b):
     a_norm = a / a.norm(dim=1)[:, None]
     b_norm = b / b.norm(dim=1)[:, None]

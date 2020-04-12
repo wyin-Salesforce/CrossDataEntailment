@@ -1039,7 +1039,7 @@ if __name__ == "__main__":
     ind_tens = torch.from_numpy(ind)
     print('tens:', tens, 'ind_tens:', ind_tens)
 
-    sub_tens = tens[ind_tens=0]
+    sub_tens = tens[ind_tens==0]
     print('sub_tens:', sub_tens)
 
 

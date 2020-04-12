@@ -809,6 +809,13 @@ def main():
             '''for each epoch, we do 100 iter of NN; then full iter of target classification'''
             '''NN training'''
             random.Random(args.sampling_seed).shuffle(source_id_list)
+
+            source_sample_entail_reps_history = []
+            source_sample_neutral_reps_history = []
+            source_sample_contra_reps_history = []
+            source_sample_entail_logits_history = []
+            source_sample_neutral_logits_history = []
+            source_sample_contra_logits_history = []
             for step, source_samples_batch in enumerate(source_samples_dataloader):
 
                 source_samples_batch = tuple(t.to(device) for t in source_samples_batch)
@@ -817,6 +824,12 @@ def main():
                 with torch.no_grad():
                     source_sample_logits, source_sample_reps = roberta_seq_model(source_samples_input_ids, source_samples_input_mask, None, labels=None)
                 source_sample_reps_logits = (source_sample_reps[:,0,:], source_sample_logits[0])
+
+                source_sample_entail_reps_i = source_sample_reps[:,0,:][source_samples_label_ids==0]
+                source_sample_entail_reps_i = source_sample_entail_reps_i.sum(dim=0)
+                source_sample_neutral_reps_i = source_sample_reps[:,0,:][source_samples_label_ids==1]
+                source_sample_contra_reps_i = source_sample_reps[:,0,:][source_samples_label_ids==2]
+
 
                 '''choose one batch in target samples'''
                 selected_target_sample_start_list = random.Random(args.sampling_seed).sample(target_sample_batch_start, 1)
@@ -1041,6 +1054,7 @@ if __name__ == "__main__":
 
     sub_tens = tens[ind_tens==1]
     print('sub_tens:', sub_tens)
+    print('ind sum:', (ind_tens==1).sum())
 
 
     '''

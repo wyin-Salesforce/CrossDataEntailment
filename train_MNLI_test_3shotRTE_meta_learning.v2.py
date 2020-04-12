@@ -25,10 +25,10 @@ from sklearn.metrics import matthews_corrcoef, f1_score
 
 
 
-from pytorch_transformers.tokenization_roberta import RobertaTokenizer
-from pytorch_transformers.optimization import AdamW
-from pytorch_transformers.modeling_roberta import RobertaModel, RobertaConfig#, RobertaClassificationHead
-from pytorch_transformers.modeling_bert import BertPreTrainedModel
+from transformers.tokenization_roberta import RobertaTokenizer
+from transformers.optimization import AdamW
+from transformers.modeling_roberta import RobertaModel, RobertaConfig#, RobertaClassificationHead
+from transformers.modeling_bert import BertPreTrainedModel
 
 from bert_common_functions import store_transformers_models, get_a_random_batch_from_dataloader, cosine_rowwise_two_matrices
 
@@ -407,7 +407,7 @@ class Encoder(BertPreTrainedModel):
         minibatch: input_ids, token_type_ids, attention_mask
         '''
         # print('input_ids shape0 :', input_ids.shape[0])
-        outputs = self.roberta(input_ids, token_type_ids, attention_mask) #(batch, max_len, hidden_size)
+        outputs = self.roberta(input_ids, attention_mask, None) #(batch, max_len, hidden_size)
         pooled_outputs = outputs[1]#torch.max(outputs[0],dim=1)[0]+ outputs[1]#outputs[1]#torch.mean(outputs[0],dim=1)#outputs[1] #(batch, hidden_size)
         LR_logits = self.classifier(pooled_outputs) #(9+batch, 3)
         if is_train:

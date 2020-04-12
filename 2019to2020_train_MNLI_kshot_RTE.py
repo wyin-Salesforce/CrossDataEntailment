@@ -415,12 +415,12 @@ class Encoder(BertPreTrainedModel):
         query_size = query_reps.shape[0]
         hidden_size = query_reps.shape[1]
 
-        print('sample_size:', sample_size, 'query_size:', query_size, 'hidden_size:', hidden_size)
+        # print('sample_size:', sample_size, 'query_size:', query_size, 'hidden_size:', hidden_size)
 
 
         repeat_sample_rep = torch.cat([sample_reps]*query_size, dim=0) #(9*batch_size, hidden)
-        print('repeat_sample_rep shape:', repeat_sample_rep.shape)
-        print('query_reps:', query_reps.shape)
+        # print('repeat_sample_rep shape:', repeat_sample_rep.shape)
+        # print('query_reps:', query_reps.shape)
         repeat_query_rep = query_reps.repeat(1, sample_size).view(-1, hidden_size)#(9*batch_size, hidden)
 
         '''? add similarity or something similar?'''
@@ -816,7 +816,7 @@ def main():
                 # assert input_ids.shape[0] == args.train_batch_size
                 with torch.no_grad():
                     source_sample_logits, source_sample_reps = roberta_seq_model(source_samples_input_ids, source_samples_input_mask, None, labels=None)
-                source_sample_reps_logits = (source_sample_reps[:,0,:], source_sample_logits)
+                source_sample_reps_logits = (source_sample_reps[:,0,:], source_sample_logits[0])
 
                 '''choose one batch in target samples'''
                 selected_target_sample_start_list = random.Random(args.sampling_seed).sample(target_sample_batch_start, 1)
@@ -831,7 +831,7 @@ def main():
                 # single_input = (single_source_batch_input_ids, single_source_batch_input_mask, single_source_batch_segment_ids, single_source_batch_label_ids)
                 with torch.no_grad():
                     target_sample_logits, target_sample_reps = roberta_seq_model(single_target_sample_input_ids, single_target_sample_input_mask, None, labels=None)
-                target_sample_reps_logits_labels = (target_sample_reps[:,0,:], target_sample_logits, single_target_sample_label_ids)
+                target_sample_reps_logits_labels = (target_sample_reps[:,0,:], target_sample_logits[0], single_target_sample_label_ids)
 
 
                 '''randomly select M batches from source'''
@@ -867,7 +867,7 @@ def main():
                 # assert input_ids.shape[0] == args.train_batch_size
                 with torch.no_grad():
                     target_sample_logits, target_sample_reps = roberta_seq_model(target_sample_input_ids_batch, target_sample_input_mask_batch, None, labels=None)
-                target_sample_reps_logits_labels = (target_sample_reps[:,0,:], target_sample_logits, target_sample_label_ids_batch)
+                target_sample_reps_logits_labels = (target_sample_reps[:,0,:], target_sample_logits[0], target_sample_label_ids_batch)
 
                 model.train()
                 loss_cl = model(target_sample_reps_logits_labels, None, None,

@@ -877,7 +877,7 @@ def main():
                 '''randomly select M batches from source'''
 
 
-                selected_source_batch_start_list = random.Random(args.sampling_seed).sample(source_batch_start, 5)
+                selected_source_batch_start_list = random.Random(args.sampling_seed).sample(source_batch_start, 10)
                 for start_i in selected_source_batch_start_list:
                     ids_single = source_id_list[start_i:start_i+source_batch_size]
                     #source_all_input_ids, source_all_input_mask, source_all_segment_ids, source_all_label_ids
@@ -893,12 +893,12 @@ def main():
                     model.train()
                     loss_nn = model(target_sample_reps_logits_labels, source_sample_reps_logits, source_batch_reps_labels,
                                                 None, None, None, mode='train_NN', loss_fct = loss_fct)
-                    print('loss_nn:  ', loss_nn.item())
+                    # print('loss_nn:  ', loss_nn.item())
                     loss_nn.backward()
                     optimizer.step()
                     optimizer.zero_grad()
 
-                if step == 5:#100:
+                if step == 100:#100:
                     break
 
             # print('source_sample_entail_reps_history before:', source_sample_entail_reps_history)
@@ -957,7 +957,7 @@ def main():
                 model.train()
                 loss_cl = model(target_sample_reps_logits_labels, None, None,
                                             None, None, None, mode='train_CL', loss_fct = loss_fct)
-                print('loss_cl:  ', loss_cl.item())
+                # print('loss_cl:  ', loss_cl.item())
                 loss_cl.backward()
                 optimizer.step()
                 optimizer.zero_grad()

@@ -1011,7 +1011,7 @@ def main():
                     #             test_batch_reps_logits_labels, source_reps_logits_history, target_reps_logits_history,
                     #             mode='train_NN'):
                                 pred_labels_i = model(None, None, None,
-                                                            test_batch_reps_logits_labels, None, None, mode='test', loss_fct = loss_fct)
+                                                            test_batch_reps_logits_labels, source_reps_logits_history, target_reps_logits_history, mode='test', loss_fct = loss_fct)
                             # print('pred_labels_i:',pred_labels_i)
                             preds.append(pred_labels_i)
                             gold_label_ids.append(label_ids)

@@ -393,7 +393,7 @@ class Encoder(BertPreTrainedModel):
         self.num_labels = config.num_labels
         # self.roberta = RobertaModel(config)
         # self.classifier = RobertaClassificationHead(config)
-        self.classifier_target = RobertaClassificationHead(config)
+        self.classifier_target = RobertaClassificationHead()
         # self.classifier_target.load_state_dict(self.classifier.state_dict())
 
     def forward(self, target_sequence_outputs, target_labels, LR_logits_source, loss_fct=None):
@@ -430,11 +430,11 @@ class Encoder(BertPreTrainedModel):
 class RobertaClassificationHead(nn.Module):
     """wenpeng overwrite it so to accept matrix as input"""
 
-    def __init__(self, config):
+    def __init__(self):
         super(RobertaClassificationHead, self).__init__()
-        self.dense = nn.Linear(config.hidden_size, config.hidden_size)
-        self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.out_proj = nn.Linear(config.hidden_size, config.num_labels)
+        self.dense = nn.Linear(1024, 1024)#nn.Linear(config.hidden_size, config.hidden_size)
+        self.dropout = nn.Dropout(0.1)#nn.Dropout(config.hidden_dropout_prob)
+        self.out_proj = nn.Linear(1024, 3)#nn.Linear(config.hidden_size, config.num_labels)
 
     def forward(self, features, **kwargs):
         x = features[:, 0, :]  # take <s> token (equiv. to [CLS])

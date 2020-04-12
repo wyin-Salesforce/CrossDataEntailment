@@ -397,7 +397,7 @@ class Encoder(BertPreTrainedModel):
     def __init__(self, config):
         super(Encoder, self).__init__(config)
         self.num_labels = config.num_labels
-        '''??? why a different name will not get initialized'''
+        '''this self.roberta can help the self.classifier to be initilaized'''
         self.roberta = None#RobertaModel(config)
         '''classifier for target domain'''
         self.classifier = RobertaClassificationHead(config)

@@ -493,8 +493,8 @@ class Encoder(BertPreTrainedModel):
             # print('CL_logits_from_target:', CL_logits_from_target)
             overall_test_batch_logits = logits_from_pretrained+NN_logits_combine+CL_logits_from_target
             # overall_test_batch_logits = logits_from_pretrained
-            # overall_test_batch_logits = NN_logits_combine
-            overall_test_batch_logits = CL_logits_from_target
+            overall_test_batch_logits = NN_logits_combine
+            # overall_test_batch_logits = CL_logits_from_target
             pred_labels_batch = torch.softmax(overall_test_batch_logits.view(-1, self.num_labels), dim=1).argmax(dim=1)
 
             '''majority voting'''
@@ -937,7 +937,7 @@ def main():
             source_reps_logits_history = (source_sample_reps_history, source_sample_logits_history)
             # print('source_sample_logits_history:', source_sample_logits_history)
 
-            '''STILTS Phase, train target classifier'''
+        '''STILTS Phase, train target classifier'''
         iter_co = 0
         for _ in trange(int(args.stilts_epochs), desc="Epoch"):
             target_sample_entail_reps_history = []

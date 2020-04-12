@@ -898,6 +898,8 @@ def main():
             source_sample_entail_logits_history = torch.cat(source_sample_entail_logits_history, dim=0).mean(dim=0)
             source_sample_neutral_logits_history = torch.cat(source_sample_neutral_logits_history, dim=0).mean(dim=0)
             source_sample_contra_logits_history = torch.cat(source_sample_contra_logits_history, dim=0).mean(dim=0)
+
+            print('source_sample_entail_reps_history:', source_sample_entail_reps_history.shape)
             source_sample_reps_history = torch.cat([source_sample_entail_reps_history, source_sample_neutral_reps_history, source_sample_contra_reps_history], dim=0)
             source_sample_logits_history = torch.cat([source_sample_entail_logits_history, source_sample_neutral_logits_history, source_sample_contra_logits_history], dim=0)
             source_reps_logits_history = (source_sample_reps_history, source_sample_logits_history)
@@ -947,7 +949,7 @@ def main():
                 optimizer.zero_grad()
 
                 iter_co+=1
-                if iter_co % 50 ==0:
+                if iter_co % 1 ==0:
                     '''dev or test'''
                     target_sample_entail_reps_history = torch.cat(target_sample_entail_reps_history, dim=0).mean(dim=0)
                     target_sample_neutral_reps_history = torch.cat(target_sample_neutral_reps_history, dim=0).mean(dim=0)
@@ -1094,4 +1096,4 @@ if __name__ == "__main__":
     '''
     1, MNLI 只读取了1000
     '''
-# CUDA_VISIBLE_DEVICES=3 python -u 2019to2020_train_MNLI_kshot_3shot_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3 --sampling_seed 42
+# CUDA_VISIBLE_DEVICES=3 python -u 2019to2020_train_MNLI_kshot_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3 --sampling_seed 42

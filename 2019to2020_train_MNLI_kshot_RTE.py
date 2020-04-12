@@ -500,11 +500,8 @@ class Encoder(BertPreTrainedModel):
             pred_labels_batch_NN = torch.softmax(NN_logits_combine.view(-1, self.num_labels), dim=1).argmax(dim=1, keepdim=True)
             pred_labels_batch_CL = torch.softmax(CL_logits_from_target.view(-1, self.num_labels), dim=1).argmax(dim=1, keepdim=True)
             combine_pred_labels_batch = torch.cat([pred_labels_batch_roberta,pred_labels_batch_NN , pred_labels_batch_CL], dim=1) #(batch, 3)
-            print('combine_pred_labels_batch:', combine_pred_labels_batch)
             pred_labels_batch = (combine_pred_labels_batch==0).sum(dim=1)
             pred_labels_batch = 1-(pred_labels_batch>1).type(torch.cuda.LongTensor)#[entail_size_batch>1]=0
-            print('pred_labels_batch:', pred_labels_batch)
-            exit(0)
 
             # pred_labels_batch = torch.softmax(overall_test_batch_logits.view(-1, self.num_labels), dim=1).argmax(dim=1)
 
@@ -920,7 +917,7 @@ def main():
                     optimizer.step()
                     optimizer.zero_grad()
 
-                if step == 10:#100:
+                if step == 100:#100:
                     break
 
             # print('source_sample_entail_reps_history before:', source_sample_entail_reps_history)

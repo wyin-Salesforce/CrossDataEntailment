@@ -357,16 +357,6 @@ def convert_examples_to_features(examples, label_list, max_seq_length,
         else:
             raise KeyError(output_mode)
 
-        if ex_index < 5:
-            logger.info("*** Example ***")
-            logger.info("guid: %s" % (example.guid))
-            logger.info("tokens: %s" % " ".join(
-                    [str(x) for x in tokens]))
-            logger.info("input_ids: %s" % " ".join([str(x) for x in input_ids]))
-            logger.info("input_mask: %s" % " ".join([str(x) for x in input_mask]))
-            logger.info("segment_ids: %s" % " ".join([str(x) for x in segment_ids]))
-            logger.info("label: %s (id = %d)" % (example.label, label_id))
-
         features.append(
                 InputFeatures(input_ids=input_ids,
                               input_mask=input_mask,
@@ -399,14 +389,12 @@ class Encoder(BertPreTrainedModel):
     def __init__(self, config):
         super(Encoder, self).__init__(config)
         self.num_labels = config.num_labels
-        '''??? why a different name will not get initialized'''
         self.roberta = RobertaModel(config)
         self.classifier = RobertaClassificationHead(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.mlp_1 = nn.Linear(config.hidden_size*3, config.hidden_size)
         self.mlp_2 = nn.Linear(config.hidden_size, 1, bias=False)
-        # self.init_weights()
-        # self.apply(self.init_bert_weights)
+
     def forward(self, input_ids, token_type_ids=None, attention_mask=None, sample_size=None, class_size = None, labels=None, sample_labels=None,
                 prior_samples_outputs=None, prior_samples_logits = None,
                 few_shot_training=False, is_train = True, fetch_hidden_only=False, loss_fct = None):
@@ -995,7 +983,7 @@ def main():
                     '''STILTs training'''
                     for ff in range(2):
 
-                        for eval_shot_batch in eval_shot_dataloader_list:
+                        for eval_shot_batch in eval_shot_dataloader_list[-1]:
                             eval_shot_random_batch_input_ids, eval_shot_random_batch_input_mask, eval_shot_random_batch_segment_ids, eval_shot_random_batch_label_ids = tuple(t.to(device) for t in eval_shot_batch)
                             eval_shot_random_batch_label_ids[eval_shot_random_batch_label_ids>0]=1
                             model.train()

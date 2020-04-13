@@ -355,15 +355,15 @@ def convert_examples_to_features(examples, label_list, max_seq_length,
         else:
             raise KeyError(output_mode)
 
-        if ex_index < 5:
-            logger.info("*** Example ***")
-            logger.info("guid: %s" % (example.guid))
-            logger.info("tokens: %s" % " ".join(
-                    [str(x) for x in tokens]))
-            logger.info("input_ids: %s" % " ".join([str(x) for x in input_ids]))
-            logger.info("input_mask: %s" % " ".join([str(x) for x in input_mask]))
-            logger.info("segment_ids: %s" % " ".join([str(x) for x in segment_ids]))
-            logger.info("label: %s (id = %d)" % (example.label, label_id))
+        # if ex_index < 5:
+        #     logger.info("*** Example ***")
+        #     logger.info("guid: %s" % (example.guid))
+        #     logger.info("tokens: %s" % " ".join(
+        #             [str(x) for x in tokens]))
+        #     logger.info("input_ids: %s" % " ".join([str(x) for x in input_ids]))
+        #     logger.info("input_mask: %s" % " ".join([str(x) for x in input_mask]))
+        #     logger.info("segment_ids: %s" % " ".join([str(x) for x in segment_ids]))
+        #     logger.info("label: %s (id = %d)" % (example.label, label_id))
 
         features.append(
                 InputFeatures(input_ids=input_ids,
@@ -538,6 +538,10 @@ def main():
     parser.add_argument('--k_shot',
                         type=int,
                         default=3,
+                        help="random seed for initialization")
+    parser.add_argument('--NN_iter_limit',
+                        type=int,
+                        default=10,
                         help="random seed for initialization")
     parser.add_argument('--sampling_seed',
                         type=int,
@@ -912,7 +916,7 @@ def main():
                     optimizer.step()
                     optimizer.zero_grad()
 
-                if step == 10:#100:
+                if step == NN_iter_limit:#100:
                     break
 
             # print('source_sample_entail_reps_history before:', source_sample_entail_reps_history)
@@ -974,7 +978,7 @@ def main():
                 model.train()
                 loss_cl = model(target_sample_reps_logits_labels, None, None,
                                             None, None, None, mode='train_CL', loss_fct = loss_fct)
-                print('loss_cl:  ', loss_cl.item())
+                # print('loss_cl:  ', loss_cl.item())
                 loss_cl.backward()
                 optimizer.step()
                 optimizer.zero_grad()
@@ -1081,4 +1085,4 @@ if __name__ == "__main__":
     1, NN gets worse with more epochs
     2, CL does not change much with 1e-6
     '''
-# CUDA_VISIBLE_DEVICES=3 python -u 2019to2020_train_MNLI_kshot_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3 --sampling_seed 42 --stilts_epochs 20 --NN_epochs 1
+# CUDA_VISIBLE_DEVICES=3 python -u 2019to2020_train_MNLI_kshot_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3 --sampling_seed 42 --stilts_epochs 50 --NN_epochs 1 --NN_iter_limit 10

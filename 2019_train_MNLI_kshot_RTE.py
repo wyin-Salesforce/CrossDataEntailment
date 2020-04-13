@@ -1047,7 +1047,7 @@ def main():
                         if idd == 0: # this is dev
                             if acc_list[0] >= max_dev_acc:
                                 max_dev_acc = acc_list[0]
-                                print('\ndev acc_list:', acc_list, ' max_mean_dev_acc:', max_dev_acc, '\n')
+                                print('\ndev acc_list:', acc_list[0], ' max_mean_dev_acc:', max_dev_acc, '\n')
                                 '''store the model'''
                                 # store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE', str(max_dev_acc))
 
@@ -1055,9 +1055,9 @@ def main():
                                 print('\ndev acc_list:', acc_list, ' max_dev_acc:', max_dev_acc, '\n')
                                 break
                         else: # this is test
-                            if acc_list[-2] > max_test_acc:
-                                max_test_acc = acc_list[-2]
-                            print('\ntest acc_list:', acc_list, ' max_test_acc:', max_test_acc, '\n')
+                            if acc_list[0] > max_test_acc:
+                                max_test_acc = acc_list[0]
+                            print('\ntest acc_list:', acc_list[0], ' max_test_acc:', max_test_acc, '\n')
 
 
 def array_2_softmax(a):
@@ -1073,4 +1073,4 @@ if __name__ == "__main__":
     这儿针对以前的train_MNLI_test_3shotRTE_meta_learning.v2.py的改动就是在RTE sampling的时候；
     然后就是只care acc_list[0]的测试标准，
     '''
-# CUDA_VISIBLE_DEVICES=3 python -u train_MNLI_test_3shotRTE_meta_learning.v2.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --num_train_epochs 3 --data_dir '' --output_dir ''
+# CUDA_VISIBLE_DEVICES=1 python -u 2019_train_MNLI_kshot_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --num_train_epochs 3 --data_dir '' --output_dir '' --sampling_seed 42

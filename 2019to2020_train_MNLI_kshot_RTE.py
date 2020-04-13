@@ -201,7 +201,7 @@ class RteProcessor(DataProcessor):
         assert len(examples_entail) == K
         assert len(examples_neutral) == K
         assert len(examples_contra) == K
-        return examples_entail, examples_neutral, []#examples_contra
+        return examples_entail, examples_neutral, examples_contra
 
     def get_RTE_as_dev(self, filename):
         '''
@@ -355,15 +355,15 @@ def convert_examples_to_features(examples, label_list, max_seq_length,
         else:
             raise KeyError(output_mode)
 
-        # if ex_index < 5:
-        #     logger.info("*** Example ***")
-        #     logger.info("guid: %s" % (example.guid))
-        #     logger.info("tokens: %s" % " ".join(
-        #             [str(x) for x in tokens]))
-        #     logger.info("input_ids: %s" % " ".join([str(x) for x in input_ids]))
-        #     logger.info("input_mask: %s" % " ".join([str(x) for x in input_mask]))
-        #     logger.info("segment_ids: %s" % " ".join([str(x) for x in segment_ids]))
-        #     logger.info("label: %s (id = %d)" % (example.label, label_id))
+        if ex_index < 5:
+            logger.info("*** Example ***")
+            logger.info("guid: %s" % (example.guid))
+            logger.info("tokens: %s" % " ".join(
+                    [str(x) for x in tokens]))
+            logger.info("input_ids: %s" % " ".join([str(x) for x in input_ids]))
+            logger.info("input_mask: %s" % " ".join([str(x) for x in input_mask]))
+            logger.info("segment_ids: %s" % " ".join([str(x) for x in segment_ids]))
+            logger.info("label: %s (id = %d)" % (example.label, label_id))
 
         features.append(
                 InputFeatures(input_ids=input_ids,
@@ -494,7 +494,7 @@ class Encoder(BertPreTrainedModel):
             overall_test_batch_logits = logits_from_pretrained+NN_logits_combine+CL_logits_from_target
             # overall_test_batch_logits = logits_from_pretrained
             # overall_test_batch_logits = NN_logits_combine
-            # overall_test_batch_logits = CL_logits_from_target
+            overall_test_batch_logits = CL_logits_from_target
             pred_labels_batch = torch.softmax(overall_test_batch_logits.view(-1, self.num_labels), dim=1).argmax(dim=1)
 
             '''majority voting'''
@@ -538,10 +538,6 @@ def main():
     parser.add_argument('--k_shot',
                         type=int,
                         default=3,
-                        help="random seed for initialization")
-    parser.add_argument('--NN_iter_limit',
-                        type=int,
-                        default=10,
                         help="random seed for initialization")
     parser.add_argument('--sampling_seed',
                         type=int,
@@ -701,7 +697,12 @@ def main():
     model = Encoder.from_pretrained(pretrain_model_dir, num_labels=num_labels)
     tokenizer = RobertaTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
     model.to(device)
+    # store_bert_model(model, tokenizer.vocab, '/export/home/workspace/CrossDataEntailment/models', 'try')
+    # exit(0)
+    # if n_gpu > 1:
+    #     model = torch.nn.DataParallel(model)
 
+    # Prepare optimizer
     param_optimizer = list(model.named_parameters())
     no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
     optimizer_grouped_parameters = [
@@ -821,7 +822,7 @@ def main():
 
         target_sample_size = target_samples_input_ids.shape[0]
         target_sample_id_list = list(range(target_sample_size))
-        target_sample_batch_size = 6
+        target_sample_batch_size = 9
         target_sample_batch_start = [x*target_sample_batch_size for x in range(target_sample_size//target_sample_batch_size)]
 
 
@@ -895,6 +896,8 @@ def main():
 
 
                 '''randomly select M batches from source'''
+
+
                 selected_source_batch_start_list = random.Random(args.sampling_seed).sample(source_batch_start, 10)
                 for start_i in selected_source_batch_start_list:
                     ids_single = source_id_list[start_i:start_i+source_batch_size]
@@ -916,7 +919,7 @@ def main():
                     optimizer.step()
                     optimizer.zero_grad()
 
-                if step == args.NN_iter_limit:#100:
+                if step == 100:#100:
                     break
 
             # print('source_sample_entail_reps_history before:', source_sample_entail_reps_history)
@@ -949,7 +952,7 @@ def main():
                 # assert input_ids.shape[0] == args.train_batch_size
                 entail_size_i = (target_sample_label_ids_batch==0)#.sum()
                 neutral_size_i = (target_sample_label_ids_batch==1)#.sum()
-                # contra_size_i = (target_sample_label_ids_batch==2)#.sum()
+                contra_size_i = (target_sample_label_ids_batch==2)#.sum()
                 with torch.no_grad():
                     target_sample_logits, target_sample_reps = roberta_seq_model(target_sample_input_ids_batch, target_sample_input_mask_batch, None, labels=None)
                     target_sample_logits = target_sample_logits[0]
@@ -958,11 +961,11 @@ def main():
 
                 target_sample_entail_reps_i = target_sample_reps[entail_size_i].mean(dim=0, keepdim=True)
                 target_sample_neutral_reps_i = target_sample_reps[neutral_size_i].mean(dim=0, keepdim=True)
-                # target_sample_contra_reps_i = target_sample_reps[contra_size_i].mean(dim=0, keepdim=True)
+                target_sample_contra_reps_i = target_sample_reps[contra_size_i].mean(dim=0, keepdim=True)
 
                 target_sample_entail_logits_i = target_sample_logits[entail_size_i].mean(dim=0, keepdim=True)
                 target_sample_neutral_logits_i = target_sample_logits[neutral_size_i].mean(dim=0, keepdim=True)
-                # target_sample_contra_logits_i = target_sample_logits[contra_size_i].mean(dim=0, keepdim=True)
+                target_sample_contra_logits_i = target_sample_logits[contra_size_i].mean(dim=0, keepdim=True)
 
                 if entail_size_i.sum()!=0:
                     target_sample_entail_reps_history_list.append(target_sample_entail_reps_i)
@@ -970,15 +973,15 @@ def main():
                 if neutral_size_i.sum()!=0:
                     target_sample_neutral_reps_history_list.append(target_sample_neutral_reps_i)
                     target_sample_neutral_logits_history_list.append(target_sample_neutral_logits_i)
-                # if contra_size_i.sum()!=0:
-                #     target_sample_contra_reps_history_list.append(target_sample_contra_reps_i)
-                #     target_sample_contra_logits_history_list.append(target_sample_contra_logits_i)
+                if contra_size_i.sum()!=0:
+                    target_sample_contra_reps_history_list.append(target_sample_contra_reps_i)
+                    target_sample_contra_logits_history_list.append(target_sample_contra_logits_i)
 
 
                 model.train()
                 loss_cl = model(target_sample_reps_logits_labels, None, None,
                                             None, None, None, mode='train_CL', loss_fct = loss_fct)
-                # print('loss_cl:  ', loss_cl.item())
+                print('loss_cl:  ', loss_cl.item())
                 loss_cl.backward()
                 optimizer.step()
                 optimizer.zero_grad()
@@ -987,20 +990,19 @@ def main():
                 if iter_co % 1 ==0:
                     '''dev or test'''
                     if (len(target_sample_entail_reps_history_list)==0 or
-                        len(target_sample_neutral_reps_history_list)==0):
-                        #  or
-                        # len(target_sample_contra_reps_history_list)==0):
+                        len(target_sample_neutral_reps_history_list)==0 or
+                        len(target_sample_contra_reps_history_list)==0):
                         '''train next target_sample batch'''
                         continue
 
                     target_sample_entail_reps_history = torch.cat(target_sample_entail_reps_history_list, dim=0).mean(dim=0, keepdim=True)
                     target_sample_neutral_reps_history = torch.cat(target_sample_neutral_reps_history_list, dim=0).mean(dim=0, keepdim=True)
-                    # target_sample_contra_reps_history = torch.cat(target_sample_contra_reps_history_list, dim=0).mean(dim=0, keepdim=True)
+                    target_sample_contra_reps_history = torch.cat(target_sample_contra_reps_history_list, dim=0).mean(dim=0, keepdim=True)
                     target_sample_entail_logits_history = torch.cat(target_sample_entail_logits_history_list, dim=0).mean(dim=0, keepdim=True)
                     target_sample_neutral_logits_history = torch.cat(target_sample_neutral_logits_history_list, dim=0).mean(dim=0, keepdim=True)
-                    # target_sample_contra_logits_history = torch.cat(target_sample_contra_logits_history_list, dim=0).mean(dim=0, keepdim=True)
-                    target_sample_reps_history = torch.cat([target_sample_entail_reps_history, target_sample_neutral_reps_history], dim=0)
-                    target_sample_logits_history = torch.cat([target_sample_entail_logits_history, target_sample_neutral_logits_history], dim=0)
+                    target_sample_contra_logits_history = torch.cat(target_sample_contra_logits_history_list, dim=0).mean(dim=0, keepdim=True)
+                    target_sample_reps_history = torch.cat([target_sample_entail_reps_history, target_sample_neutral_reps_history, target_sample_contra_reps_history], dim=0)
+                    target_sample_logits_history = torch.cat([target_sample_entail_logits_history, target_sample_neutral_logits_history, target_sample_contra_logits_history], dim=0)
                     target_reps_logits_history = (target_sample_reps_history, target_sample_logits_history)
                     # print('target_sample_logits_history:', target_sample_logits_history)
 
@@ -1012,7 +1014,7 @@ def main():
 
                         preds = []
                         gold_label_ids = []
-                        # print('Evaluating...')
+                        print('Evaluating...')
                         for input_ids, input_mask, segment_ids, label_ids in dev_or_test_dataloader:
                             input_ids = input_ids.to(device)
                             input_mask = input_mask.to(device)
@@ -1060,17 +1062,17 @@ def main():
                         if idd == 0: # this is dev
                             if test_acc > max_dev_acc:
                                 max_dev_acc = test_acc
-                                print('iter: ', iter_co, 'dev acc:', test_acc, ' max_mean_dev_acc:', max_dev_acc)
+                                print('\ndev acc:', test_acc, ' max_mean_dev_acc:', max_dev_acc, '\n')
                                 '''store the model'''
                                 # store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE', str(max_dev_acc))
 
                             else:
-                                print('iter: ', iter_co, 'dev acc:', test_acc, ' max_mean_dev_acc:', max_dev_acc)
+                                print('\ndev acc:', test_acc, ' max_mean_dev_acc:', max_dev_acc, '\n')
                                 break
                         else: # this is test
                             if test_acc > max_test_acc:
                                 max_test_acc = test_acc
-                            print('iter: ', iter_co, 'test acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
+                            print('\ntest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
 
 
 
@@ -1085,4 +1087,4 @@ if __name__ == "__main__":
     1, NN gets worse with more epochs
     2, CL does not change much with 1e-6
     '''
-# CUDA_VISIBLE_DEVICES=3 python -u 2019to2020_train_MNLI_kshot_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3 --sampling_seed 42 --stilts_epochs 50 --NN_epochs 1 --NN_iter_limit 10
+# CUDA_VISIBLE_DEVICES=3 python -u 2019to2020_train_MNLI_kshot_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3 --sampling_seed 42 --stilts_epochs 20 --NN_epochs 1

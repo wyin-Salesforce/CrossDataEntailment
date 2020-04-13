@@ -836,7 +836,8 @@ def main():
 if __name__ == "__main__":
     main()
     '''
-    1, change the encoder to the full roberta-large-mnli
-    2, change the k-shot size easily
+    这儿的2020版本就是在robertaforsequenceclassifiction基础上增加了一个target side classifier
+    source MNLI在source side classifier分类，RTE kshot 在target side和source side都分类，计算loss
+    do not work
     '''
 # CUDA_VISIBLE_DEVICES=3 python -u 2020_train_MNLI_k_shot_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3 --seed 42 > /export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLI3shotRTE/log.train.mnli.kshot.rte.seed42.txt 2>&1

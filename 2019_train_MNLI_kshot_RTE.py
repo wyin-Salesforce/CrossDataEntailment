@@ -847,7 +847,8 @@ def main():
         for _ in trange(int(args.num_train_epochs), desc="Epoch"):
             dataloader_list = []
             for idd, train_features in enumerate([train_features_entail, train_features_neutral, train_features_contra,
-            train_features_entail + train_features_neutral + train_features_contra]):
+                train_features_entail + train_features_neutral + train_features_contra]):
+
                 all_input_ids = torch.tensor([f.input_ids for f in train_features], dtype=torch.long)
                 all_input_mask = torch.tensor([f.input_mask for f in train_features], dtype=torch.long)
                 all_segment_ids = torch.tensor([f.segment_ids for f in train_features], dtype=torch.long)
@@ -1052,7 +1053,7 @@ def main():
                                 # store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE', str(max_dev_acc))
 
                             else:
-                                print('\ndev acc_list:', acc_list, ' max_dev_acc:', max_dev_acc, '\n')
+                                print('\ndev acc_list:', acc_list[0], ' max_dev_acc:', max_dev_acc, '\n')
                                 break
                         else: # this is test
                             if acc_list[0] > max_test_acc:
@@ -1073,4 +1074,4 @@ if __name__ == "__main__":
     这儿针对以前的train_MNLI_test_3shotRTE_meta_learning.v2.py的改动就是在RTE sampling的时候；
     然后就是只care acc_list[0]的测试标准，
     '''
-# CUDA_VISIBLE_DEVICES=1 python -u 2019_train_MNLI_kshot_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --num_train_epochs 3 --data_dir '' --output_dir '' --sampling_seed 42
+# CUDA_VISIBLE_DEVICES=2 python -u 2019_train_MNLI_kshot_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --num_train_epochs 3 --data_dir '' --output_dir '' --sampling_seed 42

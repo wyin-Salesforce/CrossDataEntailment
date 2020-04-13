@@ -494,7 +494,7 @@ class Encoder(BertPreTrainedModel):
             overall_test_batch_logits = logits_from_pretrained+NN_logits_combine+CL_logits_from_target
             # overall_test_batch_logits = logits_from_pretrained
             # overall_test_batch_logits = NN_logits_combine
-            overall_test_batch_logits = CL_logits_from_target
+            # overall_test_batch_logits = CL_logits_from_target
             pred_labels_batch = torch.softmax(overall_test_batch_logits.view(-1, self.num_labels), dim=1).argmax(dim=1)
 
             '''majority voting'''
@@ -697,12 +697,7 @@ def main():
     model = Encoder.from_pretrained(pretrain_model_dir, num_labels=num_labels)
     tokenizer = RobertaTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
     model.to(device)
-    # store_bert_model(model, tokenizer.vocab, '/export/home/workspace/CrossDataEntailment/models', 'try')
-    # exit(0)
-    # if n_gpu > 1:
-    #     model = torch.nn.DataParallel(model)
 
-    # Prepare optimizer
     param_optimizer = list(model.named_parameters())
     no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
     optimizer_grouped_parameters = [
@@ -896,8 +891,6 @@ def main():
 
 
                 '''randomly select M batches from source'''
-
-
                 selected_source_batch_start_list = random.Random(args.sampling_seed).sample(source_batch_start, 10)
                 for start_i in selected_source_batch_start_list:
                     ids_single = source_id_list[start_i:start_i+source_batch_size]
@@ -919,7 +912,7 @@ def main():
                     optimizer.step()
                     optimizer.zero_grad()
 
-                if step == 100:#100:
+                if step == 10:#100:
                     break
 
             # print('source_sample_entail_reps_history before:', source_sample_entail_reps_history)
@@ -1015,7 +1008,7 @@ def main():
 
                         preds = []
                         gold_label_ids = []
-                        print('Evaluating...')
+                        # print('Evaluating...')
                         for input_ids, input_mask, segment_ids, label_ids in dev_or_test_dataloader:
                             input_ids = input_ids.to(device)
                             input_mask = input_mask.to(device)
@@ -1063,17 +1056,17 @@ def main():
                         if idd == 0: # this is dev
                             if test_acc > max_dev_acc:
                                 max_dev_acc = test_acc
-                                print('\ndev acc:', test_acc, ' max_mean_dev_acc:', max_dev_acc, '\n')
+                                print('iter: ', iter_co, 'dev acc:', test_acc, ' max_mean_dev_acc:', max_dev_acc)
                                 '''store the model'''
                                 # store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE', str(max_dev_acc))
 
                             else:
-                                print('\ndev acc:', test_acc, ' max_mean_dev_acc:', max_dev_acc, '\n')
+                                print('iter: ', iter_co, 'dev acc:', test_acc, ' max_mean_dev_acc:', max_dev_acc)
                                 break
                         else: # this is test
                             if test_acc > max_test_acc:
                                 max_test_acc = test_acc
-                            print('\ntest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
+                            print('iter: ', iter_co, 'test acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
 
 
 

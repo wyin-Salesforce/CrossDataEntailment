@@ -535,6 +535,11 @@ def main():
     parser = argparse.ArgumentParser()
 
     ## Required parameters
+
+    parser.add_argument('--NN_iter_limit',
+                        type=int,
+                        default=3,
+                        help="random seed for initialization")
     parser.add_argument('--k_shot',
                         type=int,
                         default=3,
@@ -919,7 +924,7 @@ def main():
                     optimizer.step()
                     optimizer.zero_grad()
 
-                if step == 100:#100:
+                if step == args.NN_iter_limit:#100:
                     break
 
             # print('source_sample_entail_reps_history before:', source_sample_entail_reps_history)

@@ -916,7 +916,7 @@ def main():
                     optimizer.step()
                     optimizer.zero_grad()
 
-                if step == NN_iter_limit:#100:
+                if step == args.NN_iter_limit:#100:
                     break
 
             # print('source_sample_entail_reps_history before:', source_sample_entail_reps_history)

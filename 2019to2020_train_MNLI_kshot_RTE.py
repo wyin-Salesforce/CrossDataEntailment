@@ -817,7 +817,7 @@ def main():
 
         target_sample_size = target_samples_input_ids.shape[0]
         target_sample_id_list = list(range(target_sample_size))
-        target_sample_batch_size = 9
+        target_sample_batch_size = 6
         target_sample_batch_start = [x*target_sample_batch_size for x in range(target_sample_size//target_sample_batch_size)]
 
 

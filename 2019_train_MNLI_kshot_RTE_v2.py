@@ -805,7 +805,7 @@ def main():
             if idd < 3:
                 train_dataloader = DataLoader(train_data, sampler=train_sampler, batch_size=3)
             else:
-                train_dataloader = DataLoader(train_data, sampler=train_sampler, batch_size=args.train_batch_size)
+                train_dataloader = DataLoader(train_data, sampler=train_sampler, batch_size=3)
             eval_shot_dataloader_list.append(train_dataloader)
 
         # eval_all_input_ids_shot = torch.tensor([f.input_ids for f in eval_features_shot], dtype=torch.long)

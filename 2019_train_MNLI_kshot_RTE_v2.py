@@ -1106,5 +1106,8 @@ if __name__ == "__main__":
     '''
     这儿针对以前的train_MNLI_test_3shotRTE_meta_learning.v2.py的改动就是在RTE sampling的时候；
     然后就是只care acc_list[0]的测试标准，
+
+    这个v2版本就是实现了k_shot任意取值的功能
+    do not work well for k_shot=10
     '''
 # CUDA_VISIBLE_DEVICES=2 python -u 2019_train_MNLI_kshot_RTE_v2.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --num_train_epochs 3 --data_dir '' --output_dir '' --sampling_seed 42 --k_shot 10

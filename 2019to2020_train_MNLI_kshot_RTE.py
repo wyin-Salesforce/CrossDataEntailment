@@ -715,10 +715,10 @@ def main():
     target_samples_entail, target_samples_neutral, target_samples_contra = processor.get_RTE_as_train('/export/home/Dataset/glue_data/RTE/train.tsv', args.k_shot, args.sampling_seed)
 
     pretrain_model_dir = '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE/0.8664259927797834-0.8106035345115038'
-    roberta_seq_model = RobertaForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
+    roberta_seq_model = RobertaForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels, output_hidden_states=True)
     roberta_seq_model.to(device)
     roberta_seq_model.eval()
-    roberta_seq_model.config.output_hidden_states=True
+    # roberta_seq_model.config.output_hidden_states=True
     # print('roberta_seq_model.config:', roberta_seq_model.config)
     # exit(0)
 

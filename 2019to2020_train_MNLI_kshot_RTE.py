@@ -476,9 +476,10 @@ class Encoder(BertPreTrainedModel):
             NN_loss = loss_target_pred_source+loss_source_pred_source+loss_source_pred_target
             return NN_loss
         elif mode == 'train_CL':
-            target_sample_CL_logits = self.classifier(target_sample_reps)
-            target_sample_CL_logits_3_layers = self.classifier_3_layers(target_sample_last3_reps)
-            four_layers_logits = target_sample_CL_logits+target_sample_CL_logits_3_layers
+            four_layer_reps = torch.cat([target_sample_reps, target_sample_last3_reps], dim=1)
+            # target_sample_CL_logits = self.classifier(target_sample_reps)
+            target_sample_CL_logits_3_layers = self.classifier_3_layers(four_layer_reps)
+            four_layers_logits = target_sample_CL_logits_3_layers #target_sample_CL_logits+
             CL_loss = loss_fct(four_layers_logits.view(-1, self.num_labels), target_sample_labels.view(-1))
             return CL_loss
         else:
@@ -490,7 +491,10 @@ class Encoder(BertPreTrainedModel):
             NN_logits_from_target = self.NearestNeighbor(target_sample_reps_history, target_sample_logits_history, test_batch_reps, None, mode='test', loss_fct = loss_fct)
             NN_logits_combine = NN_logits_from_source+NN_logits_from_target
             '''third, get logits from classification of the target domain'''
-            CL_logits_from_target = self.classifier(test_batch_reps)+self.classifier_3_layers(test_batch_last3_reps)
+            CL_logits_from_target = (
+                                    # self.classifier(test_batch_reps)+
+                                    self.classifier_3_layers(torch.cat([test_batch_reps, test_batch_last3_reps], dim=1))
+                                    )
             # print('logits_from_pretrained:', logits_from_pretrained)
             # print('NN_logits_combine:', NN_logits_combine)
             # print('CL_logits_from_target:', CL_logits_from_target)
@@ -538,7 +542,7 @@ class RobertaClassificationHead_3_layers(nn.Module):
 
     def __init__(self, config):
         super(RobertaClassificationHead_3_layers, self).__init__()
-        self.dense = nn.Linear(config.hidden_size*3, config.hidden_size)
+        self.dense = nn.Linear(config.hidden_size*4, config.hidden_size)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.out_proj = nn.Linear(config.hidden_size, config.num_labels)
 

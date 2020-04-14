@@ -719,6 +719,8 @@ def main():
     roberta_seq_model.to(device)
     roberta_seq_model.eval()
     roberta_seq_model.config.output_hidden_states=True
+    print('roberta_seq_model.config:', roberta_seq_model.config)
+    exit(0)
 
     model = Encoder.from_pretrained(pretrain_model_dir, num_labels=num_labels)
     tokenizer = RobertaTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)

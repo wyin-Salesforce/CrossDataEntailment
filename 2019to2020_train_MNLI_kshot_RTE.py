@@ -137,8 +137,8 @@ class RteProcessor(DataProcessor):
                     examples_contra.append(
                         InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
             line_co+=1
-            # if line_co > 2000:
-            #     break
+            if line_co > 2000:
+                break
         readfile.close()
         print('loaded  size:', line_co)
         return examples_entail, examples_neutral, examples_contra
@@ -401,6 +401,7 @@ class Encoder(BertPreTrainedModel):
         self.roberta = None#RobertaModel(config)
         '''classifier for target domain'''
         self.classifier = RobertaClassificationHead(config)
+        self.classifier_3_layers = RobertaClassificationHead_3_layers(config)
 
         '''nearest neighbor parameters'''
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
@@ -447,8 +448,8 @@ class Encoder(BertPreTrainedModel):
 
 
 
-    def forward(self, target_sample_reps_logits_labels, source_sample_reps_logits, source_batch_reps_labels,
-                test_batch_reps_logits_labels, source_reps_logits_history, target_reps_logits_history,
+    def forward(self, target_sample_reps_logits_labels, target_sample_last3_reps, source_sample_reps_logits, source_batch_reps_labels,
+                test_batch_reps_logits_labels, test_batch_last3_reps, source_reps_logits_history, target_reps_logits_history,
                 mode='train_NN', loss_fct = None):
         '''
         mode: train_NN, train_CL, test
@@ -476,7 +477,9 @@ class Encoder(BertPreTrainedModel):
             return NN_loss
         elif mode == 'train_CL':
             target_sample_CL_logits = self.classifier(target_sample_reps)
-            CL_loss = loss_fct(target_sample_CL_logits.view(-1, self.num_labels), target_sample_labels.view(-1))
+            target_sample_CL_logits_3_layers = self.classifier_3_layers(target_sample_last3_reps)
+            four_layers_logits = target_sample_CL_logits+target_sample_CL_logits_3_layers
+            CL_loss = loss_fct(four_layers_logits.view(-1, self.num_labels), target_sample_labels.view(-1))
             return CL_loss
         else:
             '''testing'''
@@ -487,7 +490,7 @@ class Encoder(BertPreTrainedModel):
             NN_logits_from_target = self.NearestNeighbor(target_sample_reps_history, target_sample_logits_history, test_batch_reps, None, mode='test', loss_fct = loss_fct)
             NN_logits_combine = NN_logits_from_source+NN_logits_from_target
             '''third, get logits from classification of the target domain'''
-            CL_logits_from_target = self.classifier(test_batch_reps)
+            CL_logits_from_target = self.classifier(test_batch_reps)+self.classifier_3_layers(test_batch_last3_reps)
             # print('logits_from_pretrained:', logits_from_pretrained)
             # print('NN_logits_combine:', NN_logits_combine)
             # print('CL_logits_from_target:', CL_logits_from_target)
@@ -530,6 +533,23 @@ class RobertaClassificationHead(nn.Module):
         x = self.out_proj(x)
         return x
 
+class RobertaClassificationHead_3_layers(nn.Module):
+    """Head for sentence-level classification tasks."""
+
+    def __init__(self, config):
+        super(RobertaClassificationHead_3_layers, self).__init__()
+        self.dense = nn.Linear(config.hidden_size*3, config.hidden_size)
+        self.dropout = nn.Dropout(config.hidden_dropout_prob)
+        self.out_proj = nn.Linear(config.hidden_size, config.num_labels)
+
+    def forward(self, features, **kwargs):
+        x = features#[:, 0, :]  # take <s> token (equiv. to [CLS])
+        x = self.dropout(x)
+        x = self.dense(x)
+        x = torch.tanh(x)
+        x = self.dropout(x)
+        x = self.out_proj(x)
+        return x
 
 def main():
     parser = argparse.ArgumentParser()
@@ -538,7 +558,7 @@ def main():
 
     parser.add_argument('--NN_iter_limit',
                         type=int,
-                        default=3,
+                        default=100,
                         help="random seed for initialization")
     parser.add_argument('--k_shot',
                         type=int,
@@ -901,8 +921,6 @@ def main():
 
 
                 '''randomly select M batches from source'''
-
-
                 selected_source_batch_start_list = random.Random(args.sampling_seed).sample(source_batch_start, 10)
                 for start_i in selected_source_batch_start_list:
                     ids_single = source_id_list[start_i:start_i+source_batch_size]
@@ -917,8 +935,8 @@ def main():
                     source_batch_reps_labels = (source_batch_reps[:,0,:], single_source_batch_label_ids)
 
                     model.train()
-                    loss_nn = model(target_sample_reps_logits_labels, source_sample_reps_logits, source_batch_reps_labels,
-                                                None, None, None, mode='train_NN', loss_fct = loss_fct)
+                    loss_nn = model(target_sample_reps_logits_labels, None, source_sample_reps_logits, source_batch_reps_labels,
+                                                None, None, None, None, mode='train_NN', loss_fct = loss_fct)
                     # print('loss_nn:  ', loss_nn.item())
                     loss_nn.backward()
                     optimizer.step()
@@ -961,8 +979,11 @@ def main():
                 with torch.no_grad():
                     target_sample_logits, target_sample_reps = roberta_seq_model(target_sample_input_ids_batch, target_sample_input_mask_batch, None, labels=None)
                     target_sample_logits = target_sample_logits[0]
+                    assert len(target_sample_logits) == 3 #(logits, (hidden_states), (attentions))
+                    target_sample_last3_reps = torch.cat([target_sample_logits[1][-4][:,0,:], target_sample_logits[1][-3][:,0,:], target_sample_logits[1][-2][:,0,:]], dim=1) #(batch, 1024*3)
                     target_sample_reps = target_sample_reps[:,0,:]
                 target_sample_reps_logits_labels = (target_sample_reps, target_sample_logits, target_sample_label_ids_batch)
+
 
                 target_sample_entail_reps_i = target_sample_reps[entail_size_i].mean(dim=0, keepdim=True)
                 target_sample_neutral_reps_i = target_sample_reps[neutral_size_i].mean(dim=0, keepdim=True)
@@ -984,9 +1005,9 @@ def main():
 
 
                 model.train()
-                loss_cl = model(target_sample_reps_logits_labels, None, None,
-                                            None, None, None, mode='train_CL', loss_fct = loss_fct)
-                print('loss_cl:  ', loss_cl.item())
+                loss_cl = model(target_sample_reps_logits_labels, target_sample_last3_reps, None, None,
+                                            None, None, None, None, mode='train_CL', loss_fct = loss_fct)
+                # print('loss_cl:  ', loss_cl.item())
                 loss_cl.backward()
                 optimizer.step()
                 optimizer.zero_grad()
@@ -1031,13 +1052,15 @@ def main():
                                 test_batch_logits, test_batch_reps = roberta_seq_model(input_ids, input_mask, None, labels=None)
                                 test_batch_logits = test_batch_logits[0]
                                 test_batch_reps = test_batch_reps[:,0,:]
+                                assert len(test_batch_logits) == 3 #(logits, (hidden_states), (attentions))
+                                test_batch_last3_reps = torch.cat([test_batch_logits[1][-4][:,0,:], test_batch_logits[1][-3][:,0,:], test_batch_logits[1][-2][:,0,:]], dim=1) #(batch, 1024*3)
                                 test_batch_reps_logits_labels = (test_batch_reps,test_batch_logits, label_ids)
 
                     # def forward(self, target_sample_reps_logits_labels, source_sample_reps_logits, source_batch_reps_labels,
                     #             test_batch_reps_logits_labels, source_reps_logits_history, target_reps_logits_history,
                     #             mode='train_NN'):
-                                pred_labels_i = model(None, None, None,
-                                                    test_batch_reps_logits_labels, source_reps_logits_history, target_reps_logits_history,
+                                pred_labels_i = model(None, None, None, None,
+                                                    test_batch_reps_logits_labels, test_batch_last3_reps, source_reps_logits_history, target_reps_logits_history,
                                                     mode='test', loss_fct = loss_fct)
                             # print('pred_labels_i:',pred_labels_i)
                             preds.append(pred_labels_i)
@@ -1092,4 +1115,4 @@ if __name__ == "__main__":
     1, NN gets worse with more epochs
     2, CL does not change much with 1e-6
     '''
-# CUDA_VISIBLE_DEVICES=3 python -u 2019to2020_train_MNLI_kshot_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3 --sampling_seed 42 --stilts_epochs 20 --NN_epochs 1
+# CUDA_VISIBLE_DEVICES=3 python -u 2019to2020_train_MNLI_kshot_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3 --sampling_seed 42 --NN_epochs 1 --NN_iter_limit 100 --stilts_epochs 20

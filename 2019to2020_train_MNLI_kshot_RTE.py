@@ -718,6 +718,7 @@ def main():
     roberta_seq_model = RobertaForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
     roberta_seq_model.to(device)
     roberta_seq_model.eval()
+    roberta_seq_model.config.output_hidden_states=True
 
     model = Encoder.from_pretrained(pretrain_model_dir, num_labels=num_labels)
     tokenizer = RobertaTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
@@ -980,7 +981,7 @@ def main():
                     target_sample_logits_tuple, target_sample_reps = roberta_seq_model(target_sample_input_ids_batch, target_sample_input_mask_batch, None, labels=None)
                     target_sample_logits = target_sample_logits_tuple[0]
                     print('len(target_sample_logits_tuple):', len(target_sample_logits_tuple))
-                    assert len(target_sample_logits_tuple) == 3 #(logits, (hidden_states), (attentions))
+                    assert len(target_sample_logits_tuple) == 2 #(logits, (hidden_states)
                     target_sample_last3_reps = torch.cat([target_sample_logits_tuple[1][-4][:,0,:], target_sample_logits_tuple[1][-3][:,0,:], target_sample_logits_tuple[1][-2][:,0,:]], dim=1) #(batch, 1024*3)
                     target_sample_reps = target_sample_reps[:,0,:]
                 target_sample_reps_logits_labels = (target_sample_reps, target_sample_logits, target_sample_label_ids_batch)
@@ -1053,7 +1054,7 @@ def main():
                                 test_batch_logits_tuple, test_batch_reps = roberta_seq_model(input_ids, input_mask, None, labels=None)
                                 test_batch_logits = test_batch_logits_tuple[0]
                                 test_batch_reps = test_batch_reps[:,0,:]
-                                assert len(test_batch_logits_tuple) == 3 #(logits, (hidden_states), (attentions))
+                                assert len(test_batch_logits_tuple) == 2 #(logits, (hidden_states), (attentions))
                                 test_batch_last3_reps = torch.cat([test_batch_logits_tuple[1][-4][:,0,:], test_batch_logits_tuple[1][-3][:,0,:], test_batch_logits_tuple[1][-2][:,0,:]], dim=1) #(batch, 1024*3)
                                 test_batch_reps_logits_labels = (test_batch_reps,test_batch_logits, label_ids)
 

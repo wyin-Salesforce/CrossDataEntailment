@@ -979,6 +979,7 @@ def main():
                 with torch.no_grad():
                     target_sample_logits_tuple, target_sample_reps = roberta_seq_model(target_sample_input_ids_batch, target_sample_input_mask_batch, None, labels=None)
                     target_sample_logits = target_sample_logits_tuple[0]
+                    print('len(target_sample_logits_tuple):', len(target_sample_logits_tuple))
                     assert len(target_sample_logits_tuple) == 3 #(logits, (hidden_states), (attentions))
                     target_sample_last3_reps = torch.cat([target_sample_logits_tuple[1][-4][:,0,:], target_sample_logits_tuple[1][-3][:,0,:], target_sample_logits_tuple[1][-2][:,0,:]], dim=1) #(batch, 1024*3)
                     target_sample_reps = target_sample_reps[:,0,:]

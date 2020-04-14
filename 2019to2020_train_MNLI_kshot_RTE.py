@@ -980,12 +980,12 @@ def main():
                 neutral_size_i = (target_sample_label_ids_batch==1)#.sum()
                 contra_size_i = (target_sample_label_ids_batch==2)#.sum()
                 with torch.no_grad():
-                    print('roberta_seq_model config:', roberta_seq_model.config)
+                    # print('roberta_seq_model config:', roberta_seq_model.config)
                     target_sample_logits_tuple, target_sample_reps = roberta_seq_model(target_sample_input_ids_batch, target_sample_input_mask_batch, None, labels=None)
-                    print('target_sample_logits_tuple:', target_sample_logits_tuple)
-                    exit(0)
+                    # print('target_sample_logits_tuple:', target_sample_logits_tuple)
+                    # exit(0)
                     target_sample_logits = target_sample_logits_tuple[0]
-                    print('len(target_sample_logits_tuple):', len(target_sample_logits_tuple))
+                    # print('len(target_sample_logits_tuple):', len(target_sample_logits_tuple))
                     assert len(target_sample_logits_tuple) == 2 #(logits, (hidden_states)
                     target_sample_last3_reps = torch.cat([target_sample_logits_tuple[1][-4][:,0,:], target_sample_logits_tuple[1][-3][:,0,:], target_sample_logits_tuple[1][-2][:,0,:]], dim=1) #(batch, 1024*3)
                     target_sample_reps = target_sample_reps[:,0,:]

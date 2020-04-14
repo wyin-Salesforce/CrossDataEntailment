@@ -977,10 +977,10 @@ def main():
                 neutral_size_i = (target_sample_label_ids_batch==1)#.sum()
                 contra_size_i = (target_sample_label_ids_batch==2)#.sum()
                 with torch.no_grad():
-                    target_sample_logits, target_sample_reps = roberta_seq_model(target_sample_input_ids_batch, target_sample_input_mask_batch, None, labels=None)
-                    target_sample_logits = target_sample_logits[0]
-                    assert len(target_sample_logits) == 3 #(logits, (hidden_states), (attentions))
-                    target_sample_last3_reps = torch.cat([target_sample_logits[1][-4][:,0,:], target_sample_logits[1][-3][:,0,:], target_sample_logits[1][-2][:,0,:]], dim=1) #(batch, 1024*3)
+                    target_sample_logits_tuple, target_sample_reps = roberta_seq_model(target_sample_input_ids_batch, target_sample_input_mask_batch, None, labels=None)
+                    target_sample_logits = target_sample_logits_tuple[0]
+                    assert len(target_sample_logits_tuple) == 3 #(logits, (hidden_states), (attentions))
+                    target_sample_last3_reps = torch.cat([target_sample_logits_tuple[1][-4][:,0,:], target_sample_logits_tuple[1][-3][:,0,:], target_sample_logits_tuple[1][-2][:,0,:]], dim=1) #(batch, 1024*3)
                     target_sample_reps = target_sample_reps[:,0,:]
                 target_sample_reps_logits_labels = (target_sample_reps, target_sample_logits, target_sample_label_ids_batch)
 
@@ -1049,11 +1049,11 @@ def main():
                             # gold_label_ids+=list(label_ids.detach().cpu().numpy())
 
                             with torch.no_grad():
-                                test_batch_logits, test_batch_reps = roberta_seq_model(input_ids, input_mask, None, labels=None)
-                                test_batch_logits = test_batch_logits[0]
+                                test_batch_logits_tuple, test_batch_reps = roberta_seq_model(input_ids, input_mask, None, labels=None)
+                                test_batch_logits = test_batch_logits_tuple[0]
                                 test_batch_reps = test_batch_reps[:,0,:]
-                                assert len(test_batch_logits) == 3 #(logits, (hidden_states), (attentions))
-                                test_batch_last3_reps = torch.cat([test_batch_logits[1][-4][:,0,:], test_batch_logits[1][-3][:,0,:], test_batch_logits[1][-2][:,0,:]], dim=1) #(batch, 1024*3)
+                                assert len(test_batch_logits_tuple) == 3 #(logits, (hidden_states), (attentions))
+                                test_batch_last3_reps = torch.cat([test_batch_logits_tuple[1][-4][:,0,:], test_batch_logits_tuple[1][-3][:,0,:], test_batch_logits_tuple[1][-2][:,0,:]], dim=1) #(batch, 1024*3)
                                 test_batch_reps_logits_labels = (test_batch_reps,test_batch_logits, label_ids)
 
                     # def forward(self, target_sample_reps_logits_labels, source_sample_reps_logits, source_batch_reps_labels,

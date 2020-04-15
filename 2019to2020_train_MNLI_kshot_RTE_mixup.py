@@ -465,7 +465,7 @@ class Encoder(BertPreTrainedModel):
         mode: train_NN, train_CL, test
         '''
         '''input for training'''
-        if mode == 'train_CL':
+        if mode == 'train_CL' or mode == 'train_Mixup':
             target_sample_reps, target_sample_logits, target_sample_labels = target_sample_reps_logits_labels
         if mode == 'train_NN':
             target_sample_reps, target_sample_logits, target_sample_labels = target_sample_reps_logits_labels
@@ -485,12 +485,15 @@ class Encoder(BertPreTrainedModel):
 
             NN_loss = loss_target_pred_source+loss_source_pred_source+loss_source_pred_target
             return NN_loss
-        elif mode == 'train_CL':
+        elif mode == 'train_CL' or mode == 'train_Mixup':
             four_layer_reps = torch.cat([target_sample_reps, target_sample_last3_reps], dim=1)
             # target_sample_CL_logits = self.classifier(target_sample_reps)
             target_sample_CL_logits_3_layers = self.classifier_3_layers(four_layer_reps)
             four_layers_logits = target_sample_CL_logits_3_layers #target_sample_CL_logits+
-            CL_loss = loss_fct(four_layers_logits.view(-1, self.num_labels), target_sample_labels.view(-1))
+            if mode == 'train_CL':
+                CL_loss = loss_fct(four_layers_logits.view(-1, self.num_labels), target_sample_labels.view(-1))
+            else:
+                CL_loss = loss_fct(four_layers_logits.view(-1, self.num_labels), target_sample_labels)
             return CL_loss
         else:
             '''testing'''
@@ -1039,7 +1042,7 @@ def main():
 
                 model.train()
                 loss_cl_mixup = model(target_sample_reps_logits_labels, target_sample_last3_reps, None, None,
-                                            None, None, None, None, mode='train_CL', loss_fct = loss_fct_mixup)
+                                            None, None, None, None, mode='train_Mixup', loss_fct = loss_fct_mixup)
                 # print('loss_cl:  ', loss_cl.item())
                 loss_cl_mixup.backward()
                 optimizer.step()

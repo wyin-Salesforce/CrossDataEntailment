@@ -506,8 +506,9 @@ class Encoder(BertPreTrainedModel):
             overall_test_batch_logits = logits_from_pretrained+NN_logits_combine+CL_logits_from_target
             # overall_test_batch_logits = logits_from_pretrained
             # overall_test_batch_logits = NN_logits_combine
-            overall_test_batch_logits = CL_logits_from_target#logits_from_pretrained+CL_logits_from_target
-            pred_labels_batch = torch.softmax(overall_test_batch_logits.view(-1, self.num_labels), dim=1).argmax(dim=1)
+            tuned_CL_logits_from_target = torch.cat([CL_logits_from_target[:,:1],1.1*CL_logits_from_target[:,1:]], dim=1)
+            overall_test_batch_logits = tuned_CL_logits_from_target#logits_from_pretrained+CL_logits_from_target
+            pred_labels_batch = overall_test_batch_logits.argmax(dim=1)#torch.softmax(overall_test_batch_logits.view(-1, self.num_labels), dim=1).argmax(dim=1)
 
             '''majority voting'''
             # pred_labels_batch_roberta = torch.softmax(logits_from_pretrained.view(-1, self.num_labels), dim=1).argmax(dim=1, keepdim=True) #(batch, 1)

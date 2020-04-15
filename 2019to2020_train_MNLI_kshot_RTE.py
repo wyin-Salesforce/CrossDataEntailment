@@ -907,7 +907,7 @@ def main():
                 with torch.no_grad():
                     source_sample_logits, source_sample_reps = roberta_seq_model(source_samples_input_ids, source_samples_input_mask, None, labels=None)
                     source_sample_logits = source_sample_logits[0]
-                    source_sample_reps = source_sample_reps[:,0,:]
+                    source_sample_reps = source_sample_reps#[:,0,:]
                 source_sample_reps_logits = (source_sample_reps, source_sample_logits)
 
 
@@ -947,7 +947,7 @@ def main():
                 # single_input = (single_source_batch_input_ids, single_source_batch_input_mask, single_source_batch_segment_ids, single_source_batch_label_ids)
                 with torch.no_grad():
                     target_sample_logits, target_sample_reps = roberta_seq_model(single_target_sample_input_ids, single_target_sample_input_mask, None, labels=None)
-                target_sample_reps_logits_labels = (target_sample_reps[:,0,:], target_sample_logits[0], single_target_sample_label_ids)
+                target_sample_reps_logits_labels = (target_sample_reps, target_sample_logits[0], single_target_sample_label_ids)
 
 
                 '''randomly select M batches from source'''
@@ -962,7 +962,7 @@ def main():
                     # single_input = (single_source_batch_input_ids, single_source_batch_input_mask, single_source_batch_segment_ids, single_source_batch_label_ids)
                     with torch.no_grad():
                         _, source_batch_reps = roberta_seq_model(single_source_batch_input_ids, single_source_batch_input_mask, None, labels=None)
-                    source_batch_reps_labels = (source_batch_reps[:,0,:], single_source_batch_label_ids)
+                    source_batch_reps_labels = (source_batch_reps, single_source_batch_label_ids)
 
                     model.train()
                     loss_nn = model(target_sample_reps_logits_labels, None, source_sample_reps_logits, source_batch_reps_labels,
@@ -1018,8 +1018,8 @@ def main():
                     assert len(target_sample_logits_tuple) == 2 #(logits, (hidden_states)
                     # target_sample_last3_reps = torch.cat([target_sample_logits_tuple[1][-4][:,0,:], target_sample_logits_tuple[1][-3][:,0,:], target_sample_logits_tuple[1][-2][:,0,:]], dim=1) #(batch, 1024*3)
                     target_sample_last3_reps = torch.cat([torch.mean(target_sample_logits_tuple[1][-4], dim=1), torch.mean(target_sample_logits_tuple[1][-3], dim=1), torch.mean(target_sample_logits_tuple[1][-2], dim=1)], dim=1) #(batch, 1024*3)
-                    # target_sample_reps = target_sample_reps[:,0,:]
-                    target_sample_reps = torch.mean(target_sample_reps, dim=1)
+                    target_sample_reps = target_sample_reps#[:,0,:]
+                    # target_sample_reps = torch.mean(target_sample_reps, dim=1)
                 target_sample_reps_logits_labels = (target_sample_reps, target_sample_logits, target_sample_label_ids_batch)
 
 
@@ -1089,8 +1089,8 @@ def main():
                             with torch.no_grad():
                                 test_batch_logits_tuple, test_batch_reps = roberta_seq_model(input_ids, input_mask, None, labels=None)
                                 test_batch_logits = test_batch_logits_tuple[0]
-                                # test_batch_reps = test_batch_reps[:,0,:]
-                                test_batch_reps = torch.mean(test_batch_reps, dim=1)
+                                test_batch_reps = test_batch_reps#[:,0,:]
+                                # test_batch_reps = torch.mean(test_batch_reps, dim=1)
                                 assert len(test_batch_logits_tuple) == 2 #(logits, (hidden_states), (attentions))
                                 # test_batch_last3_reps = torch.cat([test_batch_logits_tuple[1][-4][:,0,:], test_batch_logits_tuple[1][-3][:,0,:], test_batch_logits_tuple[1][-2][:,0,:]], dim=1) #(batch, 1024*3)
                                 test_batch_last3_reps = torch.cat([torch.mean(test_batch_logits_tuple[1][-4], dim=1), torch.mean(test_batch_logits_tuple[1][-3], dim=1), torch.mean(test_batch_logits_tuple[1][-2], dim=1)], dim=1) #(batch, 1024*3)

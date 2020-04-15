@@ -1021,7 +1021,8 @@ def main():
                     # print('roberta_seq_model config:', roberta_seq_model.config)
                     target_sample_logits_tuple, target_sample_reps = roberta_seq_model(target_sample_input_ids_batch, target_sample_input_mask_batch, None, labels=None)
                     target_sample_logits_tuple_v2, target_sample_reps_v2 = roberta_seq_model(single_target_sample_input_ids, single_target_sample_input_mask, None, labels=None)
-                    # print('target_sample_logits_tuple:', target_sample_logits_tuple)
+                    print('target_sample_logits_tuple:', target_sample_logits_tuple[0].shape)
+                    print('target_sample_logits_tuple_v2:', target_sample_logits_tuple_v2[0].shape)
                     # exit(0)
                     target_sample_logits = target_sample_logits_tuple[0]+target_sample_logits_tuple_v2[0]
                     # print('len(target_sample_logits_tuple):', len(target_sample_logits_tuple))

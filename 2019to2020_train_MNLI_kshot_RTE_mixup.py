@@ -493,6 +493,7 @@ class Encoder(BertPreTrainedModel):
             if mode == 'train_CL':
                 CL_loss = loss_fct(four_layers_logits.view(-1, self.num_labels), target_sample_labels.view(-1))
             else:
+                four_layers_logits = torch.tanh(four_layers_logits)
                 CL_loss = loss_fct(four_layers_logits.view(-1, self.num_labels), target_sample_labels)
             return CL_loss
         else:

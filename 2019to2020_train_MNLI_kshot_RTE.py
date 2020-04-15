@@ -969,7 +969,7 @@ def main():
 
         '''STILTS Phase, train target classifier'''
         iter_co = 0
-        for _ in trange(int(args.stilts_epochs), desc="STILTS Epoch"):
+        for stilts_epoch in trange(int(args.stilts_epochs), desc="STILTS Epoch"):
             target_sample_entail_reps_history_list = []
             target_sample_neutral_reps_history_list = []
             target_sample_contra_reps_history_list = []
@@ -1024,7 +1024,7 @@ def main():
                 optimizer.zero_grad()
 
                 iter_co+=1
-                if iter_co % 1 ==0:
+                if iter_co % 50 ==0:
                     '''dev or test'''
                     if (len(target_sample_entail_reps_history_list)==0 or
                         len(target_sample_neutral_reps_history_list)==0 or
@@ -1101,17 +1101,17 @@ def main():
                         if idd == 0: # this is dev
                             if test_acc > max_dev_acc:
                                 max_dev_acc = test_acc
-                                print('\ndev acc:', test_acc, ' max_mean_dev_acc:', max_dev_acc, '\n')
+                                print(stilts_epoch, ' dev acc:', test_acc, ' max_mean_dev_acc:', max_dev_acc, '\n')
                                 '''store the model'''
                                 # store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE', str(max_dev_acc))
 
                             else:
-                                print('\ndev acc:', test_acc, ' max_mean_dev_acc:', max_dev_acc, '\n')
+                                print(stilts_epoch, ' dev acc:', test_acc, ' max_mean_dev_acc:', max_dev_acc, '\n')
                                 break
                         else: # this is test
                             if test_acc > max_test_acc:
                                 max_test_acc = test_acc
-                            print('\ntest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
+                            print(stilts_epoch, ' test acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
 
 
 

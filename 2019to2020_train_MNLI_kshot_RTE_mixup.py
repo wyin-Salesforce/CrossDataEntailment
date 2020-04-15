@@ -493,7 +493,7 @@ class Encoder(BertPreTrainedModel):
             if mode == 'train_CL':
                 CL_loss = loss_fct(four_layers_logits.view(-1, self.num_labels), target_sample_labels.view(-1))
             else:
-                four_layers_logits = torch.tanh(four_layers_logits)
+                # four_layers_logits = torch.tanh(four_layers_logits)
                 CL_loss = loss_fct(four_layers_logits.view(-1, self.num_labels), target_sample_labels)
             return CL_loss
         else:
@@ -1114,7 +1114,7 @@ def main():
                 optimizer.zero_grad()
 
                 iter_co+=1
-                if iter_co % 100 ==0:
+                if iter_co % 1 ==0:
                     '''dev or test'''
                     if (len(target_sample_entail_reps_history_list)==0 or
                         len(target_sample_neutral_reps_history_list)==0 or
@@ -1218,7 +1218,6 @@ if __name__ == "__main__":
 
 
     '''
-    1, NN gets worse with more epochs
-    2, CL does not change much with 1e-6
+    目前看来mixup training对效果没得任何影响
     '''
 # CUDA_VISIBLE_DEVICES=3 python -u 2019to2020_train_MNLI_kshot_RTE_mixup.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3 --sampling_seed 42 --NN_epochs 1 --NN_iter_limit 100 --mixup_epochs 1 --stilts_epochs 20

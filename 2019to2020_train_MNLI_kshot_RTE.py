@@ -173,7 +173,10 @@ class RteProcessor(DataProcessor):
         print('entail_size:', entail_size, 'not_entail_size:', not_entail_size)
 
         K=min(K, entail_size)
-        sampled_entail = random.Random(sampling_seed).sample(entail_list, K)
+        if K == entail_size:
+            sampled_entail = entail_list
+        else:
+            sampled_entail = random.Random(sampling_seed).sample(entail_list, K)
 
         if K <= not_entail_size:
             sampled_not_entail = random.Random(sampling_seed).sample(not_entail_list, K)
@@ -797,6 +800,7 @@ def main():
         target_samples_data = TensorDataset(target_samples_input_ids, target_samples_input_mask, target_samples_segment_ids, target_samples_label_ids)
         target_samples_sampler = RandomSampler(target_samples_data)
         target_samples_dataloader = DataLoader(target_samples_data, sampler=target_samples_sampler, batch_size=9)
+        target_samples_dataloader_batch_16 = DataLoader(target_samples_data, sampler=target_samples_sampler, batch_size=16)
 
         '''load dev set'''
         dev_examples = processor.get_RTE_as_dev('/export/home/Dataset/glue_data/RTE/dev.tsv')
@@ -978,7 +982,9 @@ def main():
             target_sample_entail_logits_history_list = []
             target_sample_neutral_logits_history_list = []
             target_sample_contra_logits_history_list = []
-            for target_sample_batch in target_samples_dataloader:
+
+            # for target_sample_batch in target_samples_dataloader:
+            for target_sample_batch in target_samples_dataloader_batch_16:
                 target_sample_batch = tuple(t.to(device) for t in target_sample_batch)
                 target_sample_input_ids_batch, target_sample_input_mask_batch, target_sample_segment_ids_batch, target_sample_label_ids_batch = target_sample_batch
                 # assert input_ids.shape[0] == args.train_batch_size
@@ -1026,7 +1032,7 @@ def main():
                 optimizer.zero_grad()
 
                 iter_co+=1
-                if iter_co % 100 ==0:
+                if iter_co % 20 ==0:
                     '''dev or test'''
                     if (len(target_sample_entail_reps_history_list)==0 or
                         len(target_sample_neutral_reps_history_list)==0 or
@@ -1069,9 +1075,6 @@ def main():
                                 test_batch_last3_reps = torch.cat([test_batch_logits_tuple[1][-4][:,0,:], test_batch_logits_tuple[1][-3][:,0,:], test_batch_logits_tuple[1][-2][:,0,:]], dim=1) #(batch, 1024*3)
                                 test_batch_reps_logits_labels = (test_batch_reps,test_batch_logits, label_ids)
 
-                    # def forward(self, target_sample_reps_logits_labels, source_sample_reps_logits, source_batch_reps_labels,
-                    #             test_batch_reps_logits_labels, source_reps_logits_history, target_reps_logits_history,
-                    #             mode='train_NN'):
                                 pred_labels_i = model(None, None, None, None,
                                                     test_batch_reps_logits_labels, test_batch_last3_reps, source_reps_logits_history, target_reps_logits_history,
                                                     mode='test', loss_fct = loss_fct)

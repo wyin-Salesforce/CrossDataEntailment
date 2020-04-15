@@ -193,20 +193,25 @@ class RteProcessor(DataProcessor):
             examples_entail.append(
                 InputExample(guid='entail_'+str(idd), text_a=pair[0], text_b=pair[1], label='entailment'))
 
-        for idd, pair in enumerate(sampled_not_entail):
-            if idd < int(K/2):
-                '''neutral'''
-                examples_neutral.append(
-                    InputExample(guid='neutral_'+str(idd), text_a=pair[0], text_b=pair[1], label='neutral'))
-            else:
-                '''contradiction'''
-                examples_contra.append(
-                    InputExample(guid='contra_'+str(idd), text_a=pair[0], text_b=pair[1], label='contradiction'))
+        # for idd, pair in enumerate(sampled_not_entail):
+        #     if idd < int(K/2):
+        #         '''neutral'''
+        #         examples_neutral.append(
+        #             InputExample(guid='neutral_'+str(idd), text_a=pair[0], text_b=pair[1], label='neutral'))
+        #     else:
+        #         '''contradiction'''
+        #         examples_contra.append(
+        #             InputExample(guid='contra_'+str(idd), text_a=pair[0], text_b=pair[1], label='contradiction'))
+        # return examples_entail, examples_neutral+examples_neutral, examples_contra+examples_contra
 
-        # assert len(examples_entail) == K
-        # assert len(examples_neutral) == K
-        # assert len(examples_contra) == K
-        return examples_entail, examples_neutral+examples_neutral, examples_contra+examples_contra
+        for idd, pair in enumerate(sampled_not_entail):
+            '''neutral'''
+            examples_neutral.append(
+                InputExample(guid='neutral_'+str(idd), text_a=pair[0], text_b=pair[1], label='neutral'))
+            '''contradiction'''
+            examples_contra.append(
+                InputExample(guid='contra_'+str(idd), text_a=pair[0], text_b=pair[1], label='contradiction'))
+        return examples_entail, examples_neutral, examples_contra
 
     def get_RTE_as_dev(self, filename):
         '''

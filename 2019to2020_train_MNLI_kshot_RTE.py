@@ -556,7 +556,7 @@ class RobertaClassificationHead_3_layers(nn.Module):
         x = self.dropout(x)
         x = self.dense(x)
         x = torch.tanh(x)
-        # x = self.dropout(x)
+        x = self.dropout(x)
         x = self.out_proj(x)
         return x
 
@@ -1112,7 +1112,7 @@ def main():
 
                             else:
                                 print(stilts_epoch, ' dev acc:', test_acc, ' max_mean_dev_acc:', max_dev_acc, '\n')
-                                break
+                                # break
                         else: # this is test
                             if test_acc > max_test_acc:
                                 max_test_acc = test_acc

@@ -1213,7 +1213,7 @@ if __name__ == "__main__":
     # main()
     # a = torch.randn(4, 4)
     # print(torch.argmax(a, dim=1, keepdim=True))
-    a = torch.cuda.zeros(3, 5)
+    a = torch.cuda.FloatTensor(3, 5).fill_(0)
     ind = torch.cuda.LongTensor([0,1,2])
     print(a)
     a[:ind]=1

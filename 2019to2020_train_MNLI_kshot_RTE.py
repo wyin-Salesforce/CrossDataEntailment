@@ -506,8 +506,7 @@ class Encoder(BertPreTrainedModel):
             overall_test_batch_logits = logits_from_pretrained+NN_logits_combine+CL_logits_from_target
             # overall_test_batch_logits = logits_from_pretrained
             # overall_test_batch_logits = NN_logits_combine
-            tuned_CL_logits_from_target = torch.cat([CL_logits_from_target[:,:1],1.5*CL_logits_from_target[:,1:]], dim=1)
-            overall_test_batch_logits = tuned_CL_logits_from_target#logits_from_pretrained+CL_logits_from_target
+            overall_test_batch_logits = CL_logits_from_target#logits_from_pretrained+CL_logits_from_target
             pred_labels_batch = overall_test_batch_logits.argmax(dim=1)#torch.softmax(overall_test_batch_logits.view(-1, self.num_labels), dim=1).argmax(dim=1)
 
             '''majority voting'''
@@ -559,7 +558,6 @@ class RobertaClassificationHead_3_layers(nn.Module):
         x = torch.tanh(x)
         x = self.dropout(x)
         x = self.out_proj(x)
-        x = torch.sigmoid(x)
         return x
 
 def main():

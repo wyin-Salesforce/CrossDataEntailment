@@ -492,8 +492,9 @@ class Encoder(BertPreTrainedModel):
             target_sample_CL_logits = self.classifier(target_sample_reps)
             target_sample_CL_logits_3_layers = self.classifier_3_layers(target_sample_last3_reps)
             # target_sample_CL_logits_3_layers = self.classifier(four_layer_reps)
-            four_layers_logits = target_sample_CL_logits_3_layers+target_sample_CL_logits #target_sample_CL_logits+
-            CL_loss = loss_fct(four_layers_logits.view(-1, self.num_labels), target_sample_labels.view(-1))
+            # four_layers_logits = target_sample_CL_logits_3_layers+target_sample_CL_logits #target_sample_CL_logits+
+            CL_loss = (loss_fct(target_sample_CL_logits.view(-1, self.num_labels), target_sample_labels.view(-1))+
+                        loss_fct(target_sample_CL_logits_3_layers.view(-1, self.num_labels), target_sample_labels.view(-1)))
             return CL_loss
         else:
             '''testing'''

@@ -584,7 +584,6 @@ class RobertaClassificationHead_3_layers(nn.Module):
 def main():
     parser = argparse.ArgumentParser()
 
-    ## Required parameters
 
     parser.add_argument('--NN_iter_limit',
                         type=int,

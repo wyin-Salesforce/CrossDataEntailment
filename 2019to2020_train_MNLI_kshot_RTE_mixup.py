@@ -1201,14 +1201,14 @@ mixup_epochs
 
 
 if __name__ == "__main__":
-    # main()
+    main()
     # a = torch.randn(4, 4)
     # print(torch.argmax(a, dim=1, keepdim=True))
-    a = torch.cuda.FloatTensor(3, 5).fill_(0)
-    ind = torch.cuda.LongTensor([0,1,2])
-    print(a)
-    a[torch.arange(3).long(),ind]=1.0
-    print(a)
+    # a = torch.cuda.FloatTensor(3, 5).fill_(0)
+    # ind = torch.cuda.LongTensor([0,1,2])
+    # print(a)
+    # a[torch.arange(3).long(),ind]=1.0
+    # print(a)
 
 
     '''

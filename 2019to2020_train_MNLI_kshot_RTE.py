@@ -553,26 +553,26 @@ class RobertaClassificationHead_3_layers(nn.Module):
     def __init__(self, config):
         super(RobertaClassificationHead_3_layers, self).__init__()
         self.dense = nn.Linear(config.hidden_size*4, config.hidden_size)
-        self.dense2 = nn.Linear(config.hidden_size, config.hidden_size)
-        self.dense3 = nn.Linear(config.hidden_size, config.hidden_size)
+        # self.dense2 = nn.Linear(config.hidden_size, config.hidden_size)
+        # self.dense3 = nn.Linear(config.hidden_size, config.hidden_size)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.out_proj = nn.Linear(config.hidden_size, config.num_labels)
 
     def forward(self, features, **kwargs):
         x = features#[:, 0, :]  # take <s> token (equiv. to [CLS])
         x = self.dropout(x)
-        
+
         x = self.dense(x)
         x = torch.tanh(x)
         x = self.dropout(x)
 
-        x = self.dense2(x)
-        x = torch.tanh(x)
-        x = self.dropout(x)
-
-        x = self.dense3(x)
-        x = torch.tanh(x)
-        x = self.dropout(x)
+        # x = self.dense2(x)
+        # x = torch.tanh(x)
+        # x = self.dropout(x)
+        #
+        # x = self.dense3(x)
+        # x = torch.tanh(x)
+        # x = self.dropout(x)
 
         x = self.out_proj(x)
         return x
@@ -1016,8 +1016,10 @@ def main():
                     target_sample_logits = target_sample_logits_tuple[0]
                     # print('len(target_sample_logits_tuple):', len(target_sample_logits_tuple))
                     assert len(target_sample_logits_tuple) == 2 #(logits, (hidden_states)
-                    target_sample_last3_reps = torch.cat([target_sample_logits_tuple[1][-4][:,0,:], target_sample_logits_tuple[1][-3][:,0,:], target_sample_logits_tuple[1][-2][:,0,:]], dim=1) #(batch, 1024*3)
-                    target_sample_reps = target_sample_reps[:,0,:]
+                    # target_sample_last3_reps = torch.cat([target_sample_logits_tuple[1][-4][:,0,:], target_sample_logits_tuple[1][-3][:,0,:], target_sample_logits_tuple[1][-2][:,0,:]], dim=1) #(batch, 1024*3)
+                    target_sample_last3_reps = torch.cat([torch.mean(target_sample_logits_tuple[1][-4], dim=1), torch.mean(target_sample_logits_tuple[1][-3], dim=1), torch.mean(target_sample_logits_tuple[1][-2], dim=1)], dim=1) #(batch, 1024*3)
+                    # target_sample_reps = target_sample_reps[:,0,:]
+                    target_sample_reps = torch.mean(target_sample_reps, dim=1)
                 target_sample_reps_logits_labels = (target_sample_reps, target_sample_logits, target_sample_label_ids_batch)
 
 
@@ -1087,9 +1089,11 @@ def main():
                             with torch.no_grad():
                                 test_batch_logits_tuple, test_batch_reps = roberta_seq_model(input_ids, input_mask, None, labels=None)
                                 test_batch_logits = test_batch_logits_tuple[0]
-                                test_batch_reps = test_batch_reps[:,0,:]
+                                # test_batch_reps = test_batch_reps[:,0,:]
+                                test_batch_reps = torch.mean(test_batch_reps, dim=1)
                                 assert len(test_batch_logits_tuple) == 2 #(logits, (hidden_states), (attentions))
-                                test_batch_last3_reps = torch.cat([test_batch_logits_tuple[1][-4][:,0,:], test_batch_logits_tuple[1][-3][:,0,:], test_batch_logits_tuple[1][-2][:,0,:]], dim=1) #(batch, 1024*3)
+                                # test_batch_last3_reps = torch.cat([test_batch_logits_tuple[1][-4][:,0,:], test_batch_logits_tuple[1][-3][:,0,:], test_batch_logits_tuple[1][-2][:,0,:]], dim=1) #(batch, 1024*3)
+                                test_batch_last3_reps = torch.cat([torch.mean(test_batch_logits_tuple[1][-4], dim=1), torch.mean(test_batch_logits_tuple[1][-3], dim=1), torch.mean(test_batch_logits_tuple[1][-2], dim=1)], dim=1) #(batch, 1024*3)
                                 test_batch_reps_logits_labels = (test_batch_reps,test_batch_logits, label_ids)
 
                                 pred_labels_i = model(None, None, None, None,

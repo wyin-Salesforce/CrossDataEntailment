@@ -556,7 +556,7 @@ class RobertaClassificationHead_3_layers(nn.Module):
 
     def __init__(self, config):
         super(RobertaClassificationHead_3_layers, self).__init__()
-        self.dense = nn.Linear(config.hidden_size*4, config.hidden_size)
+        self.dense = nn.Linear(config.hidden_size, config.hidden_size)
         # self.dense2 = nn.Linear(config.hidden_size, config.hidden_size)
         # self.dense3 = nn.Linear(config.hidden_size, config.hidden_size)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)

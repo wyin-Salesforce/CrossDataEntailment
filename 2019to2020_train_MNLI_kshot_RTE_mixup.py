@@ -1216,7 +1216,7 @@ if __name__ == "__main__":
     a = torch.cuda.FloatTensor(3, 5).fill_(0)
     ind = torch.cuda.LongTensor([0,1,2])
     print(a)
-    a[:ind]=1
+    a[:,ind]=1
     print(a)
 
 

@@ -581,7 +581,6 @@ def main():
     parser = argparse.ArgumentParser()
 
     ## Required parameters
-mixup_epochs
     parser.add_argument('--mixup_epochs',
                         type=int,
                         default=1,

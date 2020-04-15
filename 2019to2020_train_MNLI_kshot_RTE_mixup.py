@@ -1006,6 +1006,8 @@ def main():
             for target_sample_batch in target_samples_dataloader_batch_16:
                 target_sample_batch = tuple(t.to(device) for t in target_sample_batch)
                 target_sample_input_ids_batch, target_sample_input_mask_batch, target_sample_segment_ids_batch, target_sample_label_ids_batch = target_sample_batch
+                if len(target_sample_input_ids_batch) ! = 16:
+                    continue
                 '''randomly select another batch'''
                 selected_target_sample_start_list = random.Random(args.sampling_seed).sample(target_sample_batch_start_batch_16, 1)
                 # for start_i in selected_source_batch_start_list:
@@ -1021,8 +1023,8 @@ def main():
                     # print('roberta_seq_model config:', roberta_seq_model.config)
                     target_sample_logits_tuple, target_sample_reps = roberta_seq_model(target_sample_input_ids_batch, target_sample_input_mask_batch, None, labels=None)
                     target_sample_logits_tuple_v2, target_sample_reps_v2 = roberta_seq_model(single_target_sample_input_ids, single_target_sample_input_mask, None, labels=None)
-                    print('target_sample_logits_tuple:', target_sample_logits_tuple[0].shape)
-                    print('target_sample_logits_tuple_v2:', target_sample_logits_tuple_v2[0].shape)
+                    # print('target_sample_logits_tuple:', target_sample_logits_tuple[0].shape)
+                    # print('target_sample_logits_tuple_v2:', target_sample_logits_tuple_v2[0].shape)
                     # exit(0)
                     target_sample_logits = target_sample_logits_tuple[0]+target_sample_logits_tuple_v2[0]
                     # print('len(target_sample_logits_tuple):', len(target_sample_logits_tuple))

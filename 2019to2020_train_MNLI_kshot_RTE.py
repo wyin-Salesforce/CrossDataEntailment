@@ -181,7 +181,7 @@ class RteProcessor(DataProcessor):
             sampled_not_entail = not_entail_list+random.Random(sampling_seed).sample(not_entail_list, K-not_entail_size)
 
         # print('sampled_entail size:', len(sampled_entail))
-        print('sampled_not_entail size:', len(sampled_not_entail))
+        # print('sampled_not_entail size:', len(sampled_not_entail))
         examples_entail=[]
         examples_neutral=[]
         examples_contra=[]
@@ -191,7 +191,7 @@ class RteProcessor(DataProcessor):
                 InputExample(guid='entail_'+str(idd), text_a=pair[0], text_b=pair[1], label='entailment'))
 
         for idd, pair in enumerate(sampled_not_entail):
-            if idd < K:
+            if idd < int(K/2):
                 '''neutral'''
                 examples_neutral.append(
                     InputExample(guid='neutral_'+str(idd), text_a=pair[0], text_b=pair[1], label='neutral'))
@@ -200,9 +200,9 @@ class RteProcessor(DataProcessor):
                 examples_contra.append(
                     InputExample(guid='contra_'+str(idd), text_a=pair[0], text_b=pair[1], label='contradiction'))
 
-        assert len(examples_entail) == K
-        assert len(examples_neutral) == K
-        assert len(examples_contra) == K
+        # assert len(examples_entail) == K
+        # assert len(examples_neutral) == K
+        # assert len(examples_contra) == K
         return examples_entail, examples_neutral, examples_contra
 
     def get_RTE_as_dev(self, filename):

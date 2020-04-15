@@ -556,7 +556,7 @@ class RobertaClassificationHead_3_layers(nn.Module):
         x = self.dropout(x)
         x = self.dense(x)
         x = torch.tanh(x)
-        x = self.dropout(x)
+        # x = self.dropout(x)
         x = self.out_proj(x)
         return x
 

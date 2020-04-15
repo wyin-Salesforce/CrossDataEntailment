@@ -1006,7 +1006,7 @@ def main():
             for target_sample_batch in target_samples_dataloader_batch_16:
                 target_sample_batch = tuple(t.to(device) for t in target_sample_batch)
                 target_sample_input_ids_batch, target_sample_input_mask_batch, target_sample_segment_ids_batch, target_sample_label_ids_batch = target_sample_batch
-                if len(target_sample_input_ids_batch) != 16:
+                if target_sample_input_ids_batch.shape[0] != target_sample_batch_size_16:
                     continue
                 '''randomly select another batch'''
                 selected_target_sample_start_list = random.Random(args.sampling_seed).sample(target_sample_batch_start_batch_16, 1)

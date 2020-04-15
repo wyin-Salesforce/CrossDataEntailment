@@ -165,6 +165,7 @@ class RteProcessor(DataProcessor):
             line_co+=1
         readfile.close()
         print('RTE pos: ', len(entail_list), ' neg size: ', len(not_entail_list))
+        #RTE pos:  1249  neg size:  1241
 
         '''now randomly sampling'''
         entail_size = len(entail_list)
@@ -202,7 +203,7 @@ class RteProcessor(DataProcessor):
         assert len(examples_entail) == K
         assert len(examples_neutral) == K
         assert len(examples_contra) == K
-        return examples_entail, examples_neutral, examples_contra
+        return examples_entail, examples_neutral, examples_neutral#examples_contra
 
     def get_RTE_as_dev(self, filename):
         '''

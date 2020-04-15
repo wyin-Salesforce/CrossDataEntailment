@@ -171,14 +171,14 @@ class RteProcessor(DataProcessor):
         entail_size = len(entail_list)
         not_entail_size = len(not_entail_list)
         print('entail_size:', entail_size, 'not_entail_size:', not_entail_size)
-        if K <= entail_size:
-            sampled_entail = random.Random(sampling_seed).sample(entail_list, K)
+
+        K=min(K, entail_size)
+        sampled_entail = random.Random(sampling_seed).sample(entail_list, K)
+
+        if K <= not_entail_size:
+            sampled_not_entail = random.Random(sampling_seed).sample(not_entail_list, K)
         else:
-            sampled_entail = random.Random(sampling_seed).choices(entail_list, k = K)
-        if K <= int(not_entail_size/2):
-            sampled_not_entail = random.Random(sampling_seed).sample(not_entail_list, 2*K)
-        else:
-            sampled_not_entail = random.Random(sampling_seed).choices(not_entail_list, k = 2*K)
+            sampled_not_entail = not_entail_list+random.Random(sampling_seed).sample(not_entail_list, K-not_entail_size)
 
         # print('sampled_entail size:', len(sampled_entail))
         # print('sampled_not_entail size:', len(sampled_not_entail))
@@ -203,7 +203,7 @@ class RteProcessor(DataProcessor):
         assert len(examples_entail) == K
         assert len(examples_neutral) == K
         assert len(examples_contra) == K
-        return examples_entail, examples_neutral, examples_neutral#examples_contra
+        return examples_entail, examples_neutral, examples_contra
 
     def get_RTE_as_dev(self, filename):
         '''

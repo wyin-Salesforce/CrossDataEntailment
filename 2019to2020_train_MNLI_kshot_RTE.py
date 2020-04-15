@@ -1096,6 +1096,7 @@ def main():
                         assert len(pred_label_ids_binary) ==  len(gold_label_ids_binary)
 
                         print('pred neg ratio:', sum(pred_label_ids_binary)/len(pred_label_ids_binary))
+                        print('gold neg ratio:', sum(gold_label_ids_binary)/len(gold_label_ids_binary))
                         hit_co = 0
                         for k in range(len(pred_label_ids_binary)):
                             if pred_label_ids_binary[k] == gold_label_ids_binary[k]:

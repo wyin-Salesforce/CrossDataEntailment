@@ -181,7 +181,7 @@ class RteProcessor(DataProcessor):
             sampled_not_entail = not_entail_list+random.Random(sampling_seed).sample(not_entail_list, K-not_entail_size)
 
         # print('sampled_entail size:', len(sampled_entail))
-        # print('sampled_not_entail size:', len(sampled_not_entail))
+        print('sampled_not_entail size:', len(sampled_not_entail))
         examples_entail=[]
         examples_neutral=[]
         examples_contra=[]

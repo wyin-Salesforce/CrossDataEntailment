@@ -1026,7 +1026,7 @@ def main():
                 optimizer.zero_grad()
 
                 iter_co+=1
-                if iter_co % 50 ==0:
+                if iter_co % 100 ==0:
                     '''dev or test'''
                     if (len(target_sample_entail_reps_history_list)==0 or
                         len(target_sample_neutral_reps_history_list)==0 or

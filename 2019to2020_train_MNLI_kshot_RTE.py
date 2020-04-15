@@ -411,7 +411,8 @@ class Encoder(BertPreTrainedModel):
         self.roberta = None#RobertaModel(config)
         '''classifier for target domain'''
         self.classifier = RobertaClassificationHead(config)
-        # self.classifier_3_layers = RobertaClassificationHead_3_layers(config)
+        self.classifier_3_layers = RobertaClassificationHead_3_layers(config)
+        self.classifier_3_layers.load_state_dict(self.classifier.state_dict())
 
         '''nearest neighbor parameters'''
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
@@ -487,11 +488,11 @@ class Encoder(BertPreTrainedModel):
             return NN_loss
         elif mode == 'train_CL':
             # four_layer_reps = torch.cat([target_sample_reps, target_sample_last3_reps], dim=1)
-            four_layer_reps = target_sample_reps + target_sample_last3_reps
-            # target_sample_CL_logits = self.classifier(target_sample_reps)
-            # target_sample_CL_logits_3_layers = self.classifier_3_layers(four_layer_reps)
-            target_sample_CL_logits_3_layers = self.classifier(four_layer_reps)
-            four_layers_logits = target_sample_CL_logits_3_layers #target_sample_CL_logits+
+            # four_layer_reps = target_sample_reps + target_sample_last3_reps
+            target_sample_CL_logits = self.classifier(target_sample_reps)
+            target_sample_CL_logits_3_layers = self.classifier_3_layers(target_sample_last3_reps)
+            # target_sample_CL_logits_3_layers = self.classifier(four_layer_reps)
+            four_layers_logits = target_sample_CL_logits_3_layers+target_sample_CL_logits #target_sample_CL_logits+
             CL_loss = loss_fct(four_layers_logits.view(-1, self.num_labels), target_sample_labels.view(-1))
             return CL_loss
         else:
@@ -504,9 +505,9 @@ class Encoder(BertPreTrainedModel):
             NN_logits_combine = NN_logits_from_source+NN_logits_from_target
             '''third, get logits from classification of the target domain'''
             CL_logits_from_target = (
-                                    # self.classifier(test_batch_reps)+
-                                    # self.classifier_3_layers(torch.cat([test_batch_reps, test_batch_last3_reps], dim=1))
-                                    self.classifier(test_batch_reps + test_batch_last3_reps)
+                                    self.classifier(test_batch_reps)+
+                                    self.classifier_3_layers(test_batch_last3_reps)
+                                    # self.classifier(test_batch_reps + test_batch_last3_reps)
                                     )
             # print('logits_from_pretrained:', logits_from_pretrained)
             # print('NN_logits_combine:', NN_logits_combine)
@@ -1021,7 +1022,7 @@ def main():
                     assert len(target_sample_logits_tuple) == 2 #(logits, (hidden_states)
                     # target_sample_last3_reps = torch.cat([target_sample_logits_tuple[1][-4][:,0,:], target_sample_logits_tuple[1][-3][:,0,:], target_sample_logits_tuple[1][-2][:,0,:]], dim=1) #(batch, 1024*3)
                     # target_sample_last3_reps = torch.cat([torch.mean(target_sample_logits_tuple[1][-4], dim=1), torch.mean(target_sample_logits_tuple[1][-3], dim=1), torch.mean(target_sample_logits_tuple[1][-2], dim=1)], dim=1) #(batch, 1024*3)
-                    target_sample_last3_reps = torch.mean(target_sample_logits_tuple[1][-15], dim=1) +torch.mean(target_sample_logits_tuple[1][-14], dim=1) +torch.mean(target_sample_logits_tuple[1][-13], dim=1) +torch.mean(target_sample_logits_tuple[1][-12], dim=1) +torch.mean(target_sample_logits_tuple[1][-11], dim=1) +torch.mean(target_sample_logits_tuple[1][-10], dim=1) +torch.mean(target_sample_logits_tuple[1][-9], dim=1) +torch.mean(target_sample_logits_tuple[1][-8], dim=1) +torch.mean(target_sample_logits_tuple[1][-7], dim=1) +torch.mean(target_sample_logits_tuple[1][-6], dim=1) +torch.mean(target_sample_logits_tuple[1][-5], dim=1) +torch.mean(target_sample_logits_tuple[1][-4], dim=1) + torch.mean(target_sample_logits_tuple[1][-3], dim=1) + torch.mean(target_sample_logits_tuple[1][-2], dim=1)
+                    target_sample_last3_reps = torch.mean(target_sample_logits_tuple[1][-7], dim=1) +torch.mean(target_sample_logits_tuple[1][-6], dim=1) +torch.mean(target_sample_logits_tuple[1][-5], dim=1) +torch.mean(target_sample_logits_tuple[1][-4], dim=1) + torch.mean(target_sample_logits_tuple[1][-3], dim=1) + torch.mean(target_sample_logits_tuple[1][-2], dim=1)
                     target_sample_reps = target_sample_reps#[:,0,:]
                     # target_sample_reps = torch.mean(target_sample_reps, dim=1)
                 target_sample_reps_logits_labels = (target_sample_reps, target_sample_logits, target_sample_label_ids_batch)
@@ -1098,7 +1099,7 @@ def main():
                                 assert len(test_batch_logits_tuple) == 2 #(logits, (hidden_states), (attentions))
                                 # test_batch_last3_reps = torch.cat([test_batch_logits_tuple[1][-4][:,0,:], test_batch_logits_tuple[1][-3][:,0,:], test_batch_logits_tuple[1][-2][:,0,:]], dim=1) #(batch, 1024*3)
                                 # test_batch_last3_reps = torch.cat([torch.mean(test_batch_logits_tuple[1][-4], dim=1), torch.mean(test_batch_logits_tuple[1][-3], dim=1), torch.mean(test_batch_logits_tuple[1][-2], dim=1)], dim=1) #(batch, 1024*3)
-                                test_batch_last3_reps = torch.mean(test_batch_logits_tuple[1][-15], dim=1) +torch.mean(test_batch_logits_tuple[1][-14], dim=1) +torch.mean(test_batch_logits_tuple[1][-13], dim=1) +torch.mean(test_batch_logits_tuple[1][-12], dim=1) +torch.mean(test_batch_logits_tuple[1][-11], dim=1) +torch.mean(test_batch_logits_tuple[1][-10], dim=1) +torch.mean(test_batch_logits_tuple[1][-9], dim=1) +torch.mean(test_batch_logits_tuple[1][-8], dim=1) +torch.mean(test_batch_logits_tuple[1][-7], dim=1) +torch.mean(test_batch_logits_tuple[1][-6], dim=1) +torch.mean(test_batch_logits_tuple[1][-5], dim=1) +torch.mean(test_batch_logits_tuple[1][-4], dim=1) + torch.mean(test_batch_logits_tuple[1][-3], dim=1) + torch.mean(test_batch_logits_tuple[1][-2], dim=1)
+                                test_batch_last3_reps = torch.mean(test_batch_logits_tuple[1][-7], dim=1) +torch.mean(test_batch_logits_tuple[1][-6], dim=1) +torch.mean(test_batch_logits_tuple[1][-5], dim=1) +torch.mean(test_batch_logits_tuple[1][-4], dim=1) + torch.mean(test_batch_logits_tuple[1][-3], dim=1) + torch.mean(test_batch_logits_tuple[1][-2], dim=1)
                                 test_batch_reps_logits_labels = (test_batch_reps,test_batch_logits, label_ids)
 
                                 pred_labels_i = model(None, None, None, None,

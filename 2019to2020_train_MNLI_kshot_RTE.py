@@ -206,7 +206,7 @@ class RteProcessor(DataProcessor):
         # assert len(examples_entail) == K
         # assert len(examples_neutral) == K
         # assert len(examples_contra) == K
-        return examples_entail, examples_neutral, examples_contra
+        return examples_entail, examples_neutral+examples_neutral, examples_contra+examples_contra
 
     def get_RTE_as_dev(self, filename):
         '''

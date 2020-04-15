@@ -581,7 +581,11 @@ def main():
     parser = argparse.ArgumentParser()
 
     ## Required parameters
-
+mixup_epochs
+    parser.add_argument('--mixup_epochs',
+                        type=int,
+                        default=1,
+                        help="random seed for initialization")
     parser.add_argument('--NN_iter_limit',
                         type=int,
                         default=100,
@@ -869,6 +873,7 @@ def main():
         iter_co = 0
         tr_loss = 0
         loss_fct = CrossEntropyLoss()
+        loss_fct_mixup = MSELoss()
 
         source_size = source_all_input_ids.shape[0]
         source_id_list = list(range(source_size))
@@ -1025,33 +1030,19 @@ def main():
                     target_sample_last3_reps = target_sample_last3_reps+target_sample_last3_reps_v2
                     target_sample_reps = target_sample_reps+target_sample_reps_v2#[:,0,:]
                     # target_sample_reps = torch.mean(target_sample_reps, dim=1)
-                target_sample_reps_logits_labels = (target_sample_reps, target_sample_logits, target_sample_label_ids_batch)
 
-
-                target_sample_entail_reps_i = target_sample_reps[entail_size_i].mean(dim=0, keepdim=True)
-                target_sample_neutral_reps_i = target_sample_reps[neutral_size_i].mean(dim=0, keepdim=True)
-                target_sample_contra_reps_i = target_sample_reps[contra_size_i].mean(dim=0, keepdim=True)
-
-                target_sample_entail_logits_i = target_sample_logits[entail_size_i].mean(dim=0, keepdim=True)
-                target_sample_neutral_logits_i = target_sample_logits[neutral_size_i].mean(dim=0, keepdim=True)
-                target_sample_contra_logits_i = target_sample_logits[contra_size_i].mean(dim=0, keepdim=True)
-
-                if entail_size_i.sum()!=0:
-                    target_sample_entail_reps_history_list.append(target_sample_entail_reps_i)
-                    target_sample_entail_logits_history_list.append(target_sample_entail_logits_i)
-                if neutral_size_i.sum()!=0:
-                    target_sample_neutral_reps_history_list.append(target_sample_neutral_reps_i)
-                    target_sample_neutral_logits_history_list.append(target_sample_neutral_logits_i)
-                if contra_size_i.sum()!=0:
-                    target_sample_contra_reps_history_list.append(target_sample_contra_reps_i)
-                    target_sample_contra_logits_history_list.append(target_sample_contra_logits_i)
-
+                    batch_labels_v1 = torch.cuda.FloatTensor(16, 3).fill_(0)
+                    batch_labels_v1[:,target_sample_label_ids_batch] = 1
+                    batch_labels_v2 = torch.cuda.FloatTensor(16, 3).fill_(0)
+                    batch_labels_v2[:,single_target_sample_label_ids] = 1
+                    mixup_batch_labels = (batch_labels_v1+batch_labels_v2)*0.5
+                target_sample_reps_logits_labels = (target_sample_reps, target_sample_logits, mixup_batch_labels)
 
                 model.train()
-                loss_cl = model(target_sample_reps_logits_labels, target_sample_last3_reps, None, None,
-                                            None, None, None, None, mode='train_CL', loss_fct = loss_fct)
+                loss_cl_mixup = model(target_sample_reps_logits_labels, target_sample_last3_reps, None, None,
+                                            None, None, None, None, mode='train_CL', loss_fct = loss_fct_mixup)
                 # print('loss_cl:  ', loss_cl.item())
-                loss_cl.backward()
+                loss_cl_mixup.backward()
                 optimizer.step()
                 optimizer.zero_grad()
 
@@ -1224,4 +1215,4 @@ if __name__ == "__main__":
     1, NN gets worse with more epochs
     2, CL does not change much with 1e-6
     '''
-# CUDA_VISIBLE_DEVICES=3 python -u 2019to2020_train_MNLI_kshot_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3 --sampling_seed 42 --NN_epochs 1 --NN_iter_limit 100 --stilts_epochs 20
+# CUDA_VISIBLE_DEVICES=3 python -u 2019to2020_train_MNLI_kshot_RTE_mixup.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3 --sampling_seed 42 --NN_epochs 1 --NN_iter_limit 100 --mixup_epochs 1 --stilts_epochs 20

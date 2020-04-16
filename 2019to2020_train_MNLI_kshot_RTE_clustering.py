@@ -414,7 +414,7 @@ class Encoder(BertPreTrainedModel):
         sample_size = sample_reps.shape[0]
         query_size = query_reps.shape[0]
         hidden_size = query_reps.shape[1]
-        print('phase, mode, sample_size, query_size, hidden_size:', phase, mode, sample_size, query_size, hidden_size)
+        # print('phase, mode, sample_size, query_size, hidden_size:', phase, mode, sample_size, query_size, hidden_size)
 
         # print('sample_size:', sample_size, 'query_size:', query_size, 'hidden_size:', hidden_size)
 
@@ -439,15 +439,15 @@ class Encoder(BertPreTrainedModel):
 
         similarity_matrix = group_scores_with_simi.reshape(query_size, sample_size)
         '''???note that the softmax will make the resulting logits smaller than LR'''
-        print(phase, mode, ' sample_logits:', sample_logits)
-        print(phase, mode, ' similarity_matrix:', similarity_matrix)
+        # print(phase, mode, ' sample_logits:', sample_logits)
+        # print(phase, mode, ' similarity_matrix:', similarity_matrix)
         query_logits_from_NN = torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits) #(batch, 3)
-        print(phase, mode, ' query_logits_from_NN:', query_logits_from_NN)
+        # print(phase, mode, ' query_logits_from_NN:', query_logits_from_NN)
         if mode == 'test':
             return query_logits_from_NN
         else:
 
-            print(phase, mode, ' query_labels:', query_labels)
+            # print(phase, mode, ' query_labels:', query_labels)
             loss_i = loss_fct(query_logits_from_NN.view(-1, self.num_labels), query_labels.view(-1))
             return loss_i
 
@@ -1038,8 +1038,8 @@ def main():
                 single_target_sample_input_mask = target_samples_input_mask[ids_single].to(device)
                 single_target_sample_segment_ids = target_samples_segment_ids[ids_single].to(device)
                 single_target_sample_label_ids = target_samples_label_ids[ids_single].to(device)
-                print('single_target_sample_label_ids:', single_target_sample_label_ids)
-                exit(0)
+                # print('single_target_sample_label_ids:', single_target_sample_label_ids)
+                # exit(0)
                 # single_input = (single_source_batch_input_ids, single_source_batch_input_mask, single_source_batch_segment_ids, single_source_batch_label_ids)
                 with torch.no_grad():
                     single_target_sample_logits, single_target_sample_reps = roberta_seq_model(single_target_sample_input_ids, single_target_sample_input_mask, None, labels=None)

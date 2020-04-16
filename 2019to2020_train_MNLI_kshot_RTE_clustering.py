@@ -829,11 +829,13 @@ def main():
         target_samples_input_mask = torch.tensor([f.input_mask for f in target_samples_features], dtype=torch.long)
         target_samples_segment_ids = torch.tensor([f.segment_ids for f in target_samples_features], dtype=torch.long)
         target_samples_label_ids = torch.tensor([f.label_id for f in target_samples_features], dtype=torch.long)
-        print('target_samples_label_ids:', target_samples_label_ids)
-        exit(0)
+
         target_samples_data = TensorDataset(target_samples_input_ids, target_samples_input_mask, target_samples_segment_ids, target_samples_label_ids)
         target_samples_sampler = RandomSampler(target_samples_data)
         target_samples_dataloader = DataLoader(target_samples_data, sampler=target_samples_sampler, batch_size=6)
+        for batch in target_samples_dataloader:
+            print(batch[3])
+        exit(0)
         target_samples_dataloader_batch_16 = DataLoader(target_samples_data, sampler=target_samples_sampler, batch_size=16)
 
         '''load dev set'''

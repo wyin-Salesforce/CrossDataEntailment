@@ -117,7 +117,7 @@ class RteProcessor(DataProcessor):
         '''
         examples_entail=[]
         examples_neutral=[]
-        examples_contra=[]
+        # examples_contra=[]
         readfile = codecs.open(filename, 'r', 'utf-8')
         line_co=0
         for row in readfile:
@@ -130,18 +130,18 @@ class RteProcessor(DataProcessor):
                 if label == 'entailment':
                     examples_entail.append(
                         InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
-                elif label == 'neutral':
-                    examples_neutral.append(
-                        InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+                # elif label == 'neutral':
+                #     examples_neutral.append(
+                #         InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
                 else:
-                    examples_contra.append(
-                        InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+                    examples_neutral.append(
+                        InputExample(guid=guid, text_a=text_a, text_b=text_b, label='neutral'))
             line_co+=1
-            if line_co > 2000:
-                break
+            # if line_co > 2000:
+            #     break
         readfile.close()
         print('loaded  size:', line_co)
-        return examples_entail, examples_neutral, examples_contra
+        return examples_entail, examples_neutral#, examples_contra
 
 
 
@@ -187,31 +187,19 @@ class RteProcessor(DataProcessor):
         # print('sampled_not_entail size:', len(sampled_not_entail))
         examples_entail=[]
         examples_neutral=[]
-        examples_contra=[]
+        # examples_contra=[]
 
         for idd, pair in enumerate(sampled_entail):
             examples_entail.append(
                 InputExample(guid='entail_'+str(idd), text_a=pair[0], text_b=pair[1], label='entailment'))
-
-        # for idd, pair in enumerate(sampled_not_entail):
-        #     if idd < int(K/2):
-        #         '''neutral'''
-        #         examples_neutral.append(
-        #             InputExample(guid='neutral_'+str(idd), text_a=pair[0], text_b=pair[1], label='neutral'))
-        #     else:
-        #         '''contradiction'''
-        #         examples_contra.append(
-        #             InputExample(guid='contra_'+str(idd), text_a=pair[0], text_b=pair[1], label='contradiction'))
-        # return examples_entail, examples_neutral+examples_neutral, examples_contra+examples_contra
-
         for idd, pair in enumerate(sampled_not_entail):
             '''neutral'''
             examples_neutral.append(
                 InputExample(guid='neutral_'+str(idd), text_a=pair[0], text_b=pair[1], label='neutral'))
-            '''contradiction'''
-            examples_contra.append(
-                InputExample(guid='contra_'+str(idd), text_a=pair[0], text_b=pair[1], label='contradiction'))
-        return examples_entail, examples_neutral, examples_contra
+            # '''contradiction'''
+            # examples_contra.append(
+            #     InputExample(guid='contra_'+str(idd), text_a=pair[0], text_b=pair[1], label='contradiction'))
+        return examples_entail, examples_neutral#, examples_contra
 
     def get_RTE_as_dev(self, filename):
         '''
@@ -759,8 +747,8 @@ def main():
 
 
 
-    source_examples_entail, source_examples_neutral, source_examples_contra = processor.get_MNLI_as_train('/export/home/Dataset/glue_data/MNLI/train.tsv') #train_pu_half_v1.txt
-    target_samples_entail, target_samples_neutral, target_samples_contra = processor.get_RTE_as_train('/export/home/Dataset/glue_data/RTE/train.tsv', args.k_shot, args.sampling_seed)
+    source_examples_entail, source_examples_neutral = processor.get_MNLI_as_train('/export/home/Dataset/glue_data/MNLI/train.tsv') #train_pu_half_v1.txt
+    target_samples_entail, target_samples_neutral = processor.get_RTE_as_train('/export/home/Dataset/glue_data/RTE/train.tsv', args.k_shot, args.sampling_seed)
 
     pretrain_model_dir = '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE/0.8664259927797834-0.8106035345115038'
     roberta_seq_model = RobertaForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels, output_hidden_states=True)
@@ -795,7 +783,7 @@ def main():
     max_dev_acc = 0.0
     if args.do_train:
         source_features = convert_examples_to_features(
-            source_examples_entail + source_examples_neutral + source_examples_contra,
+            source_examples_entail + source_examples_neutral,
             label_list, args.max_seq_length, tokenizer, output_mode,
             cls_token_at_end=False,#bool(args.model_type in ['xlnet']),            # xlnet has a cls token at the end
             cls_token=tokenizer.cls_token,
@@ -813,14 +801,14 @@ def main():
 
         source_data = TensorDataset(source_all_input_ids, source_all_input_mask, source_all_segment_ids, source_all_label_ids)
         source_sampler = RandomSampler(source_data)
-        source_samples_dataloader = DataLoader(source_data, sampler=source_sampler, batch_size=9)
+        source_samples_dataloader = DataLoader(source_data, sampler=source_sampler, batch_size=6)
         # source_batch_dataloader = DataLoader(source_data, sampler=source_sampler, batch_size=args.train_batch_size)
 
 
 
         '''load target k-shot data'''
         target_samples_features = convert_examples_to_features(
-            target_samples_entail+target_samples_neutral + target_samples_contra,
+            target_samples_entail+target_samples_neutral,
             label_list, args.max_seq_length, tokenizer, output_mode,
             cls_token_at_end=False,#bool(args.model_type in ['xlnet']),            # xlnet has a cls token at the end
             cls_token=tokenizer.cls_token,
@@ -838,7 +826,7 @@ def main():
 
         target_samples_data = TensorDataset(target_samples_input_ids, target_samples_input_mask, target_samples_segment_ids, target_samples_label_ids)
         target_samples_sampler = RandomSampler(target_samples_data)
-        target_samples_dataloader = DataLoader(target_samples_data, sampler=target_samples_sampler, batch_size=9)
+        target_samples_dataloader = DataLoader(target_samples_data, sampler=target_samples_sampler, batch_size=6)
         target_samples_dataloader_batch_16 = DataLoader(target_samples_data, sampler=target_samples_sampler, batch_size=16)
 
         '''load dev set'''
@@ -899,7 +887,7 @@ def main():
 
         target_sample_size = target_samples_input_ids.shape[0]
         target_sample_id_list = list(range(target_sample_size))
-        target_sample_batch_size = 9
+        target_sample_batch_size = 6
         target_sample_batch_start = [x*target_sample_batch_size for x in range(target_sample_size//target_sample_batch_size)]
 
 
@@ -913,10 +901,10 @@ def main():
 
             source_sample_entail_reps_history = []
             source_sample_neutral_reps_history = []
-            source_sample_contra_reps_history = []
+            # source_sample_contra_reps_history = []
             source_sample_entail_logits_history = []
             source_sample_neutral_logits_history = []
-            source_sample_contra_logits_history = []
+            # source_sample_contra_logits_history = []
             for step, source_samples_batch in enumerate(source_samples_dataloader):
 
                 source_samples_batch = tuple(t.to(device) for t in source_samples_batch)
@@ -924,7 +912,7 @@ def main():
                 # assert input_ids.shape[0] == args.train_batch_size
                 entail_size_i = (source_samples_label_ids==0)#.sum()
                 neutral_size_i = (source_samples_label_ids==1)#.sum()
-                contra_size_i = (source_samples_label_ids==2)#.sum()
+                # contra_size_i = (source_samples_label_ids==2)#.sum()
 
                 with torch.no_grad():
                     source_sample_logits, source_sample_reps = roberta_seq_model(source_samples_input_ids, source_samples_input_mask, None, labels=None)
@@ -938,11 +926,11 @@ def main():
                 # print('entail_size_i:', entail_size_i, 'source_samples_label_ids:', source_samples_label_ids)
                 # exit(0)
                 source_sample_neutral_reps_i = source_sample_reps[neutral_size_i].mean(dim=0, keepdim=True)
-                source_sample_contra_reps_i = source_sample_reps[contra_size_i].mean(dim=0, keepdim=True)
+                # source_sample_contra_reps_i = source_sample_reps[contra_size_i].mean(dim=0, keepdim=True)
 
                 source_sample_entail_logits_i = source_sample_logits[entail_size_i].mean(dim=0, keepdim=True)
                 source_sample_neutral_logits_i = source_sample_logits[neutral_size_i].mean(dim=0, keepdim=True)
-                source_sample_contra_logits_i = source_sample_logits[contra_size_i].mean(dim=0, keepdim=True)
+                # source_sample_contra_logits_i = source_sample_logits[contra_size_i].mean(dim=0, keepdim=True)
 
                 if entail_size_i.sum()!=0:
                     source_sample_entail_reps_history.append(source_sample_entail_reps_i)
@@ -952,9 +940,9 @@ def main():
                     source_sample_neutral_reps_history.append(source_sample_neutral_reps_i)
                     source_sample_neutral_logits_history.append(source_sample_neutral_logits_i)
 
-                if contra_size_i.sum()!=0:
-                    source_sample_contra_reps_history.append(source_sample_contra_reps_i)
-                    source_sample_contra_logits_history.append(source_sample_contra_logits_i)
+                # if contra_size_i.sum()!=0:
+                #     source_sample_contra_reps_history.append(source_sample_contra_reps_i)
+                #     source_sample_contra_logits_history.append(source_sample_contra_logits_i)
 
                 '''choose one batch in target samples'''
                 selected_target_sample_start_list = random.Random(args.sampling_seed).sample(target_sample_batch_start, 1)
@@ -972,7 +960,7 @@ def main():
                 target_sample_reps_logits_labels = (target_sample_reps, target_sample_logits[0], single_target_sample_label_ids)
 
 
-                '''randomly select M batches from source'''
+                '''randomly select 10 batches from source'''
                 selected_source_batch_start_list = random.Random(args.sampling_seed).sample(source_batch_start, 10)
                 for start_i in selected_source_batch_start_list:
                     ids_single = source_id_list[start_i:start_i+source_batch_size]
@@ -1001,14 +989,14 @@ def main():
 
             source_sample_entail_reps_history = torch.cat(source_sample_entail_reps_history, dim=0).mean(dim=0, keepdim=True)
             source_sample_neutral_reps_history = torch.cat(source_sample_neutral_reps_history, dim=0).mean(dim=0, keepdim=True)
-            source_sample_contra_reps_history = torch.cat(source_sample_contra_reps_history, dim=0).mean(dim=0, keepdim=True)
+            # source_sample_contra_reps_history = torch.cat(source_sample_contra_reps_history, dim=0).mean(dim=0, keepdim=True)
             source_sample_entail_logits_history = torch.cat(source_sample_entail_logits_history, dim=0).mean(dim=0, keepdim=True)
             source_sample_neutral_logits_history = torch.cat(source_sample_neutral_logits_history, dim=0).mean(dim=0, keepdim=True)
-            source_sample_contra_logits_history = torch.cat(source_sample_contra_logits_history, dim=0).mean(dim=0, keepdim=True)
+            # source_sample_contra_logits_history = torch.cat(source_sample_contra_logits_history, dim=0).mean(dim=0, keepdim=True)
 
             # print('source_sample_entail_reps_history:', source_sample_entail_reps_history.shape)
-            source_sample_reps_history = torch.cat([source_sample_entail_reps_history, source_sample_neutral_reps_history, source_sample_contra_reps_history], dim=0)
-            source_sample_logits_history = torch.cat([source_sample_entail_logits_history, source_sample_neutral_logits_history, source_sample_contra_logits_history], dim=0)
+            source_sample_reps_history = torch.cat([source_sample_entail_reps_history, source_sample_neutral_reps_history], dim=0)
+            source_sample_logits_history = torch.cat([source_sample_entail_logits_history, source_sample_neutral_logits_history], dim=0)
             source_reps_logits_history = (source_sample_reps_history, source_sample_logits_history)
             # print('source_sample_logits_history:', source_sample_logits_history)
 
@@ -1058,10 +1046,10 @@ def main():
             for stilts_epoch in trange(int(args.stilts_epochs), desc="STILTS Epoch"):
                 target_sample_entail_reps_history_list = []
                 target_sample_neutral_reps_history_list = []
-                target_sample_contra_reps_history_list = []
+                # target_sample_contra_reps_history_list = []
                 target_sample_entail_logits_history_list = []
                 target_sample_neutral_logits_history_list = []
-                target_sample_contra_logits_history_list = []
+                # target_sample_contra_logits_history_list = []
 
                 # for target_sample_batch in target_samples_dataloader:
                 for target_sample_batch in target_samples_dataloader_batch_16:
@@ -1070,7 +1058,7 @@ def main():
                     # assert input_ids.shape[0] == args.train_batch_size
                     entail_size_i = (target_sample_label_ids_batch==0)#.sum()
                     neutral_size_i = (target_sample_label_ids_batch==1)#.sum()
-                    contra_size_i = (target_sample_label_ids_batch==2)#.sum()
+                    # contra_size_i = (target_sample_label_ids_batch==2)#.sum()
                     with torch.no_grad():
                         # print('roberta_seq_model config:', roberta_seq_model.config)
                         target_sample_logits_tuple, target_sample_reps = roberta_seq_model(target_sample_input_ids_batch, target_sample_input_mask_batch, None, labels=None)
@@ -1089,11 +1077,11 @@ def main():
 
                     target_sample_entail_reps_i = target_sample_reps[entail_size_i].mean(dim=0, keepdim=True)
                     target_sample_neutral_reps_i = target_sample_reps[neutral_size_i].mean(dim=0, keepdim=True)
-                    target_sample_contra_reps_i = target_sample_reps[contra_size_i].mean(dim=0, keepdim=True)
+                    # target_sample_contra_reps_i = target_sample_reps[contra_size_i].mean(dim=0, keepdim=True)
 
                     target_sample_entail_logits_i = target_sample_logits[entail_size_i].mean(dim=0, keepdim=True)
                     target_sample_neutral_logits_i = target_sample_logits[neutral_size_i].mean(dim=0, keepdim=True)
-                    target_sample_contra_logits_i = target_sample_logits[contra_size_i].mean(dim=0, keepdim=True)
+                    # target_sample_contra_logits_i = target_sample_logits[contra_size_i].mean(dim=0, keepdim=True)
 
                     if entail_size_i.sum()!=0:
                         target_sample_entail_reps_history_list.append(target_sample_entail_reps_i)
@@ -1101,9 +1089,9 @@ def main():
                     if neutral_size_i.sum()!=0:
                         target_sample_neutral_reps_history_list.append(target_sample_neutral_reps_i)
                         target_sample_neutral_logits_history_list.append(target_sample_neutral_logits_i)
-                    if contra_size_i.sum()!=0:
-                        target_sample_contra_reps_history_list.append(target_sample_contra_reps_i)
-                        target_sample_contra_logits_history_list.append(target_sample_contra_logits_i)
+                    # if contra_size_i.sum()!=0:
+                    #     target_sample_contra_reps_history_list.append(target_sample_contra_reps_i)
+                    #     target_sample_contra_logits_history_list.append(target_sample_contra_logits_i)
 
 
                     model.train()
@@ -1118,19 +1106,18 @@ def main():
                     if iter_co % 100 ==0:
                         '''dev or test'''
                         if (len(target_sample_entail_reps_history_list)==0 or
-                            len(target_sample_neutral_reps_history_list)==0 or
-                            len(target_sample_contra_reps_history_list)==0):
+                            len(target_sample_neutral_reps_history_list)==0):
                             '''train next target_sample batch'''
                             continue
 
                         target_sample_entail_reps_history = torch.cat(target_sample_entail_reps_history_list, dim=0).mean(dim=0, keepdim=True)
                         target_sample_neutral_reps_history = torch.cat(target_sample_neutral_reps_history_list, dim=0).mean(dim=0, keepdim=True)
-                        target_sample_contra_reps_history = torch.cat(target_sample_contra_reps_history_list, dim=0).mean(dim=0, keepdim=True)
+                        # target_sample_contra_reps_history = torch.cat(target_sample_contra_reps_history_list, dim=0).mean(dim=0, keepdim=True)
                         target_sample_entail_logits_history = torch.cat(target_sample_entail_logits_history_list, dim=0).mean(dim=0, keepdim=True)
                         target_sample_neutral_logits_history = torch.cat(target_sample_neutral_logits_history_list, dim=0).mean(dim=0, keepdim=True)
-                        target_sample_contra_logits_history = torch.cat(target_sample_contra_logits_history_list, dim=0).mean(dim=0, keepdim=True)
-                        target_sample_reps_history = torch.cat([target_sample_entail_reps_history, target_sample_neutral_reps_history, target_sample_contra_reps_history], dim=0)
-                        target_sample_logits_history = torch.cat([target_sample_entail_logits_history, target_sample_neutral_logits_history, target_sample_contra_logits_history], dim=0)
+                        # target_sample_contra_logits_history = torch.cat(target_sample_contra_logits_history_list, dim=0).mean(dim=0, keepdim=True)
+                        target_sample_reps_history = torch.cat([target_sample_entail_reps_history, target_sample_neutral_reps_history], dim=0)
+                        target_sample_logits_history = torch.cat([target_sample_entail_logits_history, target_sample_neutral_logits_history], dim=0)
                         target_reps_logits_history = (target_sample_reps_history, target_sample_logits_history)
                         # print('target_sample_logits_history:', target_sample_logits_history)
 

@@ -137,8 +137,8 @@ class RteProcessor(DataProcessor):
                     examples_contra.append(
                         InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
             line_co+=1
-            # if line_co > 2000:
-            #     break
+            if line_co > 1000:
+                break
         readfile.close()
         print('loaded  size:', line_co)
         return examples_entail, examples_neutral, examples_contra
@@ -1156,7 +1156,8 @@ if __name__ == "__main__":
 
 
     '''
-    1, NN gets worse with more epochs
-    2, CL does not change much with 1e-6
+    我们改了关于shuffle, 和sampling_seed的错误；
+    发现 MNLI只load 2000的时候NN 是最好的，基本上81.99%， 但是偶数epoch dev比test高三个点，但是奇数epoch dev则更低
+    load全部的话刚开始只有80%
     '''
 # CUDA_VISIBLE_DEVICES=3 python -u 2019to2020_train_MNLI_kshot_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3 --sampling_seed 42 --NN_epochs 1 --NN_iter_limit 100 --stilts_epochs 20

@@ -502,7 +502,10 @@ class Encoder(BertPreTrainedModel):
             '''second, get logits from NN, two parts, one from source. one from target samples'''
             NN_logits_from_source = self.NearestNeighbor(source_sample_reps_history, source_sample_logits_history, test_batch_reps, None, mode='test', loss_fct = loss_fct)
             NN_logits_from_target = self.NearestNeighbor(target_sample_reps_history, target_sample_logits_history, test_batch_reps, None, mode='test', loss_fct = loss_fct)
-            NN_logits_combine = NN_logits_from_source+NN_logits_from_target
+            NN_logits_combine = (
+                                    NN_logits_from_source+
+                                    NN_logits_from_target
+                                )
             '''third, get logits from classification of the target domain'''
             CL_logits_from_target = (
                                     self.classifier(test_batch_reps)+
@@ -514,8 +517,8 @@ class Encoder(BertPreTrainedModel):
             # print('CL_logits_from_target:', CL_logits_from_target)
             overall_test_batch_logits = logits_from_pretrained+NN_logits_combine+CL_logits_from_target
             # overall_test_batch_logits = logits_from_pretrained
-            # overall_test_batch_logits = NN_logits_combine
-            overall_test_batch_logits = CL_logits_from_target#logits_from_pretrained+CL_logits_from_target
+            overall_test_batch_logits = NN_logits_combine
+            # overall_test_batch_logits = CL_logits_from_target#logits_from_pretrained+CL_logits_from_target
             pred_labels_batch = overall_test_batch_logits.argmax(dim=1)#torch.softmax(overall_test_batch_logits.view(-1, self.num_labels), dim=1).argmax(dim=1)
 
             '''majority voting'''
@@ -1158,4 +1161,4 @@ if __name__ == "__main__":
     1, NN gets worse with more epochs
     2, CL does not change much with 1e-6
     '''
-# CUDA_VISIBLE_DEVICES=3 python -u 2019to2020_train_MNLI_kshot_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3 --sampling_seed 42 --NN_epochs 1 --NN_iter_limit 100 --stilts_epochs 20
+# CUDA_VISIBLE_DEVICES=3 python -u 2019to2020_train_MNLI_kshot_RTE_clustering.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3 --sampling_seed 42 --NN_epochs 1 --NN_iter_limit 100 --stilts_epochs 20

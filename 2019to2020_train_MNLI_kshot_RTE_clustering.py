@@ -1033,6 +1033,8 @@ def main():
                 single_target_sample_input_mask = target_samples_input_mask[ids_single].to(device)
                 single_target_sample_segment_ids = target_samples_segment_ids[ids_single].to(device)
                 single_target_sample_label_ids = target_samples_label_ids[ids_single].to(device)
+                print('single_target_sample_label_ids:', single_target_sample_label_ids)
+                exit(0)
                 # single_input = (single_source_batch_input_ids, single_source_batch_input_mask, single_source_batch_segment_ids, single_source_batch_label_ids)
                 with torch.no_grad():
                     single_target_sample_logits, single_target_sample_reps = roberta_seq_model(single_target_sample_input_ids, single_target_sample_input_mask, None, labels=None)

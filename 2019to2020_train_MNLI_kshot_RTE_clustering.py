@@ -459,7 +459,7 @@ class Encoder(BertPreTrainedModel):
 
 
 
-    def forward(self, target_sample_reps_logits_labels, target_sample_last3_reps, source_sample_reps_logits, source_batch_reps_labels,
+    def forward(self, target_sample_reps_logits_labels, random_target_sample_reps_logits_labels, target_sample_last3_reps, source_sample_reps_logits, source_batch_reps_labels,
                 test_batch_reps_logits_labels, test_batch_last3_reps, source_reps_logits_history, target_reps_logits_history,
                 mode='train_NN', loss_fct = None):
         '''
@@ -472,6 +472,14 @@ class Encoder(BertPreTrainedModel):
             target_sample_reps, target_sample_logits, target_sample_labels = target_sample_reps_logits_labels
             source_sample_reps, source_sample_logits = source_sample_reps_logits
             source_batch_reps, source_batch_labels = source_batch_reps_labels
+        if mode == 'finetune_NN':
+            target_sample_reps, target_sample_logits, target_sample_labels = target_sample_reps_logits_labels
+            # source_sample_reps, source_sample_logits = source_sample_reps_logits
+            # source_batch_reps, source_batch_labels = source_batch_reps_labels
+
+            random_target_sample_reps, random_target_sample_logits, random_target_sample_labels = random_target_sample_reps_logits_labels
+            # source_sample_reps, source_sample_logits = source_sample_reps_logits
+            # source_batch_reps, source_batch_labels = source_batch_reps_labels
         '''input for testing'''
         if mode == 'test':
             test_batch_reps, test_batch_logits, test_batch_labels = test_batch_reps_logits_labels
@@ -486,6 +494,10 @@ class Encoder(BertPreTrainedModel):
 
             NN_loss = loss_target_pred_source+loss_source_pred_source+loss_source_pred_target
             return NN_loss
+        elif mode == 'finetune_NN':
+            finetune_NN_loss = self.NearestNeighbor(target_sample_reps, target_sample_logits, random_target_sample_reps, random_target_sample_labels, mode='train_NN', loss_fct = loss_fct)
+            return finetune_NN_loss
+
         elif mode == 'train_CL':
             # four_layer_reps = torch.cat([target_sample_reps, target_sample_last3_reps], dim=1)
             # four_layer_reps = target_sample_reps + target_sample_last3_reps
@@ -588,6 +600,10 @@ def main():
     parser = argparse.ArgumentParser()
 
 
+    parser.add_argument('--finetune_NN_epochs',
+                        type=int,
+                        default=100,
+                        help="random seed for initialization")
     parser.add_argument('--NN_iter_limit',
                         type=int,
                         default=100,
@@ -971,7 +987,7 @@ def main():
                     source_batch_reps_labels = (source_batch_reps, single_source_batch_label_ids)
 
                     model.train()
-                    loss_nn = model(target_sample_reps_logits_labels, None, source_sample_reps_logits, source_batch_reps_labels,
+                    loss_nn = model(target_sample_reps_logits_labels, None, None, source_sample_reps_logits, source_batch_reps_labels,
                                                 None, None, None, None, mode='train_NN', loss_fct = loss_fct)
                     # print('loss_nn:  ', loss_nn.item())
                     loss_nn.backward()
@@ -995,6 +1011,47 @@ def main():
             source_sample_logits_history = torch.cat([source_sample_entail_logits_history, source_sample_neutral_logits_history, source_sample_contra_logits_history], dim=0)
             source_reps_logits_history = (source_sample_reps_history, source_sample_logits_history)
             # print('source_sample_logits_history:', source_sample_logits_history)
+
+        '''fine_tune NN on target samples'''
+        for _ in trange(int(args.finetune_NN_epochs), desc="Finetune NN Epoch"):
+            for target_sample_batch in target_samples_dataloader:
+                target_sample_batch = tuple(t.to(device) for t in target_sample_batch)
+                target_sample_input_ids_batch, target_sample_input_mask_batch, target_sample_segment_ids_batch, target_sample_label_ids_batch = target_sample_batch
+                with torch.no_grad():
+                    # print('roberta_seq_model config:', roberta_seq_model.config)
+                    target_sample_logits_tuple, target_sample_reps = roberta_seq_model(target_sample_input_ids_batch, target_sample_input_mask_batch, None, labels=None)
+                    target_sample_logits = target_sample_logits_tuple[0]
+                    assert len(target_sample_logits_tuple) == 2 #(logits, (hidden_states)
+                    # target_sample_last3_reps = torch.cat([target_sample_logits_tuple[1][-4][:,0,:], target_sample_logits_tuple[1][-3][:,0,:], target_sample_logits_tuple[1][-2][:,0,:]], dim=1) #(batch, 1024*3)
+                    # target_sample_last3_reps = torch.cat([torch.mean(target_sample_logits_tuple[1][-4], dim=1), torch.mean(target_sample_logits_tuple[1][-3], dim=1), torch.mean(target_sample_logits_tuple[1][-2], dim=1)], dim=1) #(batch, 1024*3)
+                    target_sample_last3_reps = torch.mean(target_sample_logits_tuple[1][-7], dim=1) +torch.mean(target_sample_logits_tuple[1][-6], dim=1) +torch.mean(target_sample_logits_tuple[1][-5], dim=1) +torch.mean(target_sample_logits_tuple[1][-4], dim=1) + torch.mean(target_sample_logits_tuple[1][-3], dim=1) + torch.mean(target_sample_logits_tuple[1][-2], dim=1)
+                    target_sample_reps = target_sample_reps#[:,0,:]
+                    # target_sample_reps = torch.mean(target_sample_reps, dim=1)
+                target_sample_reps_logits_labels = (target_sample_reps, target_sample_logits, target_sample_label_ids_batch)
+
+                '''choose one batch in target samples'''
+                selected_target_sample_start_list = random.Random(args.sampling_seed).sample(target_sample_batch_start, 1)
+                # for start_i in selected_source_batch_start_list:
+                start_i = selected_target_sample_start_list[0]
+                ids_single = target_sample_id_list[start_i:start_i+target_sample_batch_size]
+                #target_samples_input_ids, target_samples_input_mask, target_samples_segment_ids, target_samples_label_ids
+                single_target_sample_input_ids = target_samples_input_ids[ids_single].to(device)
+                single_target_sample_input_mask = target_samples_input_mask[ids_single].to(device)
+                single_target_sample_segment_ids = target_samples_segment_ids[ids_single].to(device)
+                single_target_sample_label_ids = target_samples_label_ids[ids_single].to(device)
+                # single_input = (single_source_batch_input_ids, single_source_batch_input_mask, single_source_batch_segment_ids, single_source_batch_label_ids)
+                with torch.no_grad():
+                    single_target_sample_logits, single_target_sample_reps = roberta_seq_model(single_target_sample_input_ids, single_target_sample_input_mask, None, labels=None)
+                single_target_sample_reps_logits_labels = (single_target_sample_reps, single_target_sample_logits[0], single_target_sample_label_ids)
+
+                model.train()
+                loss_finetune_nn = model(target_sample_reps_logits_labels, single_target_sample_reps_logits_labels, None, None, None,
+                                            None, None, None, None, mode='finetune_NN', loss_fct = loss_fct)
+                # print('loss_nn:  ', loss_nn.item())
+                loss_finetune_nn.backward()
+                optimizer.step()
+                optimizer.zero_grad()
+
 
             '''STILTS Phase, train target classifier'''
             iter_co = 0
@@ -1050,7 +1107,7 @@ def main():
 
 
                     model.train()
-                    loss_cl = model(target_sample_reps_logits_labels, target_sample_last3_reps, None, None,
+                    loss_cl = model(target_sample_reps_logits_labels, None, target_sample_last3_reps, None, None,
                                                 None, None, None, None, mode='train_CL', loss_fct = loss_fct)
                     # print('loss_cl:  ', loss_cl.item())
                     loss_cl.backward()
@@ -1104,7 +1161,7 @@ def main():
                                     test_batch_last3_reps = torch.mean(test_batch_logits_tuple[1][-7], dim=1) +torch.mean(test_batch_logits_tuple[1][-6], dim=1) +torch.mean(test_batch_logits_tuple[1][-5], dim=1) +torch.mean(test_batch_logits_tuple[1][-4], dim=1) + torch.mean(test_batch_logits_tuple[1][-3], dim=1) + torch.mean(test_batch_logits_tuple[1][-2], dim=1)
                                     test_batch_reps_logits_labels = (test_batch_reps,test_batch_logits, label_ids)
 
-                                    pred_labels_i = model(None, None, None, None,
+                                    pred_labels_i = model(None, None, None, None, None,
                                                         test_batch_reps_logits_labels, test_batch_last3_reps, source_reps_logits_history, target_reps_logits_history,
                                                         mode='test', loss_fct = loss_fct)
                                 # print('pred_labels_i:',pred_labels_i)
@@ -1161,4 +1218,4 @@ if __name__ == "__main__":
     1, NN gets worse with more epochs
     2, CL does not change much with 1e-6
     '''
-# CUDA_VISIBLE_DEVICES=3 python -u 2019to2020_train_MNLI_kshot_RTE_clustering.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3 --sampling_seed 42 --NN_epochs 1 --NN_iter_limit 100 --stilts_epochs 20
+# CUDA_VISIBLE_DEVICES=3 python -u 2019to2020_train_MNLI_kshot_RTE_clustering.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 1e-5 --data_dir '' --output_dir '' --k_shot 3 --sampling_seed 42 --NN_epochs 1 --NN_iter_limit 100 --finetune_NN_epochs 10 --stilts_epochs 20

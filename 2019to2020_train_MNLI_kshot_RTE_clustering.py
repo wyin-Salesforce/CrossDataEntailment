@@ -1031,17 +1031,17 @@ def main():
 
                 '''choose one batch in target samples'''
                 selected_target_sample_start_list = random.sample(target_sample_batch_start, 1)
-                print('selected_target_sample_start_list:', selected_target_sample_start_list)
+                # print('selected_target_sample_start_list:', selected_target_sample_start_list)
                 # for start_i in selected_source_batch_start_list:
                 start_i = selected_target_sample_start_list[0]
                 ids_single = target_sample_id_list[start_i:start_i+target_sample_batch_size]
-                print('ids_single:', ids_single)
+                # print('ids_single:', ids_single)
                 #target_samples_input_ids, target_samples_input_mask, target_samples_segment_ids, target_samples_label_ids
                 single_target_sample_input_ids = target_samples_input_ids[ids_single].to(device)
                 single_target_sample_input_mask = target_samples_input_mask[ids_single].to(device)
                 single_target_sample_segment_ids = target_samples_segment_ids[ids_single].to(device)
                 single_target_sample_label_ids = target_samples_label_ids[ids_single].to(device)
-                print('single_target_sample_label_ids:', single_target_sample_label_ids)
+                # print('single_target_sample_label_ids:', single_target_sample_label_ids)
                 # exit(0)
                 # single_input = (single_source_batch_input_ids, single_source_batch_input_mask, single_source_batch_segment_ids, single_source_batch_label_ids)
                 with torch.no_grad():

@@ -438,10 +438,14 @@ class Encoder(BertPreTrainedModel):
 
         similarity_matrix = group_scores_with_simi.reshape(query_size, sample_size)
         '''???note that the softmax will make the resulting logits smaller than LR'''
+        print('sample_logits:', sample_logits)
+        print('similarity_matrix:', similarity_matrix)
         query_logits_from_NN = torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits) #(batch, 3)
         if mode == 'test':
             return query_logits_from_NN
         else:
+            print('query_logits_from_NN:', query_logits_from_NN)
+            print('query_labels:', query_labels)
             loss_i = loss_fct(query_logits_from_NN.view(-1, self.num_labels), query_labels.view(-1))
             return loss_i
 

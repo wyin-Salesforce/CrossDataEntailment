@@ -439,15 +439,15 @@ class Encoder(BertPreTrainedModel):
 
         similarity_matrix = group_scores_with_simi.reshape(query_size, sample_size)
         '''???note that the softmax will make the resulting logits smaller than LR'''
-        # print(phase, mode, ' sample_logits:', sample_logits)
-        # print(phase, mode, ' similarity_matrix:', similarity_matrix)
+        print(phase, mode, ' sample_logits:', sample_logits)
+        print(phase, mode, ' similarity_matrix:', similarity_matrix)
         query_logits_from_NN = torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits) #(batch, 3)
-        # print(phase, mode, ' query_logits_from_NN:', query_logits_from_NN)
+        print(phase, mode, ' query_logits_from_NN:', query_logits_from_NN)
         if mode == 'test':
             return query_logits_from_NN
         else:
 
-            # print(phase, mode, ' query_labels:', query_labels)
+            print(phase, mode, ' query_labels:', query_labels)
             loss_i = loss_fct(query_logits_from_NN.view(-1, self.num_labels), query_labels.view(-1))
             return loss_i
 
@@ -490,6 +490,7 @@ class Encoder(BertPreTrainedModel):
             return NN_loss
         elif mode == 'finetune_NN':
             finetune_NN_loss = self.NearestNeighbor(target_sample_reps, target_sample_logits, random_target_sample_reps, random_target_sample_labels, mode='train_NN', loss_fct = loss_fct, phase='t2t')
+            print('finetune_NN finetune_NN_loss:', finetune_NN_loss)
             return finetune_NN_loss
 
         elif mode == 'train_CL':

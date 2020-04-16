@@ -907,8 +907,8 @@ def main():
         for _ in trange(int(args.NN_epochs), desc="NN Epoch"):
             '''for each epoch, we do 100 iter of NN; then full iter of target classification'''
             '''NN training Phase'''
-            random.Random(args.sampling_seed).shuffle(source_id_list)
-            random.Random(args.sampling_seed).shuffle(target_sample_id_list)
+            random.shuffle(source_id_list)
+            random.shuffle(target_sample_id_list)
 
             source_sample_entail_reps_history = []
             source_sample_neutral_reps_history = []
@@ -956,7 +956,7 @@ def main():
                 #     source_sample_contra_logits_history.append(source_sample_contra_logits_i)
 
                 '''choose one batch in target samples'''
-                selected_target_sample_start_list = random.Random(args.sampling_seed).sample(target_sample_batch_start, 1)
+                selected_target_sample_start_list = random.sample(target_sample_batch_start, 1)
                 # for start_i in selected_source_batch_start_list:
                 start_i = selected_target_sample_start_list[0]
                 ids_single = target_sample_id_list[start_i:start_i+target_sample_batch_size]
@@ -972,7 +972,7 @@ def main():
 
 
                 '''randomly select 10 batches from source'''
-                selected_source_batch_start_list = random.Random(args.sampling_seed).sample(source_batch_start, 10)
+                selected_source_batch_start_list = random.sample(source_batch_start, 10)
                 for start_i in selected_source_batch_start_list:
                     ids_single = source_id_list[start_i:start_i+source_batch_size]
                     #source_all_input_ids, source_all_input_mask, source_all_segment_ids, source_all_label_ids
@@ -1013,7 +1013,7 @@ def main():
 
         '''fine_tune NN on target samples'''
         for _ in trange(int(args.finetune_NN_epochs), desc="Finetune NN Epoch"):
-            random.Random(args.sampling_seed).shuffle(target_sample_id_list)
+            random.shuffle(target_sample_id_list)
             for target_sample_batch in target_samples_dataloader:
                 target_sample_batch = tuple(t.to(device) for t in target_sample_batch)
                 target_sample_input_ids_batch, target_sample_input_mask_batch, target_sample_segment_ids_batch, target_sample_label_ids_batch = target_sample_batch
@@ -1030,7 +1030,7 @@ def main():
                 target_sample_reps_logits_labels = (target_sample_reps, target_sample_logits, target_sample_label_ids_batch)
 
                 '''choose one batch in target samples'''
-                selected_target_sample_start_list = random.Random(args.sampling_seed).sample(target_sample_batch_start, 1)
+                selected_target_sample_start_list = random.sample(target_sample_batch_start, 1)
                 print('selected_target_sample_start_list:', selected_target_sample_start_list)
                 # for start_i in selected_source_batch_start_list:
                 start_i = selected_target_sample_start_list[0]

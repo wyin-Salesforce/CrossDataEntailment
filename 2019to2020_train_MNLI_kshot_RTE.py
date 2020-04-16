@@ -517,7 +517,9 @@ class Encoder(BertPreTrainedModel):
             # overall_test_batch_logits = NN_logits_combine
             # overall_test_batch_logits = CL_logits_from_target#logits_from_pretrained+CL_logits_from_target
             pred_labels_batch = overall_test_batch_logits.argmax(dim=1)#torch.softmax(overall_test_batch_logits.view(-1, self.num_labels), dim=1).argmax(dim=1)
-
+            pred_labels_batch_NN = NN_logits_combine.argmax(dim=1)
+            pred_labels_batch_pre = logits_from_pretrained.argmax(dim=1)
+            pred_labels_CL = CL_logits_from_target.argmax(dim=1)
             '''majority voting'''
             # pred_labels_batch_roberta = torch.softmax(logits_from_pretrained.view(-1, self.num_labels), dim=1).argmax(dim=1, keepdim=True) #(batch, 1)
             # pred_labels_batch_NN = torch.softmax(NN_logits_combine.view(-1, self.num_labels), dim=1).argmax(dim=1, keepdim=True)
@@ -528,7 +530,7 @@ class Encoder(BertPreTrainedModel):
 
 
 
-            return pred_labels_batch
+            return pred_labels_batch, pred_labels_batch_NN, pred_labels_batch_pre, pred_labels_CL
 
 
 
@@ -1082,6 +1084,9 @@ def main():
                         for idd, dev_or_test_dataloader in enumerate([dev_dataloader, eval_dataloader]):
 
                             preds = []
+                            preds_NN = []
+                            preds_pre = []
+                            preds_CL = []
                             gold_label_ids = []
                             print('Evaluating...')
                             for input_ids, input_mask, segment_ids, label_ids in dev_or_test_dataloader:
@@ -1102,51 +1107,84 @@ def main():
                                     test_batch_last3_reps = torch.mean(test_batch_logits_tuple[1][-7], dim=1) +torch.mean(test_batch_logits_tuple[1][-6], dim=1) +torch.mean(test_batch_logits_tuple[1][-5], dim=1) +torch.mean(test_batch_logits_tuple[1][-4], dim=1) + torch.mean(test_batch_logits_tuple[1][-3], dim=1) + torch.mean(test_batch_logits_tuple[1][-2], dim=1)
                                     test_batch_reps_logits_labels = (test_batch_reps,test_batch_logits, label_ids)
 
-                                    pred_labels_i = model(None, None, None, None,
+                                    pred_labels_i,  pred_labels_NN_i, pred_labels_pre_i, pred_labels_CL_i= model(None, None, None, None,
                                                         test_batch_reps_logits_labels, test_batch_last3_reps, source_reps_logits_history, target_reps_logits_history,
                                                         mode='test', loss_fct = loss_fct)
                                 # print('pred_labels_i:',pred_labels_i)
                                 preds.append(pred_labels_i)
+
+                                preds_NN.append(pred_labels_NN_i)
+                                preds_pre.append(pred_labels_pre_i)
+                                preds_CL.append(pred_labels_CL_i)
+
                                 gold_label_ids.append(label_ids)
                             # print('preds:', preds)
-                            pred_label_ids = torch.cat(preds,dim=0).detach().cpu().numpy()
-                            gold_label_ids = torch.cat(gold_label_ids,dim=0).detach().cpu().numpy()
+
+                            test_acc = acc_calculate(preds, gold_label_ids)
+                            acc_nn = acc_calculate(preds_NN, gold_label_ids)
+                            acc_pre = acc_calculate(preds_pre, gold_label_ids)
+                            acc_cl = acc_calculate(preds_CL, gold_label_ids)
+                            fine_grain_acc_list= [acc_nn, acc_pre, acc_cl]
+                            # pred_label_ids = torch.cat(preds,dim=0).detach().cpu().numpy()
+                            # gold_label_ids = torch.cat(gold_label_ids,dim=0).detach().cpu().numpy()
 
 
-                            pred_label_ids_binary = []
-                            for p in pred_label_ids:
-                                pred_label_ids_binary.append(0 if p == 0 else 1)
-                            gold_label_ids_binary = []
-                            for p in gold_label_ids:
-                                gold_label_ids_binary.append(0 if p == 0 else 1)
 
-                            assert len(pred_label_ids_binary) ==  len(gold_label_ids_binary)
 
-                            print('pred neg ratio:', sum(pred_label_ids_binary)/len(pred_label_ids_binary))
-                            print('gold neg ratio:', sum(gold_label_ids_binary)/len(gold_label_ids_binary))
-                            hit_co = 0
-                            for k in range(len(pred_label_ids_binary)):
-                                if pred_label_ids_binary[k] == gold_label_ids_binary[k]:
-                                    hit_co +=1
-                            test_acc = hit_co/len(gold_label_ids_binary)
+                            # pred_label_ids_binary = []
+                            # for p in pred_label_ids:
+                            #     pred_label_ids_binary.append(0 if p == 0 else 1)
+                            # gold_label_ids_binary = []
+                            # for p in gold_label_ids:
+                            #     gold_label_ids_binary.append(0 if p == 0 else 1)
+                            #
+                            # assert len(pred_label_ids_binary) ==  len(gold_label_ids_binary)
+                            #
+                            # print('pred neg ratio:', sum(pred_label_ids_binary)/len(pred_label_ids_binary))
+                            # print('gold neg ratio:', sum(gold_label_ids_binary)/len(gold_label_ids_binary))
+                            # hit_co = 0
+                            # for k in range(len(pred_label_ids_binary)):
+                            #     if pred_label_ids_binary[k] == gold_label_ids_binary[k]:
+                            #         hit_co +=1
+                            # test_acc = hit_co/len(gold_label_ids_binary)
 
 
                             if idd == 0: # this is dev
                                 if test_acc > max_dev_acc:
                                     max_dev_acc = test_acc
-                                    print(stilts_epoch, ' dev acc:', test_acc, ' max_mean_dev_acc:', max_dev_acc, '\n')
+                                    print(stilts_epoch, ' dev acc:', test_acc, fine_grain_acc_list, ' max_mean_dev_acc:', max_dev_acc, '\n')
                                     '''store the model'''
                                     # store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE', str(max_dev_acc))
 
                                 else:
-                                    print(stilts_epoch, ' dev acc:', test_acc, ' max_mean_dev_acc:', max_dev_acc, '\n')
+                                    print(stilts_epoch, ' dev acc:', test_acc, fine_grain_acc_list, ' max_mean_dev_acc:', max_dev_acc, '\n')
                                     # break
                             else: # this is test
                                 if test_acc > max_test_acc:
                                     max_test_acc = test_acc
-                                print(stilts_epoch, ' test acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
+                                print(stilts_epoch, ' test acc:', test_acc, fine_grain_acc_list, ' max_test_acc:', max_test_acc, '\n')
 
+def acc_calculate(pred_label_ids_I, gold_label_ids_I):
+    pred_label_ids_I = torch.cat(pred_label_ids_I,dim=0).detach().cpu().numpy()
+    gold_label_ids_I = torch.cat(gold_label_ids_I,dim=0).detach().cpu().numpy()
 
+    pred_label_ids_binary = []
+    for p in pred_label_ids_I:
+        pred_label_ids_binary.append(0 if p == 0 else 1)
+    gold_label_ids_binary = []
+    for p in gold_label_ids_I:
+        gold_label_ids_binary.append(0 if p == 0 else 1)
+
+    assert len(pred_label_ids_binary) ==  len(gold_label_ids_binary)
+
+    print('pred neg ratio:', sum(pred_label_ids_binary)/len(pred_label_ids_binary))
+    print('gold neg ratio:', sum(gold_label_ids_binary)/len(gold_label_ids_binary))
+    hit_co = 0
+    for k in range(len(pred_label_ids_binary)):
+        if pred_label_ids_binary[k] == gold_label_ids_binary[k]:
+            hit_co +=1
+    test_acc = hit_co/len(gold_label_ids_binary)
+    return test_acc
 
 
 if __name__ == "__main__":

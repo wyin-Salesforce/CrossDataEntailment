@@ -490,7 +490,7 @@ class Encoder(BertPreTrainedModel):
             return NN_loss
         elif mode == 'finetune_NN':
             finetune_NN_loss = self.NearestNeighbor(target_sample_reps, target_sample_logits, random_target_sample_reps, random_target_sample_labels, mode='train_NN', loss_fct = loss_fct, phase='t2t')
-            print('finetune_NN finetune_NN_loss:', finetune_NN_loss)
+            # print('finetune_NN finetune_NN_loss:', finetune_NN_loss)
             return finetune_NN_loss
 
         elif mode == 'train_CL':

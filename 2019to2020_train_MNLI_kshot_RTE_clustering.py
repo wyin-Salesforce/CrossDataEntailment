@@ -996,157 +996,157 @@ def main():
             source_reps_logits_history = (source_sample_reps_history, source_sample_logits_history)
             # print('source_sample_logits_history:', source_sample_logits_history)
 
-        '''STILTS Phase, train target classifier'''
-        iter_co = 0
-        for stilts_epoch in trange(int(args.stilts_epochs), desc="STILTS Epoch"):
-            target_sample_entail_reps_history_list = []
-            target_sample_neutral_reps_history_list = []
-            target_sample_contra_reps_history_list = []
-            target_sample_entail_logits_history_list = []
-            target_sample_neutral_logits_history_list = []
-            target_sample_contra_logits_history_list = []
+            '''STILTS Phase, train target classifier'''
+            iter_co = 0
+            for stilts_epoch in trange(int(args.stilts_epochs), desc="STILTS Epoch"):
+                target_sample_entail_reps_history_list = []
+                target_sample_neutral_reps_history_list = []
+                target_sample_contra_reps_history_list = []
+                target_sample_entail_logits_history_list = []
+                target_sample_neutral_logits_history_list = []
+                target_sample_contra_logits_history_list = []
 
-            # for target_sample_batch in target_samples_dataloader:
-            for target_sample_batch in target_samples_dataloader_batch_16:
-                target_sample_batch = tuple(t.to(device) for t in target_sample_batch)
-                target_sample_input_ids_batch, target_sample_input_mask_batch, target_sample_segment_ids_batch, target_sample_label_ids_batch = target_sample_batch
-                # assert input_ids.shape[0] == args.train_batch_size
-                entail_size_i = (target_sample_label_ids_batch==0)#.sum()
-                neutral_size_i = (target_sample_label_ids_batch==1)#.sum()
-                contra_size_i = (target_sample_label_ids_batch==2)#.sum()
-                with torch.no_grad():
-                    # print('roberta_seq_model config:', roberta_seq_model.config)
-                    target_sample_logits_tuple, target_sample_reps = roberta_seq_model(target_sample_input_ids_batch, target_sample_input_mask_batch, None, labels=None)
-                    # print('target_sample_logits_tuple:', target_sample_logits_tuple)
-                    # exit(0)
-                    target_sample_logits = target_sample_logits_tuple[0]
-                    # print('len(target_sample_logits_tuple):', len(target_sample_logits_tuple))
-                    assert len(target_sample_logits_tuple) == 2 #(logits, (hidden_states)
-                    # target_sample_last3_reps = torch.cat([target_sample_logits_tuple[1][-4][:,0,:], target_sample_logits_tuple[1][-3][:,0,:], target_sample_logits_tuple[1][-2][:,0,:]], dim=1) #(batch, 1024*3)
-                    # target_sample_last3_reps = torch.cat([torch.mean(target_sample_logits_tuple[1][-4], dim=1), torch.mean(target_sample_logits_tuple[1][-3], dim=1), torch.mean(target_sample_logits_tuple[1][-2], dim=1)], dim=1) #(batch, 1024*3)
-                    target_sample_last3_reps = torch.mean(target_sample_logits_tuple[1][-7], dim=1) +torch.mean(target_sample_logits_tuple[1][-6], dim=1) +torch.mean(target_sample_logits_tuple[1][-5], dim=1) +torch.mean(target_sample_logits_tuple[1][-4], dim=1) + torch.mean(target_sample_logits_tuple[1][-3], dim=1) + torch.mean(target_sample_logits_tuple[1][-2], dim=1)
-                    target_sample_reps = target_sample_reps#[:,0,:]
-                    # target_sample_reps = torch.mean(target_sample_reps, dim=1)
-                target_sample_reps_logits_labels = (target_sample_reps, target_sample_logits, target_sample_label_ids_batch)
-
-
-                target_sample_entail_reps_i = target_sample_reps[entail_size_i].mean(dim=0, keepdim=True)
-                target_sample_neutral_reps_i = target_sample_reps[neutral_size_i].mean(dim=0, keepdim=True)
-                target_sample_contra_reps_i = target_sample_reps[contra_size_i].mean(dim=0, keepdim=True)
-
-                target_sample_entail_logits_i = target_sample_logits[entail_size_i].mean(dim=0, keepdim=True)
-                target_sample_neutral_logits_i = target_sample_logits[neutral_size_i].mean(dim=0, keepdim=True)
-                target_sample_contra_logits_i = target_sample_logits[contra_size_i].mean(dim=0, keepdim=True)
-
-                if entail_size_i.sum()!=0:
-                    target_sample_entail_reps_history_list.append(target_sample_entail_reps_i)
-                    target_sample_entail_logits_history_list.append(target_sample_entail_logits_i)
-                if neutral_size_i.sum()!=0:
-                    target_sample_neutral_reps_history_list.append(target_sample_neutral_reps_i)
-                    target_sample_neutral_logits_history_list.append(target_sample_neutral_logits_i)
-                if contra_size_i.sum()!=0:
-                    target_sample_contra_reps_history_list.append(target_sample_contra_reps_i)
-                    target_sample_contra_logits_history_list.append(target_sample_contra_logits_i)
+                # for target_sample_batch in target_samples_dataloader:
+                for target_sample_batch in target_samples_dataloader_batch_16:
+                    target_sample_batch = tuple(t.to(device) for t in target_sample_batch)
+                    target_sample_input_ids_batch, target_sample_input_mask_batch, target_sample_segment_ids_batch, target_sample_label_ids_batch = target_sample_batch
+                    # assert input_ids.shape[0] == args.train_batch_size
+                    entail_size_i = (target_sample_label_ids_batch==0)#.sum()
+                    neutral_size_i = (target_sample_label_ids_batch==1)#.sum()
+                    contra_size_i = (target_sample_label_ids_batch==2)#.sum()
+                    with torch.no_grad():
+                        # print('roberta_seq_model config:', roberta_seq_model.config)
+                        target_sample_logits_tuple, target_sample_reps = roberta_seq_model(target_sample_input_ids_batch, target_sample_input_mask_batch, None, labels=None)
+                        # print('target_sample_logits_tuple:', target_sample_logits_tuple)
+                        # exit(0)
+                        target_sample_logits = target_sample_logits_tuple[0]
+                        # print('len(target_sample_logits_tuple):', len(target_sample_logits_tuple))
+                        assert len(target_sample_logits_tuple) == 2 #(logits, (hidden_states)
+                        # target_sample_last3_reps = torch.cat([target_sample_logits_tuple[1][-4][:,0,:], target_sample_logits_tuple[1][-3][:,0,:], target_sample_logits_tuple[1][-2][:,0,:]], dim=1) #(batch, 1024*3)
+                        # target_sample_last3_reps = torch.cat([torch.mean(target_sample_logits_tuple[1][-4], dim=1), torch.mean(target_sample_logits_tuple[1][-3], dim=1), torch.mean(target_sample_logits_tuple[1][-2], dim=1)], dim=1) #(batch, 1024*3)
+                        target_sample_last3_reps = torch.mean(target_sample_logits_tuple[1][-7], dim=1) +torch.mean(target_sample_logits_tuple[1][-6], dim=1) +torch.mean(target_sample_logits_tuple[1][-5], dim=1) +torch.mean(target_sample_logits_tuple[1][-4], dim=1) + torch.mean(target_sample_logits_tuple[1][-3], dim=1) + torch.mean(target_sample_logits_tuple[1][-2], dim=1)
+                        target_sample_reps = target_sample_reps#[:,0,:]
+                        # target_sample_reps = torch.mean(target_sample_reps, dim=1)
+                    target_sample_reps_logits_labels = (target_sample_reps, target_sample_logits, target_sample_label_ids_batch)
 
 
-                model.train()
-                loss_cl = model(target_sample_reps_logits_labels, target_sample_last3_reps, None, None,
-                                            None, None, None, None, mode='train_CL', loss_fct = loss_fct)
-                # print('loss_cl:  ', loss_cl.item())
-                loss_cl.backward()
-                optimizer.step()
-                optimizer.zero_grad()
+                    target_sample_entail_reps_i = target_sample_reps[entail_size_i].mean(dim=0, keepdim=True)
+                    target_sample_neutral_reps_i = target_sample_reps[neutral_size_i].mean(dim=0, keepdim=True)
+                    target_sample_contra_reps_i = target_sample_reps[contra_size_i].mean(dim=0, keepdim=True)
 
-                iter_co+=1
-                if iter_co % 100 ==0:
-                    '''dev or test'''
-                    if (len(target_sample_entail_reps_history_list)==0 or
-                        len(target_sample_neutral_reps_history_list)==0 or
-                        len(target_sample_contra_reps_history_list)==0):
-                        '''train next target_sample batch'''
-                        continue
+                    target_sample_entail_logits_i = target_sample_logits[entail_size_i].mean(dim=0, keepdim=True)
+                    target_sample_neutral_logits_i = target_sample_logits[neutral_size_i].mean(dim=0, keepdim=True)
+                    target_sample_contra_logits_i = target_sample_logits[contra_size_i].mean(dim=0, keepdim=True)
 
-                    target_sample_entail_reps_history = torch.cat(target_sample_entail_reps_history_list, dim=0).mean(dim=0, keepdim=True)
-                    target_sample_neutral_reps_history = torch.cat(target_sample_neutral_reps_history_list, dim=0).mean(dim=0, keepdim=True)
-                    target_sample_contra_reps_history = torch.cat(target_sample_contra_reps_history_list, dim=0).mean(dim=0, keepdim=True)
-                    target_sample_entail_logits_history = torch.cat(target_sample_entail_logits_history_list, dim=0).mean(dim=0, keepdim=True)
-                    target_sample_neutral_logits_history = torch.cat(target_sample_neutral_logits_history_list, dim=0).mean(dim=0, keepdim=True)
-                    target_sample_contra_logits_history = torch.cat(target_sample_contra_logits_history_list, dim=0).mean(dim=0, keepdim=True)
-                    target_sample_reps_history = torch.cat([target_sample_entail_reps_history, target_sample_neutral_reps_history, target_sample_contra_reps_history], dim=0)
-                    target_sample_logits_history = torch.cat([target_sample_entail_logits_history, target_sample_neutral_logits_history, target_sample_contra_logits_history], dim=0)
-                    target_reps_logits_history = (target_sample_reps_history, target_sample_logits_history)
-                    # print('target_sample_logits_history:', target_sample_logits_history)
-
-                    '''
-                    start evaluate on dev set after this epoch
-                    '''
-                    model.eval()
-                    for idd, dev_or_test_dataloader in enumerate([dev_dataloader, eval_dataloader]):
-
-                        preds = []
-                        gold_label_ids = []
-                        print('Evaluating...')
-                        for input_ids, input_mask, segment_ids, label_ids in dev_or_test_dataloader:
-                            input_ids = input_ids.to(device)
-                            input_mask = input_mask.to(device)
-                            segment_ids = segment_ids.to(device)
-                            label_ids = label_ids.to(device)
-                            # gold_label_ids+=list(label_ids.detach().cpu().numpy())
-
-                            with torch.no_grad():
-                                test_batch_logits_tuple, test_batch_reps = roberta_seq_model(input_ids, input_mask, None, labels=None)
-                                test_batch_logits = test_batch_logits_tuple[0]
-                                test_batch_reps = test_batch_reps#[:,0,:]
-                                # test_batch_reps = torch.mean(test_batch_reps, dim=1)
-                                assert len(test_batch_logits_tuple) == 2 #(logits, (hidden_states), (attentions))
-                                # test_batch_last3_reps = torch.cat([test_batch_logits_tuple[1][-4][:,0,:], test_batch_logits_tuple[1][-3][:,0,:], test_batch_logits_tuple[1][-2][:,0,:]], dim=1) #(batch, 1024*3)
-                                # test_batch_last3_reps = torch.cat([torch.mean(test_batch_logits_tuple[1][-4], dim=1), torch.mean(test_batch_logits_tuple[1][-3], dim=1), torch.mean(test_batch_logits_tuple[1][-2], dim=1)], dim=1) #(batch, 1024*3)
-                                test_batch_last3_reps = torch.mean(test_batch_logits_tuple[1][-7], dim=1) +torch.mean(test_batch_logits_tuple[1][-6], dim=1) +torch.mean(test_batch_logits_tuple[1][-5], dim=1) +torch.mean(test_batch_logits_tuple[1][-4], dim=1) + torch.mean(test_batch_logits_tuple[1][-3], dim=1) + torch.mean(test_batch_logits_tuple[1][-2], dim=1)
-                                test_batch_reps_logits_labels = (test_batch_reps,test_batch_logits, label_ids)
-
-                                pred_labels_i = model(None, None, None, None,
-                                                    test_batch_reps_logits_labels, test_batch_last3_reps, source_reps_logits_history, target_reps_logits_history,
-                                                    mode='test', loss_fct = loss_fct)
-                            # print('pred_labels_i:',pred_labels_i)
-                            preds.append(pred_labels_i)
-                            gold_label_ids.append(label_ids)
-                        # print('preds:', preds)
-                        pred_label_ids = torch.cat(preds,dim=0).detach().cpu().numpy()
-                        gold_label_ids = torch.cat(gold_label_ids,dim=0).detach().cpu().numpy()
+                    if entail_size_i.sum()!=0:
+                        target_sample_entail_reps_history_list.append(target_sample_entail_reps_i)
+                        target_sample_entail_logits_history_list.append(target_sample_entail_logits_i)
+                    if neutral_size_i.sum()!=0:
+                        target_sample_neutral_reps_history_list.append(target_sample_neutral_reps_i)
+                        target_sample_neutral_logits_history_list.append(target_sample_neutral_logits_i)
+                    if contra_size_i.sum()!=0:
+                        target_sample_contra_reps_history_list.append(target_sample_contra_reps_i)
+                        target_sample_contra_logits_history_list.append(target_sample_contra_logits_i)
 
 
-                        pred_label_ids_binary = []
-                        for p in pred_label_ids:
-                            pred_label_ids_binary.append(0 if p == 0 else 1)
-                        gold_label_ids_binary = []
-                        for p in gold_label_ids:
-                            gold_label_ids_binary.append(0 if p == 0 else 1)
+                    model.train()
+                    loss_cl = model(target_sample_reps_logits_labels, target_sample_last3_reps, None, None,
+                                                None, None, None, None, mode='train_CL', loss_fct = loss_fct)
+                    # print('loss_cl:  ', loss_cl.item())
+                    loss_cl.backward()
+                    optimizer.step()
+                    optimizer.zero_grad()
 
-                        assert len(pred_label_ids_binary) ==  len(gold_label_ids_binary)
+                    iter_co+=1
+                    if iter_co % 100 ==0:
+                        '''dev or test'''
+                        if (len(target_sample_entail_reps_history_list)==0 or
+                            len(target_sample_neutral_reps_history_list)==0 or
+                            len(target_sample_contra_reps_history_list)==0):
+                            '''train next target_sample batch'''
+                            continue
 
-                        print('pred neg ratio:', sum(pred_label_ids_binary)/len(pred_label_ids_binary))
-                        print('gold neg ratio:', sum(gold_label_ids_binary)/len(gold_label_ids_binary))
-                        hit_co = 0
-                        for k in range(len(pred_label_ids_binary)):
-                            if pred_label_ids_binary[k] == gold_label_ids_binary[k]:
-                                hit_co +=1
-                        test_acc = hit_co/len(gold_label_ids_binary)
+                        target_sample_entail_reps_history = torch.cat(target_sample_entail_reps_history_list, dim=0).mean(dim=0, keepdim=True)
+                        target_sample_neutral_reps_history = torch.cat(target_sample_neutral_reps_history_list, dim=0).mean(dim=0, keepdim=True)
+                        target_sample_contra_reps_history = torch.cat(target_sample_contra_reps_history_list, dim=0).mean(dim=0, keepdim=True)
+                        target_sample_entail_logits_history = torch.cat(target_sample_entail_logits_history_list, dim=0).mean(dim=0, keepdim=True)
+                        target_sample_neutral_logits_history = torch.cat(target_sample_neutral_logits_history_list, dim=0).mean(dim=0, keepdim=True)
+                        target_sample_contra_logits_history = torch.cat(target_sample_contra_logits_history_list, dim=0).mean(dim=0, keepdim=True)
+                        target_sample_reps_history = torch.cat([target_sample_entail_reps_history, target_sample_neutral_reps_history, target_sample_contra_reps_history], dim=0)
+                        target_sample_logits_history = torch.cat([target_sample_entail_logits_history, target_sample_neutral_logits_history, target_sample_contra_logits_history], dim=0)
+                        target_reps_logits_history = (target_sample_reps_history, target_sample_logits_history)
+                        # print('target_sample_logits_history:', target_sample_logits_history)
+
+                        '''
+                        start evaluate on dev set after this epoch
+                        '''
+                        model.eval()
+                        for idd, dev_or_test_dataloader in enumerate([dev_dataloader, eval_dataloader]):
+
+                            preds = []
+                            gold_label_ids = []
+                            print('Evaluating...')
+                            for input_ids, input_mask, segment_ids, label_ids in dev_or_test_dataloader:
+                                input_ids = input_ids.to(device)
+                                input_mask = input_mask.to(device)
+                                segment_ids = segment_ids.to(device)
+                                label_ids = label_ids.to(device)
+                                # gold_label_ids+=list(label_ids.detach().cpu().numpy())
+
+                                with torch.no_grad():
+                                    test_batch_logits_tuple, test_batch_reps = roberta_seq_model(input_ids, input_mask, None, labels=None)
+                                    test_batch_logits = test_batch_logits_tuple[0]
+                                    test_batch_reps = test_batch_reps#[:,0,:]
+                                    # test_batch_reps = torch.mean(test_batch_reps, dim=1)
+                                    assert len(test_batch_logits_tuple) == 2 #(logits, (hidden_states), (attentions))
+                                    # test_batch_last3_reps = torch.cat([test_batch_logits_tuple[1][-4][:,0,:], test_batch_logits_tuple[1][-3][:,0,:], test_batch_logits_tuple[1][-2][:,0,:]], dim=1) #(batch, 1024*3)
+                                    # test_batch_last3_reps = torch.cat([torch.mean(test_batch_logits_tuple[1][-4], dim=1), torch.mean(test_batch_logits_tuple[1][-3], dim=1), torch.mean(test_batch_logits_tuple[1][-2], dim=1)], dim=1) #(batch, 1024*3)
+                                    test_batch_last3_reps = torch.mean(test_batch_logits_tuple[1][-7], dim=1) +torch.mean(test_batch_logits_tuple[1][-6], dim=1) +torch.mean(test_batch_logits_tuple[1][-5], dim=1) +torch.mean(test_batch_logits_tuple[1][-4], dim=1) + torch.mean(test_batch_logits_tuple[1][-3], dim=1) + torch.mean(test_batch_logits_tuple[1][-2], dim=1)
+                                    test_batch_reps_logits_labels = (test_batch_reps,test_batch_logits, label_ids)
+
+                                    pred_labels_i = model(None, None, None, None,
+                                                        test_batch_reps_logits_labels, test_batch_last3_reps, source_reps_logits_history, target_reps_logits_history,
+                                                        mode='test', loss_fct = loss_fct)
+                                # print('pred_labels_i:',pred_labels_i)
+                                preds.append(pred_labels_i)
+                                gold_label_ids.append(label_ids)
+                            # print('preds:', preds)
+                            pred_label_ids = torch.cat(preds,dim=0).detach().cpu().numpy()
+                            gold_label_ids = torch.cat(gold_label_ids,dim=0).detach().cpu().numpy()
 
 
-                        if idd == 0: # this is dev
-                            if test_acc > max_dev_acc:
-                                max_dev_acc = test_acc
-                                print(stilts_epoch, ' dev acc:', test_acc, ' max_mean_dev_acc:', max_dev_acc, '\n')
-                                '''store the model'''
-                                # store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE', str(max_dev_acc))
+                            pred_label_ids_binary = []
+                            for p in pred_label_ids:
+                                pred_label_ids_binary.append(0 if p == 0 else 1)
+                            gold_label_ids_binary = []
+                            for p in gold_label_ids:
+                                gold_label_ids_binary.append(0 if p == 0 else 1)
 
-                            else:
-                                print(stilts_epoch, ' dev acc:', test_acc, ' max_mean_dev_acc:', max_dev_acc, '\n')
-                                # break
-                        else: # this is test
-                            if test_acc > max_test_acc:
-                                max_test_acc = test_acc
-                            print(stilts_epoch, ' test acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
+                            assert len(pred_label_ids_binary) ==  len(gold_label_ids_binary)
+
+                            print('pred neg ratio:', sum(pred_label_ids_binary)/len(pred_label_ids_binary))
+                            print('gold neg ratio:', sum(gold_label_ids_binary)/len(gold_label_ids_binary))
+                            hit_co = 0
+                            for k in range(len(pred_label_ids_binary)):
+                                if pred_label_ids_binary[k] == gold_label_ids_binary[k]:
+                                    hit_co +=1
+                            test_acc = hit_co/len(gold_label_ids_binary)
+
+
+                            if idd == 0: # this is dev
+                                if test_acc > max_dev_acc:
+                                    max_dev_acc = test_acc
+                                    print(stilts_epoch, ' dev acc:', test_acc, ' max_mean_dev_acc:', max_dev_acc, '\n')
+                                    '''store the model'''
+                                    # store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE', str(max_dev_acc))
+
+                                else:
+                                    print(stilts_epoch, ' dev acc:', test_acc, ' max_mean_dev_acc:', max_dev_acc, '\n')
+                                    # break
+                            else: # this is test
+                                if test_acc > max_test_acc:
+                                    max_test_acc = test_acc
+                                print(stilts_epoch, ' test acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
 
 
 

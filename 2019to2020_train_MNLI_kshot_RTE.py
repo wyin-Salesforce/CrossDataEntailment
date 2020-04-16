@@ -512,7 +512,7 @@ class Encoder(BertPreTrainedModel):
             # print('logits_from_pretrained:', logits_from_pretrained)
             # print('NN_logits_combine:', NN_logits_combine)
             # print('CL_logits_from_target:', CL_logits_from_target)
-            overall_test_batch_logits = 0.2*torch.softmax(logits_from_pretrained,dim=1)+0.1*torch.softmax(NN_logits_combine,dim=1)+torch.softmax(CL_logits_from_target,dim=1)
+            overall_test_batch_logits = 0.2*torch.softmax(NN_logits_combine,dim=1)+0.1*torch.softmax(logits_from_pretrained,dim=1)+torch.softmax(CL_logits_from_target,dim=1)
             # overall_test_batch_logits = logits_from_pretrained
             # overall_test_batch_logits = NN_logits_combine
             # overall_test_batch_logits = CL_logits_from_target#logits_from_pretrained+CL_logits_from_target

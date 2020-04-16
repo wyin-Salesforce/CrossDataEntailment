@@ -407,14 +407,14 @@ class Encoder(BertPreTrainedModel):
         self.mlp_1 = nn.Linear(config.hidden_size*3, config.hidden_size)
         self.mlp_2 = nn.Linear(config.hidden_size, 1, bias=False)
 
-    def NearestNeighbor(self, sample_reps, sample_logits, query_reps, query_labels, mode='train_NN', loss_fct = None):
+    def NearestNeighbor(self, sample_reps, sample_logits, query_reps, query_labels, mode='train_NN', loss_fct = None, phase='unknown'):
         '''
         mode: train_NN, train_CL, test
         '''
         sample_size = sample_reps.shape[0]
         query_size = query_reps.shape[0]
         hidden_size = query_reps.shape[1]
-        print('mode, sample_size, query_size, hidden_size:', mode, sample_size, query_size, hidden_size)
+        print('phase, mode, sample_size, query_size, hidden_size:', phase, mode, sample_size, query_size, hidden_size)
 
         # print('sample_size:', sample_size, 'query_size:', query_size, 'hidden_size:', hidden_size)
 
@@ -439,15 +439,15 @@ class Encoder(BertPreTrainedModel):
 
         similarity_matrix = group_scores_with_simi.reshape(query_size, sample_size)
         '''???note that the softmax will make the resulting logits smaller than LR'''
-        print(mode, ' sample_logits:', sample_logits)
-        print(mode, ' similarity_matrix:', similarity_matrix)
+        print(phase, mode, ' sample_logits:', sample_logits)
+        print(phase, mode, ' similarity_matrix:', similarity_matrix)
         query_logits_from_NN = torch.mm(nn.Softmax(dim=1)(similarity_matrix), sample_logits) #(batch, 3)
-        print(mode, ' query_logits_from_NN:', query_logits_from_NN)
+        print(phase, mode, ' query_logits_from_NN:', query_logits_from_NN)
         if mode == 'test':
             return query_logits_from_NN
         else:
 
-            print(mode, ' query_labels:', query_labels)
+            print(phase, mode, ' query_labels:', query_labels)
             loss_i = loss_fct(query_logits_from_NN.view(-1, self.num_labels), query_labels.view(-1))
             return loss_i
 
@@ -482,14 +482,14 @@ class Encoder(BertPreTrainedModel):
 
 
         if mode == 'train_NN':
-            loss_target_pred_source = self.NearestNeighbor(target_sample_reps, target_sample_logits, source_batch_reps, source_batch_labels, mode='train_NN', loss_fct = loss_fct)
-            loss_source_pred_source = self.NearestNeighbor(source_sample_reps, source_sample_logits, source_batch_reps, source_batch_labels, mode='train_NN', loss_fct = loss_fct)
-            loss_source_pred_target = self.NearestNeighbor(source_sample_reps, source_sample_logits, target_sample_reps, target_sample_labels, mode='train_NN', loss_fct = loss_fct)
+            loss_target_pred_source = self.NearestNeighbor(target_sample_reps, target_sample_logits, source_batch_reps, source_batch_labels, mode='train_NN', loss_fct = loss_fct, phase='t2s')
+            loss_source_pred_source = self.NearestNeighbor(source_sample_reps, source_sample_logits, source_batch_reps, source_batch_labels, mode='train_NN', loss_fct = loss_fct, phase='s2s')
+            loss_source_pred_target = self.NearestNeighbor(source_sample_reps, source_sample_logits, target_sample_reps, target_sample_labels, mode='train_NN', loss_fct = loss_fct, phase='s2t')
 
             NN_loss = loss_target_pred_source+loss_source_pred_source+loss_source_pred_target
             return NN_loss
         elif mode == 'finetune_NN':
-            finetune_NN_loss = self.NearestNeighbor(target_sample_reps, target_sample_logits, random_target_sample_reps, random_target_sample_labels, mode='train_NN', loss_fct = loss_fct)
+            finetune_NN_loss = self.NearestNeighbor(target_sample_reps, target_sample_logits, random_target_sample_reps, random_target_sample_labels, mode='train_NN', loss_fct = loss_fct, phase='t2t')
             return finetune_NN_loss
 
         elif mode == 'train_CL':

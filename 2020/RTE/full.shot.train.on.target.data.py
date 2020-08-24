@@ -26,24 +26,27 @@ import sys
 import codecs
 import numpy as np
 import torch
+import torch.nn as nn
 from collections import defaultdict
 from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,
                               TensorDataset)
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm, trange
-
+from scipy.stats import beta
 from torch.nn import CrossEntropyLoss, MSELoss
 from scipy.special import softmax
-from scipy.stats import pearsonr, spearmanr
-from sklearn.metrics import matthews_corrcoef, f1_score
+# from scipy.stats import pearsonr, spearmanr
+# from sklearn.metrics import matthews_corrcoef, f1_score
 
-
+from preprocess_CLINC150 import load_CLINC150_with_specific_domain_sequence
 
 from transformers.tokenization_roberta import RobertaTokenizer
 from transformers.optimization import AdamW
-from transformers.modeling_roberta import RobertaForSequenceClassification
+from transformers.modeling_roberta import RobertaModel#RobertaForSequenceClassification
 
-from bert_common_functions import store_transformers_models
+# from transformers.modeling_bert import BertModel
+# from transformers.tokenization_bert import BertTokenizer
+# from bert_common_functions import store_transformers_models
 
 logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt = '%m/%d/%Y %H:%M:%S',
@@ -52,6 +55,45 @@ logger = logging.getLogger(__name__)
 
 # from pytorch_transformers.modeling_bert import BertPreTrainedModel, BertModel
 # import torch.nn as nn
+
+bert_hidden_dim = 1024
+pretrain_model_dir = 'roberta-large' #'roberta-large' , 'roberta-large-mnli', 'bert-large-uncased'
+
+
+class RobertaForSequenceClassification(nn.Module):
+    def __init__(self, tagset_size):
+        super(RobertaForSequenceClassification, self).__init__()
+        self.tagset_size = tagset_size
+
+        self.roberta_single= RobertaModel.from_pretrained(pretrain_model_dir)
+        self.single_hidden2tag = RobertaClassificationHead(bert_hidden_dim, tagset_size)
+
+    def forward(self, input_ids, input_mask):
+        outputs_single = self.roberta_single(input_ids, input_mask, None)
+        hidden_states_single = outputs_single[1]#torch.tanh(self.hidden_layer_2(torch.tanh(self.hidden_layer_1(outputs_single[1])))) #(batch, hidden)
+
+        score_single = self.single_hidden2tag(hidden_states_single) #(batch, tag_set)
+        return score_single
+
+
+
+class RobertaClassificationHead(nn.Module):
+    """wenpeng overwrite it so to accept matrix as input"""
+
+    def __init__(self, bert_hidden_dim, num_labels):
+        super(RobertaClassificationHead, self).__init__()
+        self.dense = nn.Linear(bert_hidden_dim, bert_hidden_dim)
+        self.dropout = nn.Dropout(0.1)
+        self.out_proj = nn.Linear(bert_hidden_dim, num_labels)
+
+    def forward(self, features):
+        x = features#[:, 0, :]  # take <s> token (equiv. to [CLS])
+        x = self.dropout(x)
+        x = self.dense(x)
+        x = torch.tanh(x)
+        x = self.dropout(x)
+        x = self.out_proj(x)
+        return x
 
 
 
@@ -88,14 +130,6 @@ class InputFeatures(object):
 
 class DataProcessor(object):
     """Base class for data converters for sequence classification data sets."""
-
-    def get_train_examples(self, data_dir):
-        """Gets a collection of `InputExample`s for the train set."""
-        raise NotImplementedError()
-
-    def get_dev_examples(self, data_dir):
-        """Gets a collection of `InputExample`s for the dev set."""
-        raise NotImplementedError()
 
     def get_labels(self):
         """Gets the list of labels for this data set."""
@@ -139,6 +173,37 @@ class RteProcessor(DataProcessor):
         readfile.close()
         print('loaded  size:', line_co)
         return examples
+
+    def get_RTE_as_train_k_shot(self, filename, k_shot):
+        '''
+        can read the training file, dev and test file
+        '''
+        examples_entail=[]
+        examples_non_entail=[]
+        readfile = codecs.open(filename, 'r', 'utf-8')
+        line_co=0
+        for row in readfile:
+            if line_co>0:
+                line=row.strip().split('\t')
+                guid = "train-"+str(line_co-1)
+                text_a = line[1].strip()
+                text_b = line[2].strip()
+                label = 'entailment' if line[3].strip()=='entailment' else 'not_entailment' #["entailment", "not_entailment"]
+                if label == 'entailment':
+                    examples_entail.append(
+                        InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+                else:
+                    examples_non_entail.append(
+                        InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+            line_co+=1
+        readfile.close()
+        print('loaded  entail size:', len(examples_entail), 'non-entail size:', len(examples_non_entail))
+        '''sampling'''
+        if k_shot > 99999:
+            return examples_entail+examples_non_entail
+        else:
+            sampled_examples = random.sample(examples_entail, k_shot)+random.sample(examples_non_entail, k_shot)
+            return sampled_examples
 
     def get_RTE_as_dev(self, filename):
         '''
@@ -312,15 +377,15 @@ def convert_examples_to_features(examples, label_list, max_seq_length,
         else:
             raise KeyError(output_mode)
 
-        if ex_index < 5:
-            logger.info("*** Example ***")
-            logger.info("guid: %s" % (example.guid))
-            logger.info("tokens: %s" % " ".join(
-                    [str(x) for x in tokens]))
-            logger.info("input_ids: %s" % " ".join([str(x) for x in input_ids]))
-            logger.info("input_mask: %s" % " ".join([str(x) for x in input_mask]))
-            logger.info("segment_ids: %s" % " ".join([str(x) for x in segment_ids]))
-            logger.info("label: %s (id = %d)" % (example.label, label_id))
+        # if ex_index < 5:
+        #     logger.info("*** Example ***")
+        #     logger.info("guid: %s" % (example.guid))
+        #     logger.info("tokens: %s" % " ".join(
+        #             [str(x) for x in tokens]))
+        #     logger.info("input_ids: %s" % " ".join([str(x) for x in input_ids]))
+        #     logger.info("input_mask: %s" % " ".join([str(x) for x in input_mask]))
+        #     logger.info("segment_ids: %s" % " ".join([str(x) for x in segment_ids]))
+        #     logger.info("label: %s (id = %d)" % (example.label, label_id))
 
         features.append(
                 InputFeatures(input_ids=input_ids,
@@ -358,26 +423,11 @@ def main():
     parser = argparse.ArgumentParser()
 
     ## Required parameters
-    parser.add_argument("--data_dir",
-                        default=None,
-                        type=str,
-                        required=True,
-                        help="The input data dir. Should contain the .tsv files (or other data files) for the task.")
-    parser.add_argument("--bert_model", default=None, type=str, required=True,
-                        help="Bert pre-trained model selected in the list: bert-base-uncased, "
-                        "bert-large-uncased, bert-base-cased, bert-large-cased, bert-base-multilingual-uncased, "
-                        "bert-base-multilingual-cased, bert-base-chinese.")
     parser.add_argument("--task_name",
                         default=None,
                         type=str,
                         required=True,
                         help="The name of the task to train.")
-    parser.add_argument("--output_dir",
-                        default=None,
-                        type=str,
-                        required=True,
-                        help="The output directory where the model predictions and checkpoints will be written.")
-
     ## Other parameters
     parser.add_argument("--cache_dir",
                         default="",
@@ -392,6 +442,11 @@ def main():
     parser.add_argument("--do_train",
                         action='store_true',
                         help="Whether to run training.")
+
+    parser.add_argument('--kshot',
+                        type=int,
+                        default=5,
+                        help="random seed for initialization")
     parser.add_argument("--do_eval",
                         action='store_true',
                         help="Whether to run eval on the dev set.")
@@ -444,6 +499,8 @@ def main():
                              "Positive power of 2: static loss scaling value.\n")
     parser.add_argument('--server_ip', type=str, default='', help="Can be used for distant debugging.")
     parser.add_argument('--server_port', type=str, default='', help="Can be used for distant debugging.")
+
+
     args = parser.parse_args()
 
 
@@ -488,56 +545,31 @@ def main():
     if task_name not in processors:
         raise ValueError("Task not found: %s" % (task_name))
 
+
+
     processor = processors[task_name]()
     output_mode = output_modes[task_name]
 
-    label_list = processor.get_labels() #["entailment", "neutral", "contradiction"]
+
+    train_examples = processor.get_RTE_as_train_k_shot('/export/home/Dataset/glue_data/RTE/train.tsv', args.kshot) #train_pu_half_v1.txt
+    dev_examples = processor.get_RTE_as_dev('/export/home/Dataset/glue_data/RTE/dev.tsv')
+    test_examples = processor.get_RTE_as_test('/export/home/Dataset/RTE/test_RTE_1235.txt')
+    label_list = ["entailment", "not_entailment"]
+    # train_examples = get_data_hulu_fewshot('train', 5)
+    # train_examples, dev_examples, test_examples, label_list = load_CLINC150_with_specific_domain_sequence(args.DomainName, args.kshot, augment=False)
     num_labels = len(label_list)
+    print('num_labels:', num_labels, 'training size:', len(train_examples), 'dev size:', len(dev_examples), 'test size:', len(test_examples))
 
-
-
-    train_examples = None
     num_train_optimization_steps = None
-    if args.do_train:
-        train_examples = processor.get_RTE_as_train('/export/home/Dataset/glue_data/RTE/train.tsv') #train_pu_half_v1.txt
-        # seen_classes=[0,2,4,6,8]
+    num_train_optimization_steps = int(
+        len(train_examples) / args.train_batch_size / args.gradient_accumulation_steps) * args.num_train_epochs
+    if args.local_rank != -1:
+        num_train_optimization_steps = num_train_optimization_steps // torch.distributed.get_world_size()
 
-        num_train_optimization_steps = int(
-            len(train_examples) / args.train_batch_size / args.gradient_accumulation_steps) * args.num_train_epochs
-        if args.local_rank != -1:
-            num_train_optimization_steps = num_train_optimization_steps // torch.distributed.get_world_size()
-
-    # Prepare model
-    # cache_dir = args.cache_dir if args.cache_dir else os.path.join(str(PYTORCH_TRANSFORMERS_CACHE), 'distributed_{}'.format(args.local_rank))
-
-    pretrain_model_dir = 'roberta-large' #'roberta-large' , 'roberta-large-mnli'
-    # pretrain_model_dir = '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainMNLItestRTE/0.8772563176895307'
-    model = RobertaForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
-
-    # print(model.classifier.weight)
-    # st_model = st_BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
-    # print(st_model.classifier.weight)
-    # model2 = BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
-    # print(model2.classifier.weight)
-    # exit(0)
-    # model = my_BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
-
-    # for np1, np2 in zip(list(model.named_parameters()),list(st_model.named_parameters())):
-    #     if np1[1].data.ne(np2[1].data).sum() > 0:
-    #         print(np1[0], np2[0])
-    #         print(np1[1].data)
-    #         print(np2[1].data)
-    # exit(0)
-
+    model = RobertaForSequenceClassification(num_labels)
     tokenizer = RobertaTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
-
     model.to(device)
-    # store_bert_model(model, tokenizer.vocab, '/export/home/workspace/CrossDataEntailment/models', 'try')
-    # exit(0)
-    # if n_gpu > 1:
-    #     model = torch.nn.DataParallel(model)
 
-    # Prepare optimizer
     param_optimizer = list(model.named_parameters())
     no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
     optimizer_grouped_parameters = [
@@ -565,7 +597,6 @@ def main():
             pad_token_segment_id=0)#4 if args.model_type in ['xlnet'] else 0,)
 
         '''load dev set'''
-        dev_examples = processor.get_RTE_as_dev('/export/home/Dataset/glue_data/RTE/dev.tsv')
         dev_features = convert_examples_to_features(
             dev_examples, label_list, args.max_seq_length, tokenizer, output_mode,
             cls_token_at_end=False,#bool(args.model_type in ['xlnet']),            # xlnet has a cls token at the end
@@ -588,9 +619,8 @@ def main():
 
 
         '''load test set'''
-        eval_examples = processor.get_RTE_as_test('/export/home/Dataset/RTE/test_RTE_1235.txt')
-        eval_features = convert_examples_to_features(
-            eval_examples, label_list, args.max_seq_length, tokenizer, output_mode,
+        test_features = convert_examples_to_features(
+            test_examples, label_list, args.max_seq_length, tokenizer, output_mode,
             cls_token_at_end=False,#bool(args.model_type in ['xlnet']),            # xlnet has a cls token at the end
             cls_token=tokenizer.cls_token,
             cls_token_segment_id=0,#2 if args.model_type in ['xlnet'] else 0,
@@ -600,14 +630,14 @@ def main():
             pad_token=tokenizer.convert_tokens_to_ids([tokenizer.pad_token])[0],
             pad_token_segment_id=0)#4 if args.model_type in ['xlnet'] else 0,)
 
-        eval_all_input_ids = torch.tensor([f.input_ids for f in eval_features], dtype=torch.long)
-        eval_all_input_mask = torch.tensor([f.input_mask for f in eval_features], dtype=torch.long)
-        eval_all_segment_ids = torch.tensor([f.segment_ids for f in eval_features], dtype=torch.long)
-        eval_all_label_ids = torch.tensor([f.label_id for f in eval_features], dtype=torch.long)
+        eval_all_input_ids = torch.tensor([f.input_ids for f in test_features], dtype=torch.long)
+        eval_all_input_mask = torch.tensor([f.input_mask for f in test_features], dtype=torch.long)
+        eval_all_segment_ids = torch.tensor([f.segment_ids for f in test_features], dtype=torch.long)
+        eval_all_label_ids = torch.tensor([f.label_id for f in test_features], dtype=torch.long)
 
         eval_data = TensorDataset(eval_all_input_ids, eval_all_input_mask, eval_all_segment_ids, eval_all_label_ids)
         eval_sampler = SequentialSampler(eval_data)
-        eval_dataloader = DataLoader(eval_data, sampler=eval_sampler, batch_size=args.eval_batch_size)
+        test_dataloader = DataLoader(eval_data, sampler=eval_sampler, batch_size=args.eval_batch_size)
 
         logger.info("***** Running training *****")
         logger.info("  Num examples = %d", len(train_examples))
@@ -624,6 +654,7 @@ def main():
         train_dataloader = DataLoader(train_data, sampler=train_sampler, batch_size=args.train_batch_size)
 
         iter_co = 0
+        final_test_performance = 0.0
         for _ in trange(int(args.num_train_epochs), desc="Epoch"):
             tr_loss = 0
             nb_tr_examples, nb_tr_steps = 0, 0
@@ -631,9 +662,12 @@ def main():
                 model.train()
                 batch = tuple(t.to(device) for t in batch)
                 input_ids, input_mask, segment_ids, label_ids = batch
-                logits = model(input_ids, input_mask, None, labels=None)
+
+
+                logits = model(input_ids, input_mask)
                 loss_fct = CrossEntropyLoss()
-                loss = loss_fct(logits[0].view(-1, num_labels), label_ids.view(-1))
+
+                loss = loss_fct(logits.view(-1, num_labels), label_ids.view(-1))
 
                 if n_gpu > 1:
                     loss = loss.mean() # mean() to average on multi-gpu.
@@ -650,26 +684,29 @@ def main():
                 optimizer.zero_grad()
                 global_step += 1
                 iter_co+=1
-                if iter_co %20==0:
+                # if iter_co %20==0:
+                if iter_co % len(train_dataloader)==0:
                     '''
                     start evaluate on dev set after this epoch
                     '''
                     model.eval()
 
-                    for idd, dev_or_test_dataloader in enumerate([dev_dataloader, eval_dataloader]):
+                    for idd, dev_or_test_dataloader in enumerate([dev_dataloader, test_dataloader]):
 
-                        logger.info("***** Running evaluation *****")
+
                         if idd == 0:
+                            logger.info("***** Running dev *****")
                             logger.info("  Num examples = %d", len(dev_examples))
                         else:
-                            logger.info("  Num examples = %d", len(eval_examples))
-                        logger.info("  Batch size = %d", args.eval_batch_size)
+                            logger.info("***** Running test *****")
+                            logger.info("  Num examples = %d", len(test_examples))
+                        # logger.info("  Batch size = %d", args.eval_batch_size)
 
                         eval_loss = 0
                         nb_eval_steps = 0
                         preds = []
                         gold_label_ids = []
-                        print('Evaluating...')
+                        # print('Evaluating...')
                         for input_ids, input_mask, segment_ids, label_ids in dev_or_test_dataloader:
                             input_ids = input_ids.to(device)
                             input_mask = input_mask.to(device)
@@ -678,33 +715,16 @@ def main():
                             gold_label_ids+=list(label_ids.detach().cpu().numpy())
 
                             with torch.no_grad():
-                                logits = model(input_ids, input_mask, None, labels=None)
-                            logits = logits[0]
-
-                            loss_fct = CrossEntropyLoss()
-                            tmp_eval_loss = loss_fct(logits.view(-1, num_labels), label_ids.view(-1))
-
-                            eval_loss += tmp_eval_loss.mean().item()
-                            nb_eval_steps += 1
+                                logits = model(input_ids, input_mask)
                             if len(preds) == 0:
                                 preds.append(logits.detach().cpu().numpy())
                             else:
                                 preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
 
-                        eval_loss = eval_loss / nb_eval_steps
                         preds = preds[0]
 
-                        '''
-                        preds: size*3 ["entailment", "neutral", "contradiction"]
-                        wenpeng added a softxmax so that each row is a prob vec
-                        '''
                         pred_probs = softmax(preds,axis=1)
-                        # pred_label_ids = list(np.argmax(pred_probs, axis=1))
-                        pred_indices = np.argmax(pred_probs, axis=1)
-
-                        pred_label_ids = []
-                        for p in pred_indices:
-                            pred_label_ids.append(0 if p == 0 else 1)
+                        pred_label_ids = list(np.argmax(pred_probs, axis=1))
 
                         gold_label_ids = gold_label_ids
                         assert len(pred_label_ids) == len(gold_label_ids)
@@ -725,18 +745,19 @@ def main():
                         else: # this is test
                             if test_acc > max_test_acc:
                                 max_test_acc = test_acc
+
+                            final_test_performance = test_acc
                             print('\ntest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
-                            '''store the model, because we can test after a max_dev acc reached'''
-                            store_transformers_models(model, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainRTEtestRTE', str(max_dev_acc)+'-'+str(test_acc))
-
-
+        print('final_test_performance:', final_test_performance)
 
 
 
 if __name__ == "__main__":
     main()
-    '''
-    because classifier not initlized, so smaller learning rate 2e-6
-    and fine-tune roberta-large needs more epochs
-    '''
-# CUDA_VISIBLE_DEVICES=7 python -u 2020_train_RTE_test_RTE.py --task_name rte --do_train --do_lower_case --bert_model bert-large-uncased --learning_rate 2e-6 --num_train_epochs 20 --data_dir '' --output_dir '' > /export/home/Dataset/BERT_pretrained_mine/crossdataentail/trainRTEtestRTE/log.train.rte.test.rte.txt 2>&1
+
+'''
+mixup:
+CUDA_VISIBLE_DEVICES=0 python -u full.shot.train.on.target.data.py --task_name rte --do_train --do_lower_case --num_train_epochs 20 --train_batch_size 5 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 100000
+
+
+'''

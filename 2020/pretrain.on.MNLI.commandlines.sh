@@ -1,4 +1,4 @@
-export BATCHSIZE=16 #2, 3, 5, 2, 5
+export BATCHSIZE=16 #32 is also ok
 export EPOCHSIZE=20
 export LEARNINGRATE=1e-6
 

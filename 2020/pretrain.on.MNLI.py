@@ -175,10 +175,8 @@ class RteProcessor(DataProcessor):
                     text_b = line[9].strip()
                     label = line[-1].strip() #["entailment", "neutral", "contradiction"]
                     examples.append(
-                        InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label, task_label=0))
+                        InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
                 line_co+=1
-                # if line_co > 20000:
-                #     break
             readfile.close()
             print('loaded  MNLI size:', len(examples))
             examples_per_file.append(examples)

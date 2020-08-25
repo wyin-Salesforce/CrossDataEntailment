@@ -1,5 +1,5 @@
 export SHOT=1 #1, 3, 5, 10, 100000
-export BATCHSIZE=2 #2, 3, 5, 2, 5
+export BATCHSIZE=2 #2, 3, 5, 2, 32
 export EPOCHSIZE=20
 export LEARNINGRATE=1e-7
 

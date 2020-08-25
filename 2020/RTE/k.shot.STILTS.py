@@ -771,8 +771,9 @@ if __name__ == "__main__":
     main()
 
 '''
-mixup:
+
 CUDA_VISIBLE_DEVICES=7 python -u k.shot.STILTS.py --task_name rte --do_train --do_lower_case --num_train_epochs 20 --train_batch_size 5 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 100000
 
+CUDA_VISIBLE_DEVICES=6 python -u k.shot.STILTS.py --task_name rte --do_train --do_lower_case --num_train_epochs 20 --train_batch_size 5 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 128 --seed 16 --kshot 100000
 
 '''

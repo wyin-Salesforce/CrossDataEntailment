@@ -28,6 +28,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from collections import defaultdict
+from torch.nn import functional as F
 from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,
                               TensorDataset)
 from torch.utils.data.distributed import DistributedSampler

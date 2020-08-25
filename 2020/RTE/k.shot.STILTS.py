@@ -668,7 +668,7 @@ def main():
                 # loss_fct = CrossEntropyLoss()
 
 
-                prob_matrix = F.log_softmax(logits.view(-1, num_labels), dim=1)
+                prob_matrix = F.log_softmax(logits.view(-1, 3), dim=1)
                 '''this step *1.0 is very important, otherwise bug'''
                 new_prob_matrix = prob_matrix*1.0
                 '''change the entail prob to p or 1-p'''
@@ -676,11 +676,6 @@ def main():
                 new_prob_matrix[changed_places, 0] = 1.0 - prob_matrix[changed_places, 0]
 
                 loss = F.nll_loss(new_prob_matrix, torch.zeros_like(label_ids).to(device).view(-1))
-
-
-
-
-                # loss = loss_fct(logits.view(-1, num_labels), label_ids.view(-1))
 
                 if n_gpu > 1:
                     loss = loss.mean() # mean() to average on multi-gpu.

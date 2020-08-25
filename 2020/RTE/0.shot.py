@@ -545,7 +545,7 @@ def main():
     # train_examples = get_data_hulu_fewshot('train', 5)
 
     num_labels = len(label_list)
-    print('num_labels:', num_labels, 'training size:', len(train_examples), 'dev size:', len(dev_examples), 'test size:', len(test_examples))
+    print('num_labels:', num_labels,'test size:', len(test_examples))
 
     model = RobertaForSequenceClassification(3)
     tokenizer = RobertaTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
@@ -630,7 +630,7 @@ if __name__ == "__main__":
 
 '''
 
-CUDA_VISIBLE_DEVICES=0 python -u 0.shot.py --task_name rte --do_lower_case --num_train_epochs 20 --train_batch_size 5 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 128 --seed 42
+CUDA_VISIBLE_DEVICES=7 python -u 0.shot.py --task_name rte --do_lower_case --num_train_epochs 20 --train_batch_size 5 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 128 --seed 42
 
 
 '''

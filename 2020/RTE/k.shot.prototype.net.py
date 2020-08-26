@@ -273,7 +273,7 @@ class PrototypeNet(nn.Module):
         '''
         class_size = rep_classes.shape[0]
         batch_size = rep_query_batch.shape[0]
-        repeat_rep_classes = rep_classes.repeat(batch_size)
+        repeat_rep_classes = rep_classes.repeat(batch_size, 1)
         repeat_rep_query = torch.repeat_interleave(rep_query_batch, repeats=class_size, dim=0)
         combined_rep = torch.cat([repeat_rep_classes, repeat_rep_query, repeat_rep_classes*repeat_rep_query], dim=1) #(#class*batch, 3*hidden)
 
@@ -656,8 +656,8 @@ def main():
             optimizer.zero_grad()
             global_step += 1
             iter_co+=1
-            # if iter_co %20==0:
-            if iter_co % len(train_dataloader)==0:
+            if iter_co %20==0:
+                # if iter_co % len(train_dataloader)==0:
                 '''
                 start evaluate on dev set after this epoch
                 '''

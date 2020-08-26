@@ -543,7 +543,7 @@ def main():
     target_label_list = ["entailment", "not_entailment"]
     source_label_list = ["entailment", "neutral", "contradiction"]
     source_num_labels = len(source_label_list)
-    num_labels = len(label_list)
+    target_num_labels = len(target_label_list)
     print('training size:', len(source_examples), 'dev size:', len(target_dev_examples), 'test size:', len(target_test_examples))
 
     num_train_optimization_steps = None

@@ -278,7 +278,7 @@ class PrototypeNet(nn.Module):
         combined_rep = torch.cat([repeat_rep_classes, repeat_rep_query, repeat_rep_classes*repeat_rep_query], dim=1) #(#class*batch, 3*hidden)
 
         all_scores = torch.sigmoid(self.HiddenLayer_3(self.dropout(torch.tanh(self.HiddenLayer_2(self.dropout(torch.tanh(self.HiddenLayer_1(combined_rep)))))))) #(#class*batch, 1)
-        score_matrix = all_scores.review(-1, class_size) #(batch_size, class_size)
+        score_matrix = all_scores.view(-1, class_size) #(batch_size, class_size)
         return score_matrix
 
 

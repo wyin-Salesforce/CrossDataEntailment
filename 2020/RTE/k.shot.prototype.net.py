@@ -508,13 +508,6 @@ def main():
     args = parser.parse_args()
 
 
-    processors = {
-        "rte": RteProcessor
-    }
-
-    output_modes = {
-        "rte": "classification"
-    }
 
     if args.local_rank == -1 or args.no_cuda:
         device = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu")
@@ -539,9 +532,6 @@ def main():
     torch.manual_seed(args.seed)
     if n_gpu > 0:
         torch.cuda.manual_seed_all(args.seed)
-
-    if not args.do_train and not args.do_eval:
-        raise ValueError("At least one of `do_train` or `do_eval` must be True.")
 
 
 

@@ -576,16 +576,17 @@ def main():
     max_test_acc = 0.0
     max_dev_acc = 0.0
 
+    retrieve_batch_size = 5
 
-    source_kshot_entail_dataloader = examples_to_features(source_kshot_entail, source_label_list, args, tokenizer, 5, "classification", dataloader_mode='sequential')
-    source_kshot_neural_dataloader = examples_to_features(source_kshot_neural, source_label_list, args, tokenizer, 5, "classification", dataloader_mode='sequential')
-    source_kshot_contra_dataloader = examples_to_features(source_kshot_contra, source_label_list, args, tokenizer, 5, "classification", dataloader_mode='sequential')
-    source_remain_ex_dataloader = examples_to_features(source_remaining_examples, source_label_list, args, tokenizer, 32, "classification", dataloader_mode='random')
+    source_kshot_entail_dataloader = examples_to_features(source_kshot_entail, source_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
+    source_kshot_neural_dataloader = examples_to_features(source_kshot_neural, source_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
+    source_kshot_contra_dataloader = examples_to_features(source_kshot_contra, source_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
+    source_remain_ex_dataloader = examples_to_features(source_remaining_examples, source_label_list, args, tokenizer, args.train_batch_size, "classification", dataloader_mode='random')
 
-    target_kshot_entail_dataloader = examples_to_features(target_kshot_entail_examples, target_label_list, args, tokenizer, 5, "classification", dataloader_mode='sequential')
-    target_kshot_nonentail_dataloader = examples_to_features(target_kshot_nonentail_examples, target_label_list, args, tokenizer, 5, "classification", dataloader_mode='sequential')
-    target_dev_dataloader = examples_to_features(target_dev_examples, target_label_list, args, tokenizer, 32, "classification", dataloader_mode='random')
-    target_test_dataloader = examples_to_features(target_test_examples, target_label_list, args, tokenizer, 32, "classification", dataloader_mode='random')
+    target_kshot_entail_dataloader = examples_to_features(target_kshot_entail_examples, target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
+    target_kshot_nonentail_dataloader = examples_to_features(target_kshot_nonentail_examples, target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
+    target_dev_dataloader = examples_to_features(target_dev_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='random')
+    target_test_dataloader = examples_to_features(target_test_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='random')
 
     '''starting to train'''
     iter_co = 0
@@ -656,8 +657,8 @@ def main():
             optimizer.zero_grad()
             global_step += 1
             iter_co+=1
-            if iter_co %20==0:
-                # if iter_co % len(train_dataloader)==0:
+            # if iter_co %20==0:
+            if iter_co % len(train_dataloader)==0:
                 '''
                 start evaluate on dev set after this epoch
                 '''

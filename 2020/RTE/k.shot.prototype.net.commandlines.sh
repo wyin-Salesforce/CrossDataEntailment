@@ -16,8 +16,6 @@ CUDA_VISIBLE_DEVICES=0 python -u k.shot.prototype.net.py \
     --kshot $SHOT > log.RTE.PrototypeNet.$SHOT.shot.seed.42.txt 2>&1 &
 
 CUDA_VISIBLE_DEVICES=1 python -u k.shot.prototype.net.py \
-    --task_name rte \
-    --do_train \
     --do_lower_case \
     --num_train_epochs $EPOCHSIZE \
     --train_batch_size $BATCHSIZE \
@@ -28,8 +26,6 @@ CUDA_VISIBLE_DEVICES=1 python -u k.shot.prototype.net.py \
     --kshot $SHOT > log.RTE.PrototypeNet.$SHOT.shot.seed.16.txt 2>&1 &
 
 CUDA_VISIBLE_DEVICES=2 python -u k.shot.prototype.net.py \
-    --task_name rte \
-    --do_train \
     --do_lower_case \
     --num_train_epochs $EPOCHSIZE \
     --train_batch_size $BATCHSIZE \
@@ -40,8 +36,6 @@ CUDA_VISIBLE_DEVICES=2 python -u k.shot.prototype.net.py \
     --kshot $SHOT > log.RTE.PrototypeNet.$SHOT.shot.seed.32.txt 2>&1 &
 
 CUDA_VISIBLE_DEVICES=3 python -u k.shot.prototype.net.py \
-    --task_name rte \
-    --do_train \
     --do_lower_case \
     --num_train_epochs $EPOCHSIZE \
     --train_batch_size $BATCHSIZE \
@@ -53,8 +47,6 @@ CUDA_VISIBLE_DEVICES=3 python -u k.shot.prototype.net.py \
 
 
 CUDA_VISIBLE_DEVICES=4 python -u k.shot.prototype.net.py \
-    --task_name rte \
-    --do_train \
     --do_lower_case \
     --num_train_epochs $EPOCHSIZE \
     --train_batch_size $BATCHSIZE \

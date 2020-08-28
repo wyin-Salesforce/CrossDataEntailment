@@ -705,8 +705,8 @@ def main():
                         single_train_label_ids_v2 = torch.repeat_interleave(label_ids.view(-1, 1), repeats=input_ids.shape[0], dim=0)
                         # loss_v1 = loss_fct(logits.view(-1, num_labels), single_train_label_ids_v1.view(-1))
                         # loss_v2 = loss_fct(logits.view(-1, num_labels), single_train_label_ids_v2.view(-1))
-                        loss_v1 = loss_by_logits_and_2way_labels(logits, torch.cat([label_ids, single_train_label_ids_v1.view(-1)], device)
-                        loss_v2 = loss_by_logits_and_2way_labels(logits, torch.cat([label_ids, single_train_label_ids_v2.view(-1)], device)
+                        loss_v1 = loss_by_logits_and_2way_labels(logits, torch.cat([label_ids, single_train_label_ids_v1.view(-1), dim=0], device)
+                        loss_v2 = loss_by_logits_and_2way_labels(logits, torch.cat([label_ids, single_train_label_ids_v2.view(-1), dim=0], device)
                         loss = lambda_vec*loss_v1+(1.0-lambda_vec)*loss_v2# + 1e-3*reg_loss
                     else:
                         loss = loss_fct(logits.view(-1, num_labels), label_ids.view(-1))

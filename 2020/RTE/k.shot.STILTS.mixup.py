@@ -689,8 +689,14 @@ def main():
                 model.train()
                 batch = tuple(t.to(device) for t in batch)
                 input_ids, input_mask, segment_ids, label_ids = batch
+                if epoch_i < 10:
+                    lambda_times=1
+                    args.use_mixup=False
+                else:
+                    lambda_times=args.lambda_times
+                    args.use_mixup=False
 
-                for _ in range(args.lambda_times):
+                for _ in range(lambda_times):
                     lambda_vec = beta.rvs(0.4, 0.4, size=1)[0]
                     '''use mixup???'''
                     use_mixup=args.use_mixup
@@ -708,53 +714,6 @@ def main():
                         loss_v2 = loss_by_logits_and_2way_labels(logits, single_train_label_ids_v2.view(-1), device)
                         loss = lambda_vec*loss_v1+(1.0-lambda_vec)*loss_v2# + 1e-3*reg_loss
                     else:
-                        loss = loss_fct(logits.view(-1, num_labels), label_ids.view(-1))
-
-
-
-                    if n_gpu > 1:
-                        loss = loss.mean() # mean() to average on multi-gpu.
-                    if args.gradient_accumulation_steps > 1:
-                        loss = loss / args.gradient_accumulation_steps
-
-                    loss.backward()
-
-                    tr_loss += loss.item()
-                    nb_tr_examples += input_ids.size(0)
-                    nb_tr_steps += 1
-
-                    optimizer.step()
-                    optimizer.zero_grad()
-
-
-
-        for epoch_i in trange(int(args.num_train_epochs), desc="Epoch"):
-            tr_loss = 0
-            nb_tr_examples, nb_tr_steps = 0, 0
-            for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
-                model.train()
-                batch = tuple(t.to(device) for t in batch)
-                input_ids, input_mask, segment_ids, label_ids = batch
-
-                for _ in range(1):
-                    lambda_vec = beta.rvs(0.4, 0.4, size=1)[0]
-                    '''use mixup???'''
-                    use_mixup=False#args.use_mixup
-                    logits = model(input_ids, input_mask, lambda_vec, is_train=use_mixup)
-
-                    loss_fct = CrossEntropyLoss()
-
-                    if use_mixup:
-                        '''mixup loss'''
-                        single_train_label_ids_v1 = label_ids.repeat(input_ids.shape[0])
-                        single_train_label_ids_v2 = torch.repeat_interleave(label_ids.view(-1, 1), repeats=input_ids.shape[0], dim=0)
-                        # loss_v1 = loss_fct(logits.view(-1, num_labels), single_train_label_ids_v1.view(-1))
-                        # loss_v2 = loss_fct(logits.view(-1, num_labels), single_train_label_ids_v2.view(-1))
-                        loss_v1 = loss_by_logits_and_2way_labels(logits, single_train_label_ids_v1.view(-1), device)
-                        loss_v2 = loss_by_logits_and_2way_labels(logits, single_train_label_ids_v2.view(-1), device)
-                        loss = lambda_vec*loss_v1+(1.0-lambda_vec)*loss_v2# + 1e-3*reg_loss
-                    else:
-                        # loss = loss_fct(logits.view(-1, num_labels), label_ids.view(-1))
                         loss = loss_by_logits_and_2way_labels(logits, label_ids.view(-1), device)
 
 

@@ -401,6 +401,7 @@ def retrieve_neighbors_source_given_kshot_target(target_examples, source_example
                 print('target..', i, '...source...', j)
             j+=1
         # sorted_source_score_2_ex = sorted(source_score_2_ex)
+        print([(value, key) for (key,value) in source_ex_2_score.items()][:10])
         sorted_d = sorted([(value, key) for (key,value) in source_ex_2_score.items()], reverse=False)
         print('sorted_d:', sorted_d)
         exit(0)
@@ -559,6 +560,7 @@ def main():
     source_example_2_gramset = {}
     for mnli_ex in train_examples_MNLI:
         source_example_2_gramset[mnli_ex] = gram_set(mnli_ex)
+    print('MNLI gramset build over')
     train_examples = retrieve_neighbors_source_given_kshot_target(kshot_train_examples, source_example_2_gramset, 100)
 
 

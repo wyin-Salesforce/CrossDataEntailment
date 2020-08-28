@@ -469,8 +469,8 @@ def retrieve_neighbors_source_given_kshot_target(target_examples, source_example
         j=0
         for source_ex, gramset in source_example_2_gramset.items():
             interset_gramset = target_set & gramset
-            # score = len(interset_gramset)/len(gramset)
-            score = len(interset_gramset)/len(target_set)
+            score = len(interset_gramset)/len(gramset)
+            # score = len(interset_gramset)/len(target_set)
             # if score > 0.2:
             source_ex_2_score[source_ex] = score
             j+=1

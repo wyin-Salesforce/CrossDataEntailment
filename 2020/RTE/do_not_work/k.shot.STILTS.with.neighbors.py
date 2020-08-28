@@ -470,8 +470,8 @@ def retrieve_neighbors_source_given_kshot_target(target_examples, source_example
         for source_ex, gramset in source_example_2_gramset.items():
             interset_gramset = target_set & gramset
             precision = len(interset_gramset)/len(gramset)
-            recall = len(interset_gramset)/len(target_set)
-            score = 2*precision*recall/(1e-8+precision+recall)
+            # recall = len(interset_gramset)/len(target_set)
+            score = precision#2*precision*recall/(1e-8+precision+recall)
             # if score > 0.2:
             source_ex_2_score[source_ex] = score
             j+=1
@@ -686,7 +686,7 @@ def main():
         ]
 
     optimizer = AdamW(optimizer_grouped_parameters,
-                             lr=args.learning_rate)
+                             lr=5e-7)
 
     param_optimizer_finetune = list(model.named_parameters())
     no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
@@ -809,9 +809,10 @@ def main():
 
 
         '''fine-tune on kshot'''
-        max_dev_acc=0.0
+
         model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained/'+'dev_acc_'+str(max_dev_acc)+'.pt'))
         iter_co = 0
+        max_dev_acc=0.0
         final_test_performance = 0.0
         for _ in trange(int(args.num_train_epochs), desc="Epoch"):
             tr_loss = 0

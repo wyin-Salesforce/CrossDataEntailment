@@ -480,7 +480,6 @@ def retrieve_neighbors_source_given_kshot_target(target_examples, source_example
     print('neighbor retrieve over')
     return returned_exs
 
-
 def examples_to_features(source_examples, label_list, args, tokenizer, batch_size, output_mode, dataloader_mode='sequential'):
     source_features = convert_examples_to_features(
         source_examples, label_list, args.max_seq_length, tokenizer, output_mode,

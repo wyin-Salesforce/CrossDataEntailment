@@ -567,7 +567,7 @@ def main():
 
     label_list = ["entailment", "neutral", "contradiction"]
     num_labels = len(label_list)
-    print('num_labels:', num_labels, 'training size:', len(train_examples), 'dev size:', len(dev_examples))
+    print('num_labels:', num_labels, 'training size:', len(train_examples))#, 'dev size:', len(dev_examples))
 
     num_train_optimization_steps = None
     num_train_optimization_steps = int(

@@ -420,7 +420,7 @@ def _truncate_seq_pair(tokens_a, tokens_b, max_length):
 
 
 
-def loss_by_logits_and_2way_labels(logits, label_ids):
+def loss_by_logits_and_2way_labels(logits, label_ids, device):
     '''
     logits: (batch, #class)
     label_ids: a list of binary ids
@@ -704,8 +704,8 @@ def main():
                         single_train_label_ids_v2 = torch.repeat_interleave(label_ids.view(-1, 1), repeats=input_ids.shape[0], dim=0)
                         # loss_v1 = loss_fct(logits.view(-1, num_labels), single_train_label_ids_v1.view(-1))
                         # loss_v2 = loss_fct(logits.view(-1, num_labels), single_train_label_ids_v2.view(-1))
-                        loss_v1 = loss_by_logits_and_2way_labels(logits, single_train_label_ids_v1.view(-1))
-                        loss_v2 = loss_by_logits_and_2way_labels(logits, single_train_label_ids_v2.view(-1))
+                        loss_v1 = loss_by_logits_and_2way_labels(logits, single_train_label_ids_v1.view(-1), device)
+                        loss_v2 = loss_by_logits_and_2way_labels(logits, single_train_label_ids_v2.view(-1), device)
                         loss = lambda_vec*loss_v1+(1.0-lambda_vec)*loss_v2# + 1e-3*reg_loss
                     else:
                         loss = loss_fct(logits.view(-1, num_labels), label_ids.view(-1))

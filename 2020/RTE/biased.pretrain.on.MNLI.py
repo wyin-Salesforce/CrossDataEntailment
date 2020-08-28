@@ -401,7 +401,9 @@ def retrieve_neighbors_source_given_kshot_target(target_examples, source_example
                 print('target..', i, '...source...', j)
             j+=1
         # sorted_source_score_2_ex = sorted(source_score_2_ex)
-        sorted_d = sorted((value, key) for (key,value) in source_ex_2_score.items(), reverse=False)
+        sorted_d = sorted([(value, key) for (key,value) in source_ex_2_score.items()], reverse=False)
+        print('sorted_d:', sorted_d)
+        exit(0)
         neighbor_exs = [ex for (score, ex) in sorted_d[:topN]]
         returned_exs+=neighbor_exs
     print('neighbor retrieve over')

@@ -469,18 +469,12 @@ def retrieve_neighbors_source_given_kshot_target(target_examples, source_example
         j=0
         for source_ex, gramset in source_example_2_gramset.items():
             interset_gramset = target_set & gramset
-            score = len(interset_gramset)/len(gramset)
+            # score = len(interset_gramset)/len(gramset)
+            score = len(interset_gramset)/len(target_set)
             if score > 0.2:
                 source_ex_2_score[source_ex] = score
-
-            # if j%10000==0:
-            #     print('target..', i, '...source...', j)
             j+=1
-        # sorted_source_score_2_ex = sorted(source_score_2_ex)
-        # print([(value, key) for (key,value) in source_ex_2_score.items()][:10])
         sorted_d = sorted([(score, ex) for (ex,score) in source_ex_2_score.items()],key=operator.itemgetter(0), reverse=True)
-        # print('sorted_d:', sorted_d[:5])
-        # exit(0)
         neighbor_exs = [ex for (score, ex) in sorted_d[:topN]]
         returned_exs+=neighbor_exs
     print('neighbor retrieve over')

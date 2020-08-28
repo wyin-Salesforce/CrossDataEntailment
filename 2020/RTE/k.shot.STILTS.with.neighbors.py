@@ -34,6 +34,7 @@ from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm, trange
 from scipy.stats import beta
+import operator
 from torch.nn import CrossEntropyLoss, MSELoss
 from scipy.special import softmax
 # from scipy.stats import pearsonr, spearmanr
@@ -248,6 +249,29 @@ class RteProcessor(DataProcessor):
         readfile.close()
         print('loaded test size:', line_co)
         return examples
+    def get_MNLI_train(self, filename):
+        '''
+        classes: ["entailment", "neutral", "contradiction"]
+        '''
+
+        examples=[]
+        readfile = codecs.open(filename, 'r', 'utf-8')
+        line_co=0
+        for row in readfile:
+            if line_co>0:
+                line=row.strip().split('\t')
+                guid = "train-"+str(line_co-1)
+                # text_a = 'MNLI. '+line[8].strip()
+                text_a = line[8].strip()
+                text_b = line[9].strip()
+                label = line[-1].strip() #["entailment", "neutral", "contradiction"]
+                examples.append(
+                    InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+            line_co+=1
+        readfile.close()
+        print('loaded  MNLI size:', len(examples))
+
+        return examples #train, dev
 
     def get_labels(self):
         'here we keep the three-way in MNLI training '
@@ -411,7 +435,44 @@ def _truncate_seq_pair(tokens_a, tokens_b, max_length):
 
 
 
+def gram_set(example):
+    target_text_a_wordlist = example.text_a.split()
+    target_text_b_wordlist = example.text_b.split()
+    unigram_set = set(target_text_a_wordlist+target_text_b_wordlist)
+    bigram_set = set()
+    for word_a in target_text_a_wordlist:
+        for word_b in target_text_b_wordlist:
+            bigram_set.add(word_a+'||'+word_b)
+            bigram_set.add(word_b+'||'+word_a)
 
+    return unigram_set |bigram_set #union of two sets
+
+def retrieve_neighbors_source_given_kshot_target(target_examples, source_example_2_gramset, topN):
+
+    returned_exs = []
+    for i, target_ex in enumerate(target_examples):
+        target_set = gram_set(target_ex)
+
+        source_ex_2_score = {}
+        j=0
+        for source_ex, gramset in source_example_2_gramset.items():
+            interset_gramset = target_set & gramset
+            score = len(interset_gramset)/len(gramset)
+            if score > 0.2:
+                source_ex_2_score[source_ex] = score
+
+            # if j%10000==0:
+            #     print('target..', i, '...source...', j)
+            j+=1
+        # sorted_source_score_2_ex = sorted(source_score_2_ex)
+        # print([(value, key) for (key,value) in source_ex_2_score.items()][:10])
+        sorted_d = sorted([(score, ex) for (ex,score) in source_ex_2_score.items()],key=operator.itemgetter(0), reverse=True)
+        # print('sorted_d:', sorted_d[:5])
+        # exit(0)
+        neighbor_exs = [ex for (score, ex) in sorted_d[:topN]]
+        returned_exs+=neighbor_exs
+    print('neighbor retrieve over')
+    return returned_exs
 
 
 
@@ -551,6 +612,20 @@ def main():
 
 
     train_examples = processor.get_RTE_as_train_k_shot('/export/home/Dataset/glue_data/RTE/train.tsv', args.kshot) #train_pu_half_v1.txt
+    train_examples_MNLI = processor.get_MNLI_train('/export/home/Dataset/glue_data/MNLI/train.tsv')
+
+    source_example_2_gramset = {}
+    for mnli_ex in train_examples_MNLI:
+        source_example_2_gramset[mnli_ex] = gram_set(mnli_ex)
+    print('MNLI gramset build over')
+    train_examples_neighbors = retrieve_neighbors_source_given_kshot_target(kshot_train_examples, source_example_2_gramset, 100)
+    print('neighbor size:', len(train_examples_neighbors))
+    for neighbor_ex in train_examples_neighbors:
+        if neighbor_ex.label !='entailment':
+            neighbor_ex.label = 'not_entailment'
+        train_examples.append(neighbor_ex)
+
+
     dev_examples = processor.get_RTE_as_dev('/export/home/Dataset/glue_data/RTE/dev.tsv')
     test_examples = processor.get_RTE_as_test('/export/home/Dataset/RTE/test_RTE_1235.txt')
     label_list = ["entailment", "not_entailment"]
@@ -567,7 +642,8 @@ def main():
 
     model = RobertaForSequenceClassification(3)
     tokenizer = RobertaTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
-    model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_pretrained/_acc_0.9040886899918633.pt'))
+    # model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_pretrained/_acc_0.9040886899918633.pt'))
+    model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained/RTE.10shot.seed.42.pt'))
     model.to(device)
 
     param_optimizer = list(model.named_parameters())
@@ -772,7 +848,7 @@ if __name__ == "__main__":
 
 '''
 
-CUDA_VISIBLE_DEVICES=7 python -u k.shot.STILTS.py --task_name rte --do_train --do_lower_case --num_train_epochs 20 --train_batch_size 5 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 100000
+CUDA_VISIBLE_DEVICES=7 python -u k.shot.STILTS.py --task_name rte --do_train --do_lower_case --num_train_epochs 20 --train_batch_size 5 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10
 
 CUDA_VISIBLE_DEVICES=6 python -u k.shot.STILTS.py --task_name rte --do_train --do_lower_case --num_train_epochs 20 --train_batch_size 5 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 128 --seed 16 --kshot 100000
 

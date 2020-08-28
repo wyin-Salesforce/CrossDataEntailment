@@ -475,7 +475,32 @@ def retrieve_neighbors_source_given_kshot_target(target_examples, source_example
     return returned_exs
 
 
+def examples_to_features(source_examples, label_list, args, tokenizer, batch_size, output_mode, dataloader_mode='sequential'):
+    source_features = convert_examples_to_features(
+        source_examples, label_list, args.max_seq_length, tokenizer, output_mode,
+        cls_token_at_end=False,#bool(args.model_type in ['xlnet']),            # xlnet has a cls token at the end
+        cls_token=tokenizer.cls_token,
+        cls_token_segment_id=0,#2 if args.model_type in ['xlnet'] else 0,
+        sep_token=tokenizer.sep_token,
+        sep_token_extra=True,#bool(args.model_type in ['roberta']),           # roberta uses an extra separator b/w pairs of sentences, cf. github.com/pytorch/fairseq/commit/1684e166e3da03f5b600dbb7855cb98ddfcd0805
+        pad_on_left=False,#bool(args.model_type in ['xlnet']),                 # pad on the left for xlnet
+        pad_token=tokenizer.convert_tokens_to_ids([tokenizer.pad_token])[0],
+        pad_token_segment_id=0)#4 if args.model_type in ['xlnet'] else 0,)
 
+    dev_all_input_ids = torch.tensor([f.input_ids for f in source_features], dtype=torch.long)
+    dev_all_input_mask = torch.tensor([f.input_mask for f in source_features], dtype=torch.long)
+    dev_all_segment_ids = torch.tensor([f.segment_ids for f in source_features], dtype=torch.long)
+    dev_all_label_ids = torch.tensor([f.label_id for f in source_features], dtype=torch.long)
+
+    dev_data = TensorDataset(dev_all_input_ids, dev_all_input_mask, dev_all_segment_ids, dev_all_label_ids)
+    if dataloader_mode=='sequential':
+        dev_sampler = SequentialSampler(dev_data)
+    else:
+        dev_sampler = RandomSampler(dev_data)
+    dev_dataloader = DataLoader(dev_data, sampler=dev_sampler, batch_size=batch_size)
+
+
+    return dev_dataloader
 
 
 
@@ -620,19 +645,20 @@ def main():
     print('MNLI gramset build over')
     train_examples_neighbors = retrieve_neighbors_source_given_kshot_target(train_examples, source_example_2_gramset, 100)
     print('neighbor size:', len(train_examples_neighbors))
-    for neighbor_ex in train_examples_neighbors:
-        if neighbor_ex.label !='entailment':
-            neighbor_ex.label = 'not_entailment'
-        train_examples.append(neighbor_ex)
+    # train_examples_neighbors_2way = []
+    # for neighbor_ex in train_examples_neighbors:
+    #     if neighbor_ex.label !='entailment':
+    #         neighbor_ex.label = 'not_entailment'
+    #     train_examples_neighbors_2way.append(neighbor_ex)
 
 
     dev_examples = processor.get_RTE_as_dev('/export/home/Dataset/glue_data/RTE/dev.tsv')
     test_examples = processor.get_RTE_as_test('/export/home/Dataset/RTE/test_RTE_1235.txt')
     label_list = ["entailment", "not_entailment"]
-    # train_examples = get_data_hulu_fewshot('train', 5)
+    mnli_label_list = ["entailment", "neutral", "contradiction"]
     # train_examples, dev_examples, test_examples, label_list = load_CLINC150_with_specific_domain_sequence(args.DomainName, args.kshot, augment=False)
     num_labels = len(label_list)
-    print('num_labels:', num_labels, 'training size:', len(train_examples), 'dev size:', len(dev_examples), 'test size:', len(test_examples))
+    print('num_labels:', num_labels, 'training size:', len(train_examples), 'neighbor size:', len(train_examples_neighbors_2way),  'dev size:', len(dev_examples), 'test size:', len(test_examples))
 
     num_train_optimization_steps = None
     num_train_optimization_steps = int(
@@ -642,8 +668,8 @@ def main():
 
     model = RobertaForSequenceClassification(3)
     tokenizer = RobertaTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
-    # model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_pretrained/_acc_0.9040886899918633.pt'))
-    model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained/RTE.10shot.seed.42.pt'))
+    model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_pretrained/_acc_0.9040886899918633.pt'))
+    # model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained/RTE.10shot.seed.42.pt'))
     model.to(device)
 
     param_optimizer = list(model.named_parameters())
@@ -655,80 +681,129 @@ def main():
 
     optimizer = AdamW(optimizer_grouped_parameters,
                              lr=args.learning_rate)
+
+    param_optimizer_finetune = list(model.named_parameters())
+    no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
+    optimizer_grouped_parameters = [
+        {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
+        {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
+        ]
+
+    optimizer_finetune = AdamW(param_optimizer_finetune,
+                             lr=args.learning_rate)
+
     global_step = 0
     nb_tr_steps = 0
     tr_loss = 0
     max_test_acc = 0.0
     max_dev_acc = 0.0
     if args.do_train:
-        train_features = convert_examples_to_features(
-            train_examples, label_list, args.max_seq_length, tokenizer, output_mode,
-            cls_token_at_end=False,#bool(args.model_type in ['xlnet']),            # xlnet has a cls token at the end
-            cls_token=tokenizer.cls_token,
-            cls_token_segment_id=0,#2 if args.model_type in ['xlnet'] else 0,
-            sep_token=tokenizer.sep_token,
-            sep_token_extra=True,#bool(args.model_type in ['roberta']),           # roberta uses an extra separator b/w pairs of sentences, cf. github.com/pytorch/fairseq/commit/1684e166e3da03f5b600dbb7855cb98ddfcd0805
-            pad_on_left=False,#bool(args.model_type in ['xlnet']),                 # pad on the left for xlnet
-            pad_token=tokenizer.convert_tokens_to_ids([tokenizer.pad_token])[0],
-            pad_token_segment_id=0)#4 if args.model_type in ['xlnet'] else 0,)
+        train_dataloader = examples_to_features(train_examples, label_list, args, tokenizer, args.train_batch_size, "classification", dataloader_mode='random')
+        train_neighbors_dataloader = examples_to_features(train_examples_neighbors, mnli_label_list, args, tokenizer, 5, "classification", dataloader_mode='random')
+        dev_dataloader = examples_to_features(dev_examples, label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
+        test_dataloader = examples_to_features(test_examples, label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
 
-        '''load dev set'''
-        dev_features = convert_examples_to_features(
-            dev_examples, label_list, args.max_seq_length, tokenizer, output_mode,
-            cls_token_at_end=False,#bool(args.model_type in ['xlnet']),            # xlnet has a cls token at the end
-            cls_token=tokenizer.cls_token,
-            cls_token_segment_id=0,#2 if args.model_type in ['xlnet'] else 0,
-            sep_token=tokenizer.sep_token,
-            sep_token_extra=True,#bool(args.model_type in ['roberta']),           # roberta uses an extra separator b/w pairs of sentences, cf. github.com/pytorch/fairseq/commit/1684e166e3da03f5b600dbb7855cb98ddfcd0805
-            pad_on_left=False,#bool(args.model_type in ['xlnet']),                 # pad on the left for xlnet
-            pad_token=tokenizer.convert_tokens_to_ids([tokenizer.pad_token])[0],
-            pad_token_segment_id=0)#4 if args.model_type in ['xlnet'] else 0,)
-
-        dev_all_input_ids = torch.tensor([f.input_ids for f in dev_features], dtype=torch.long)
-        dev_all_input_mask = torch.tensor([f.input_mask for f in dev_features], dtype=torch.long)
-        dev_all_segment_ids = torch.tensor([f.segment_ids for f in dev_features], dtype=torch.long)
-        dev_all_label_ids = torch.tensor([f.label_id for f in dev_features], dtype=torch.long)
-
-        dev_data = TensorDataset(dev_all_input_ids, dev_all_input_mask, dev_all_segment_ids, dev_all_label_ids)
-        dev_sampler = SequentialSampler(dev_data)
-        dev_dataloader = DataLoader(dev_data, sampler=dev_sampler, batch_size=args.eval_batch_size)
+        '''first pretrain on neighbors'''
+        iter_co = 0
+        for _ in trange(int(args.num_train_epochs), desc="Epoch"):
+            tr_loss = 0
+            nb_tr_examples, nb_tr_steps = 0, 0
+            for step, batch in enumerate(tqdm(train_neighbors_dataloader, desc="Iteration")):
+                model.train()
+                batch = tuple(t.to(device) for t in batch)
+                input_ids, input_mask, segment_ids, label_ids = batch
 
 
-        '''load test set'''
-        test_features = convert_examples_to_features(
-            test_examples, label_list, args.max_seq_length, tokenizer, output_mode,
-            cls_token_at_end=False,#bool(args.model_type in ['xlnet']),            # xlnet has a cls token at the end
-            cls_token=tokenizer.cls_token,
-            cls_token_segment_id=0,#2 if args.model_type in ['xlnet'] else 0,
-            sep_token=tokenizer.sep_token,
-            sep_token_extra=True,#bool(args.model_type in ['roberta']),           # roberta uses an extra separator b/w pairs of sentences, cf. github.com/pytorch/fairseq/commit/1684e166e3da03f5b600dbb7855cb98ddfcd0805
-            pad_on_left=False,#bool(args.model_type in ['xlnet']),                 # pad on the left for xlnet
-            pad_token=tokenizer.convert_tokens_to_ids([tokenizer.pad_token])[0],
-            pad_token_segment_id=0)#4 if args.model_type in ['xlnet'] else 0,)
+                logits = model(input_ids, input_mask)
+                loss_fct = CrossEntropyLoss()
 
-        eval_all_input_ids = torch.tensor([f.input_ids for f in test_features], dtype=torch.long)
-        eval_all_input_mask = torch.tensor([f.input_mask for f in test_features], dtype=torch.long)
-        eval_all_segment_ids = torch.tensor([f.segment_ids for f in test_features], dtype=torch.long)
-        eval_all_label_ids = torch.tensor([f.label_id for f in test_features], dtype=torch.long)
+                loss = loss_fct(logits.view(-1, len(mnli_label_list)), label_ids.view(-1))
+                if n_gpu > 1:
+                    loss = loss.mean() # mean() to average on multi-gpu.
+                if args.gradient_accumulation_steps > 1:
+                    loss = loss / args.gradient_accumulation_steps
 
-        eval_data = TensorDataset(eval_all_input_ids, eval_all_input_mask, eval_all_segment_ids, eval_all_label_ids)
-        eval_sampler = SequentialSampler(eval_data)
-        test_dataloader = DataLoader(eval_data, sampler=eval_sampler, batch_size=args.eval_batch_size)
+                loss.backward()
 
-        logger.info("***** Running training *****")
-        logger.info("  Num examples = %d", len(train_examples))
-        logger.info("  Batch size = %d", args.train_batch_size)
-        logger.info("  Num steps = %d", num_train_optimization_steps)
-        all_input_ids = torch.tensor([f.input_ids for f in train_features], dtype=torch.long)
-        all_input_mask = torch.tensor([f.input_mask for f in train_features], dtype=torch.long)
-        all_segment_ids = torch.tensor([f.segment_ids for f in train_features], dtype=torch.long)
-        all_label_ids = torch.tensor([f.label_id for f in train_features], dtype=torch.long)
+                tr_loss += loss.item()
+                nb_tr_examples += input_ids.size(0)
+                nb_tr_steps += 1
 
-        train_data = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids)
-        train_sampler = RandomSampler(train_data)
+                optimizer.step()
+                optimizer.zero_grad()
+                global_step += 1
+                iter_co+=1
 
-        train_dataloader = DataLoader(train_data, sampler=train_sampler, batch_size=args.train_batch_size)
+            '''
+            start evaluate on dev set after this epoch
+            '''
+            model.eval()
 
+
+            eval_loss = 0
+            nb_eval_steps = 0
+            preds = []
+            gold_label_ids = []
+            # print('Evaluating...')
+            for input_ids, input_mask, segment_ids, label_ids in dev_dataloader:
+                input_ids = input_ids.to(device)
+                input_mask = input_mask.to(device)
+                segment_ids = segment_ids.to(device)
+                label_ids = label_ids.to(device)
+                gold_label_ids+=list(label_ids.detach().cpu().numpy())
+
+                with torch.no_grad():
+                    logits = model(input_ids, input_mask)
+                if len(preds) == 0:
+                    preds.append(logits.detach().cpu().numpy())
+                else:
+                    preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
+
+            preds = preds[0]
+
+            pred_probs = softmax(preds,axis=1)
+            pred_label_ids_3way = list(np.argmax(pred_probs, axis=1))
+            '''change from 3-way to 2-way'''
+            pred_label_ids = []
+            for pred_id in pred_label_ids_3way:
+                if pred_id !=0:
+                    pred_label_ids.append(1)
+                else:
+                    pred_label_ids.append(0)
+
+            gold_label_ids = gold_label_ids
+            assert len(pred_label_ids) == len(gold_label_ids)
+            hit_co = 0
+            for k in range(len(pred_label_ids)):
+                if pred_label_ids[k] == gold_label_ids[k]:
+                    hit_co +=1
+            test_acc = hit_co/len(gold_label_ids)
+
+            if test_acc > max_dev_acc:
+                max_dev_acc = test_acc
+                print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
+                '''store the model, because we can test after a max_dev acc reached'''
+                model_to_save = (
+                    model.module if hasattr(model, "module") else model
+                )  # Take care of distributed/parallel training
+                store_transformers_models(model_to_save, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained', 'dev_acc_'+str(max_dev_acc)+'.pt')
+            else:
+                print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
+
+
+
+
+
+
+
+
+
+
+
+
+
+        '''fine-tune on kshot'''
+        model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained/'+'dev_acc_'+str(max_dev_acc)+'.pt'))
         iter_co = 0
         final_test_performance = 0.0
         for _ in trange(int(args.num_train_epochs), desc="Epoch"):
@@ -764,8 +839,8 @@ def main():
                 nb_tr_examples += input_ids.size(0)
                 nb_tr_steps += 1
 
-                optimizer.step()
-                optimizer.zero_grad()
+                optimizer_finetune.step()
+                optimizer_finetune.zero_grad()
                 global_step += 1
                 iter_co+=1
                 # if iter_co %20==0:
@@ -848,7 +923,7 @@ if __name__ == "__main__":
 
 '''
 
-CUDA_VISIBLE_DEVICES=7 python -u k.shot.STILTS.with.neighbors.py --task_name rte --do_train --do_lower_case --num_train_epochs 20 --train_batch_size 5 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10
+CUDA_VISIBLE_DEVICES=7 python -u k.shot.STILTS.with.neighbors.py --task_name rte --do_train --do_lower_case --num_train_epochs 20 --train_batch_size 2 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10
 
 CUDA_VISIBLE_DEVICES=6 python -u k.shot.STILTS.py --task_name rte --do_train --do_lower_case --num_train_epochs 20 --train_batch_size 5 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 128 --seed 16 --kshot 100000
 

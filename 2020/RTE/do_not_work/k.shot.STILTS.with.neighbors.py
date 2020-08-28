@@ -658,7 +658,7 @@ def main():
     mnli_label_list = ["entailment", "neutral", "contradiction"]
     # train_examples, dev_examples, test_examples, label_list = load_CLINC150_with_specific_domain_sequence(args.DomainName, args.kshot, augment=False)
     num_labels = len(label_list)
-    print('num_labels:', num_labels, 'training size:', len(train_examples), 'neighbor size:', len(train_examples_neighbors_2way),  'dev size:', len(dev_examples), 'test size:', len(test_examples))
+    print('num_labels:', num_labels, 'training size:', len(train_examples), 'neighbor size:', len(train_examples_neighbors),  'dev size:', len(dev_examples), 'test size:', len(test_examples))
 
     num_train_optimization_steps = None
     num_train_optimization_steps = int(

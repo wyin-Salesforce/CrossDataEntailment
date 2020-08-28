@@ -471,8 +471,8 @@ def retrieve_neighbors_source_given_kshot_target(target_examples, source_example
             interset_gramset = target_set & gramset
             # score = len(interset_gramset)/len(gramset)
             score = len(interset_gramset)/len(target_set)
-            if score > 0.2:
-                source_ex_2_score[source_ex] = score
+            # if score > 0.2:
+            source_ex_2_score[source_ex] = score
             j+=1
         sorted_d = sorted([(score, ex) for (ex,score) in source_ex_2_score.items()],key=operator.itemgetter(0), reverse=True)
         neighbor_exs = [ex for (score, ex) in sorted_d[:topN]]
@@ -929,7 +929,7 @@ if __name__ == "__main__":
 
 '''
 
-CUDA_VISIBLE_DEVICES=7 python -u k.shot.STILTS.with.neighbors.py --task_name rte --do_train --do_lower_case --num_train_epochs 20 --train_batch_size 2 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10
+CUDA_VISIBLE_DEVICES=4 python -u k.shot.STILTS.with.neighbors.py --task_name rte --do_train --do_lower_case --num_train_epochs 20 --train_batch_size 2 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10
 
 CUDA_VISIBLE_DEVICES=6 python -u k.shot.STILTS.py --task_name rte --do_train --do_lower_case --num_train_epochs 20 --train_batch_size 5 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 128 --seed 16 --kshot 100000
 

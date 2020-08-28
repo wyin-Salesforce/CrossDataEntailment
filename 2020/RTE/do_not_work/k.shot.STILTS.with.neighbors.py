@@ -469,8 +469,9 @@ def retrieve_neighbors_source_given_kshot_target(target_examples, source_example
         j=0
         for source_ex, gramset in source_example_2_gramset.items():
             interset_gramset = target_set & gramset
-            score = len(interset_gramset)/len(gramset)
-            # score = len(interset_gramset)/len(target_set)
+            precision = len(interset_gramset)/len(gramset)
+            recall = len(interset_gramset)/len(target_set)
+            score = 2*precision*recall/(1e-8+precision+recall)
             # if score > 0.2:
             source_ex_2_score[source_ex] = score
             j+=1
@@ -808,6 +809,7 @@ def main():
 
 
         '''fine-tune on kshot'''
+        max_dev_acc=0.0
         model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained/'+'dev_acc_'+str(max_dev_acc)+'.pt'))
         iter_co = 0
         final_test_performance = 0.0

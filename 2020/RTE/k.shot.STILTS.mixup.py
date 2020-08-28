@@ -754,7 +754,8 @@ def main():
                         loss_v2 = loss_by_logits_and_2way_labels(logits, single_train_label_ids_v2.view(-1), device)
                         loss = lambda_vec*loss_v1+(1.0-lambda_vec)*loss_v2# + 1e-3*reg_loss
                     else:
-                        loss = loss_fct(logits.view(-1, num_labels), label_ids.view(-1))
+                        # loss = loss_fct(logits.view(-1, num_labels), label_ids.view(-1))
+                        loss = loss_by_logits_and_2way_labels(logits, label_ids.view(-1), device)
 
 
 

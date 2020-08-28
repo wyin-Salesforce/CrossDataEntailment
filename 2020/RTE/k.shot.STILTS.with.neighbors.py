@@ -618,7 +618,7 @@ def main():
     for mnli_ex in train_examples_MNLI:
         source_example_2_gramset[mnli_ex] = gram_set(mnli_ex)
     print('MNLI gramset build over')
-    train_examples_neighbors = retrieve_neighbors_source_given_kshot_target(kshot_train_examples, source_example_2_gramset, 100)
+    train_examples_neighbors = retrieve_neighbors_source_given_kshot_target(train_examples, source_example_2_gramset, 100)
     print('neighbor size:', len(train_examples_neighbors))
     for neighbor_ex in train_examples_neighbors:
         if neighbor_ex.label !='entailment':
@@ -848,7 +848,7 @@ if __name__ == "__main__":
 
 '''
 
-CUDA_VISIBLE_DEVICES=7 python -u k.shot.STILTS.py --task_name rte --do_train --do_lower_case --num_train_epochs 20 --train_batch_size 5 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10
+CUDA_VISIBLE_DEVICES=7 python -u k.shot.STILTS.with.neighbors.py --task_name rte --do_train --do_lower_case --num_train_epochs 20 --train_batch_size 5 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10
 
 CUDA_VISIBLE_DEVICES=6 python -u k.shot.STILTS.py --task_name rte --do_train --do_lower_case --num_train_epochs 20 --train_batch_size 5 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 128 --seed 16 --kshot 100000
 

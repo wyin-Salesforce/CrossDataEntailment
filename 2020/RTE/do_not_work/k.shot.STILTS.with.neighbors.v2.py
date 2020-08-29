@@ -677,7 +677,7 @@ def main():
     mnli_label_list = ["entailment", "neutral", "contradiction"]
     train_examples_MNLI = processor.get_MNLI_train('/export/home/Dataset/glue_data/MNLI/train.tsv')
 
-    train_MNLI_sequential_dataloader, train_MNLI_features = examples_to_features(train_examples_MNLI, mnli_label_list, args, tokenizer, 128, "classification", dataloader_mode='sequential')
+    train_MNLI_sequential_dataloader, train_MNLI_features = examples_to_features(train_examples_MNLI, mnli_label_list, args, tokenizer, 512, "classification", dataloader_mode='sequential')
 
     '''get mnli hidden reps'''
     print('get mnli hidden reps....')

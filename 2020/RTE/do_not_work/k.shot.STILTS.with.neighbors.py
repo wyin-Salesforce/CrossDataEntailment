@@ -797,7 +797,7 @@ def main():
                 model_to_save = (
                     model.module if hasattr(model, "module") else model
                 )  # Take care of distributed/parallel training
-                store_transformers_models(model_to_save, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained', 'dev_acc_'+str(max_dev_acc)+'.pt')
+                store_transformers_models(model_to_save, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained', 'dev_seed_'+str(args.seed)+'_acc_'+str(max_dev_acc)+'.pt')
             else:
                 print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
 
@@ -805,17 +805,9 @@ def main():
 
 
 
-
-
-
-
-
-
-
-
         '''fine-tune on kshot'''
 
-        model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained/'+'dev_acc_'+str(max_dev_acc)+'.pt'))
+        model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained/'+'dev_seed_'+str(args.seed)+'_acc_'+str(max_dev_acc)+'.pt'))
         iter_co = 0
         max_dev_acc=0.0
         final_test_performance = 0.0
@@ -938,5 +930,9 @@ if __name__ == "__main__":
 
 CUDA_VISIBLE_DEVICES=4 python -u k.shot.STILTS.with.neighbors.py --task_name rte --do_train --do_lower_case --num_train_epochs 20 --train_batch_size 2 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10
 
+100 neighbors
 84.32/0.68
+
+500 neighbors
+84.54/0.35
 '''

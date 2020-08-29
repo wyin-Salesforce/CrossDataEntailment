@@ -717,7 +717,7 @@ def main():
     print('compute neighbors....')
     similarity_matrix = torch.mm(support_all_reps_matrix, torch.transpose(mnli_all_reps_matrix, 0, 1)) #(#support, #mnli)
     indices_in_order = torch.argsort(similarity_matrix, dim=1)
-    neighbors_indices = indices_in_order[:, -100:].view(-1) #100*#support
+    neighbors_indices = indices_in_order[:, -100:].reshape(-1) #100*#support
     assert neighbors_indices.shape[0] == 100*args.kshot*len(label_list)
     neighbor_indices_list = neighbors_indices.detach().cpu().numpy().tolist()
     selected_mnli_features = [train_MNLI_features[id] for id in neighbor_indices_list]

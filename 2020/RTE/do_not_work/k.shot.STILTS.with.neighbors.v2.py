@@ -512,17 +512,6 @@ def examples_to_features(source_examples, label_list, args, tokenizer, batch_siz
 
 
 def features_to_dataloader(source_features, batch_size, dataloader_mode='sequential'):
-    # source_features = convert_examples_to_features(
-    #     source_examples, label_list, args.max_seq_length, tokenizer, output_mode,
-    #     cls_token_at_end=False,#bool(args.model_type in ['xlnet']),            # xlnet has a cls token at the end
-    #     cls_token=tokenizer.cls_token,
-    #     cls_token_segment_id=0,#2 if args.model_type in ['xlnet'] else 0,
-    #     sep_token=tokenizer.sep_token,
-    #     sep_token_extra=True,#bool(args.model_type in ['roberta']),           # roberta uses an extra separator b/w pairs of sentences, cf. github.com/pytorch/fairseq/commit/1684e166e3da03f5b600dbb7855cb98ddfcd0805
-    #     pad_on_left=False,#bool(args.model_type in ['xlnet']),                 # pad on the left for xlnet
-    #     pad_token=tokenizer.convert_tokens_to_ids([tokenizer.pad_token])[0],
-    #     pad_token_segment_id=0)#4 if args.model_type in ['xlnet'] else 0,)
-
     dev_all_input_ids = torch.tensor([f.input_ids for f in source_features], dtype=torch.long)
     dev_all_input_mask = torch.tensor([f.input_mask for f in source_features], dtype=torch.long)
     dev_all_segment_ids = torch.tensor([f.segment_ids for f in source_features], dtype=torch.long)
@@ -715,9 +704,16 @@ def main():
 
     '''compute neighbors'''
     print('compute neighbors....')
-    similarity_matrix = torch.mm(support_all_reps_matrix, torch.transpose(mnli_all_reps_matrix, 0, 1)) #(#support, #mnli)
+    '''dot product'''
+    # similarity_matrix = torch.mm(support_all_reps_matrix, torch.transpose(mnli_all_reps_matrix, 0, 1)) #(#support, #mnli)
+    '''euclidean_distance'''
+    similarity_matrix =  torch.cdist(support_all_reps_matrix, mnli_all_reps_matrix, p=2)#(#support, #mnli)
     indices_in_order = torch.argsort(similarity_matrix, dim=1)
-    neighbors_indices = indices_in_order[:, -100:].reshape(-1) #100*#support
+    # neighbors_indices = indices_in_order[:, -100:].reshape(-1) #100*#support
+    neighbors_indices = indices_in_order[:, :100].reshape(-1) #100*#support
+
+
+
     assert neighbors_indices.shape[0] == 100*args.kshot*len(label_list)
     neighbor_indices_list = neighbors_indices.detach().cpu().numpy().tolist()
     selected_mnli_features = [train_MNLI_features[id] for id in neighbor_indices_list]
@@ -998,5 +994,8 @@ if __name__ == "__main__":
 
 CUDA_VISIBLE_DEVICES=6 python -u k.shot.STILTS.with.neighbors.v2.py --task_name rte --do_train --do_lower_case --num_train_epochs 20 --train_batch_size 2 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10
 
-84.32/0.68
+dot product:
+83.9/1.01
+
+
 '''

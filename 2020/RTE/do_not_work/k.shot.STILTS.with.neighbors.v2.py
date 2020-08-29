@@ -888,7 +888,7 @@ def main():
                 input_ids, input_mask, segment_ids, label_ids = batch
 
 
-                logits = model(input_ids, input_mask)
+                logits, _ = model(input_ids, input_mask)
                 # loss_fct = CrossEntropyLoss()
 
 
@@ -947,7 +947,7 @@ def main():
                             gold_label_ids+=list(label_ids.detach().cpu().numpy())
 
                             with torch.no_grad():
-                                logits = model(input_ids, input_mask)
+                                logits, _ = model(input_ids, input_mask)
                             if len(preds) == 0:
                                 preds.append(logits.detach().cpu().numpy())
                             else:

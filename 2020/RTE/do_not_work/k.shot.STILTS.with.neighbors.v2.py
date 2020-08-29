@@ -705,16 +705,20 @@ def main():
     '''compute neighbors'''
     print('compute neighbors....')
     '''dot product'''
-    # similarity_matrix = torch.mm(support_all_reps_matrix, torch.transpose(mnli_all_reps_matrix, 0, 1)) #(#support, #mnli)
-    '''euclidean_distance'''
-    similarity_matrix =  torch.cdist(support_all_reps_matrix, mnli_all_reps_matrix, p=2)#(#support, #mnli)
+    neighbor_size_limit = 500
+    similarity_matrix = torch.mm(support_all_reps_matrix, torch.transpose(mnli_all_reps_matrix, 0, 1)) #(#support, #mnli)
     indices_in_order = torch.argsort(similarity_matrix, dim=1)
-    # neighbors_indices = indices_in_order[:, -100:].reshape(-1) #100*#support
-    neighbors_indices = indices_in_order[:, :100].reshape(-1) #100*#support
+    neighbors_indices = indices_in_order[:, -neighbor_size_limit:].reshape(-1) #100*#support
+
+    '''euclidean_distance'''
+    # similarity_matrix =  torch.cdist(support_all_reps_matrix, mnli_all_reps_matrix, p=2)#(#support, #mnli)
+    # indices_in_order = torch.argsort(similarity_matrix, dim=1)
+    # # neighbors_indices = indices_in_order[:, -100:].reshape(-1) #100*#support
+    # neighbors_indices = indices_in_order[:, :100].reshape(-1) #100*#support
 
 
 
-    assert neighbors_indices.shape[0] == 100*args.kshot*len(label_list)
+    assert neighbors_indices.shape[0] == neighbor_size_limit*args.kshot*len(label_list)
     neighbor_indices_list = neighbors_indices.detach().cpu().numpy().tolist()
     selected_mnli_features = [train_MNLI_features[id] for id in neighbor_indices_list]
 
@@ -997,5 +1001,7 @@ CUDA_VISIBLE_DEVICES=6 python -u k.shot.STILTS.with.neighbors.v2.py --task_name 
 dot product:
 83.9/1.01
 
+euclidean distance
+83.71/1.13
 
 '''

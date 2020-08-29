@@ -280,8 +280,8 @@ class RteProcessor(DataProcessor):
                 examples.append(
                     InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
             line_co+=1
-            if line_co > 20000:
-                break
+            # if line_co > 20000:
+            #     break
         readfile.close()
         print('loaded  MNLI size:', len(examples))
 
@@ -857,7 +857,7 @@ def main():
                 model_to_save = (
                     model.module if hasattr(model, "module") else model
                 )  # Take care of distributed/parallel training
-                store_transformers_models(model_to_save, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained', 'dev_acc_'+str(max_dev_acc)+'.pt')
+                store_transformers_models(model_to_save, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained', 'dev_seed_'+str(args.seed)+'_acc_'+str(max_dev_acc)+'.pt')
             else:
                 print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
 
@@ -875,7 +875,7 @@ def main():
 
         '''fine-tune on kshot'''
 
-        model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained/'+'dev_acc_'+str(max_dev_acc)+'.pt'))
+        model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained/'+'dev_seed_'+str(args.seed)+'_acc_'+str(max_dev_acc)+'.pt'))
         iter_co = 0
         max_dev_acc=0.0
         final_test_performance = 0.0

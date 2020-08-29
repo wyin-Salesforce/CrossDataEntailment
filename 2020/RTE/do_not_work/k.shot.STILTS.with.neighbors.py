@@ -934,5 +934,7 @@ CUDA_VISIBLE_DEVICES=4 python -u k.shot.STILTS.with.neighbors.py --task_name rte
 84.32/0.68
 
 500 neighbors
-84.54/0.35
+84.56/0.14
+
+800 neighbors
 '''

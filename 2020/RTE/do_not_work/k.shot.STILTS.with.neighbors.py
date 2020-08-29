@@ -576,6 +576,10 @@ def main():
                         type=int,
                         default=42,
                         help="random seed for initialization")
+    parser.add_argument('--neighbor_size_limit',
+                        type=int,
+                        default=500,
+                        help="random seed for initialization")
     parser.add_argument('--gradient_accumulation_steps',
                         type=int,
                         default=1,
@@ -649,7 +653,8 @@ def main():
     for mnli_ex in train_examples_MNLI:
         source_example_2_gramset[mnli_ex] = gram_set(mnli_ex)
     print('MNLI gramset build over')
-    train_examples_neighbors = retrieve_neighbors_source_given_kshot_target(train_examples, source_example_2_gramset, 100)
+    # neighbor_size_limit = 500
+    train_examples_neighbors = retrieve_neighbors_source_given_kshot_target(train_examples, source_example_2_gramset, args.neighbor_size_limit)
     print('neighbor size:', len(train_examples_neighbors))
     # train_examples_neighbors_2way = []
     # for neighbor_ex in train_examples_neighbors:

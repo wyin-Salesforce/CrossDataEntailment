@@ -684,9 +684,9 @@ def main():
     for input_ids, input_mask, segment_ids, label_ids in train_MNLI_sequential_dataloader:
         input_ids = input_ids.to(device)
         input_mask = input_mask.to(device)
-        segment_ids = segment_ids.to(device)
-        label_ids = label_ids.to(device)
-        gold_label_ids+=list(label_ids.detach().cpu().numpy())
+        # segment_ids = segment_ids.to(device)
+        # label_ids = label_ids.to(device)
+        # gold_label_ids+=list(label_ids.detach().cpu().numpy())
         model.eval()
         with torch.no_grad():
             _, hidden_batch = model(input_ids, input_mask)
@@ -701,9 +701,9 @@ def main():
     for input_ids, input_mask, segment_ids, label_ids in train_dataloader:
         input_ids = input_ids.to(device)
         input_mask = input_mask.to(device)
-        segment_ids = segment_ids.to(device)
-        label_ids = label_ids.to(device)
-        gold_label_ids+=list(label_ids.detach().cpu().numpy())
+        # segment_ids = segment_ids.to(device)
+        # label_ids = label_ids.to(device)
+        # gold_label_ids+=list(label_ids.detach().cpu().numpy())
         model.eval()
         with torch.no_grad():
             _, hidden_batch = model(input_ids, input_mask)

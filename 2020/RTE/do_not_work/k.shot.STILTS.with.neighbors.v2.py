@@ -677,22 +677,22 @@ def main():
     mnli_label_list = ["entailment", "neutral", "contradiction"]
     train_examples_MNLI = processor.get_MNLI_train('/export/home/Dataset/glue_data/MNLI/train.tsv')
 
-    train_MNLI_sequential_dataloader, train_MNLI_features = examples_to_features(train_examples_MNLI, mnli_label_list, args, tokenizer, 5, "classification", dataloader_mode='sequential')
+    train_MNLI_sequential_dataloader, train_MNLI_features = examples_to_features(train_examples_MNLI, mnli_label_list, args, tokenizer, 48, "classification", dataloader_mode='sequential')
+
     '''get mnli hidden reps'''
     print('get mnli hidden reps....')
     mnli_all_reps = []
-    for input_ids, input_mask, segment_ids, label_ids in train_MNLI_sequential_dataloader:
+    # for input_ids, input_mask, segment_ids, label_ids in train_MNLI_sequential_dataloader:
+    for _, batch in enumerate(tqdm(train_MNLI_sequential_dataloader, desc="Iteration MNLI Reps")):
+        input_ids, input_mask, segment_ids, label_ids = batch
         input_ids = input_ids.to(device)
         input_mask = input_mask.to(device)
-        # segment_ids = segment_ids.to(device)
-        # label_ids = label_ids.to(device)
-        # gold_label_ids+=list(label_ids.detach().cpu().numpy())
         model.eval()
         with torch.no_grad():
             _, hidden_batch = model(input_ids, input_mask)
         mnli_all_reps.append(hidden_batch)
     mnli_all_reps_matrix = torch.cat(mnli_all_reps, dim=0) #(#MNLI, hidden)
-    assert mnli_all_reps_matrix.shape[0] == len(train_examples_MNLI)
+    assert mnli_all_reps_matrix.shape[0] == len(train_MNLI_features)
     '''get support set hidden reps'''
     print('get support set hidden reps...')
     train_examples = processor.get_RTE_as_train_k_shot('/export/home/Dataset/glue_data/RTE/train.tsv', args.kshot) #train_pu_half_v1.txt

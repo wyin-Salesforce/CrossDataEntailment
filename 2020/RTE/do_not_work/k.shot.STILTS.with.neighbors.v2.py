@@ -677,7 +677,7 @@ def main():
     mnli_label_list = ["entailment", "neutral", "contradiction"]
     train_examples_MNLI = processor.get_MNLI_train('/export/home/Dataset/glue_data/MNLI/train.tsv')
 
-    train_MNLI_sequential_dataloader, train_MNLI_features = examples_to_features(train_examples_MNLI, mnli_label_list, args, tokenizer, 48, "classification", dataloader_mode='sequential')
+    train_MNLI_sequential_dataloader, train_MNLI_features = examples_to_features(train_examples_MNLI, mnli_label_list, args, tokenizer, 128, "classification", dataloader_mode='sequential')
 
     '''get mnli hidden reps'''
     print('get mnli hidden reps....')
@@ -994,7 +994,7 @@ if __name__ == "__main__":
 
 '''
 
-CUDA_VISIBLE_DEVICES=4 python -u k.shot.STILTS.with.neighbors.v2.py --task_name rte --do_train --do_lower_case --num_train_epochs 20 --train_batch_size 2 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10
+CUDA_VISIBLE_DEVICES=6 python -u k.shot.STILTS.with.neighbors.v2.py --task_name rte --do_train --do_lower_case --num_train_epochs 20 --train_batch_size 2 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10
 
 84.32/0.68
 '''

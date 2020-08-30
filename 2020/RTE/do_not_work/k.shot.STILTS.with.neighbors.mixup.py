@@ -561,7 +561,9 @@ def main():
     parser.add_argument("--do_train",
                         action='store_true',
                         help="Whether to run training.")
-
+    parser.add_argument("--use_mixup",
+                        action='store_true',
+                        help="Whether not to use CUDA when available")
     parser.add_argument('--kshot',
                         type=int,
                         default=5,

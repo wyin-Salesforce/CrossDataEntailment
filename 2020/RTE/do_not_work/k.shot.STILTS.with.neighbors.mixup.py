@@ -765,7 +765,7 @@ def main():
                     use_mixup=args.use_mixup
                     logits = model(input_ids, input_mask, lambda_vec, is_train=use_mixup)
 
-                    # loss_fct = CrossEntropyLoss()
+                    loss_fct = CrossEntropyLoss()
 
                     if use_mixup:
                         '''mixup loss'''

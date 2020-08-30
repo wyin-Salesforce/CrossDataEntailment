@@ -936,7 +936,7 @@ def main():
                     gold_label_ids+=list(label_ids.detach().cpu().numpy())
 
                     with torch.no_grad():
-                        logits = model(input_ids, input_mask)
+                        logits = model(input_ids, input_mask, None, is_train=False)
                     if len(preds) == 0:
                         preds.append(logits.detach().cpu().numpy())
                     else:

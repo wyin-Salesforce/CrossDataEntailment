@@ -610,6 +610,10 @@ def main():
                         type=int,
                         default=500,
                         help="random seed for initialization")
+    parser.add_argument('--lambda_times',
+                        type=int,
+                        default=10,
+                        help="random seed for initialization")
     parser.add_argument('--gradient_accumulation_steps',
                         type=int,
                         default=1,

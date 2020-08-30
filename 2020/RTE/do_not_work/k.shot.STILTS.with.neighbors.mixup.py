@@ -750,7 +750,8 @@ def main():
 
         '''first pretrain on neighbors'''
         iter_co = 0
-        for _ in trange(int(args.num_train_epochs), desc="Epoch"):
+        # for _ in trange(int(args.num_train_epochs), desc="Epoch"):
+        for _ in trange(5, desc="Epoch"):
             tr_loss = 0
             nb_tr_examples, nb_tr_steps = 0, 0
             for step, batch in enumerate(tqdm(train_neighbors_dataloader, desc="Iteration")):

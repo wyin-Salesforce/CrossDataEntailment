@@ -80,13 +80,28 @@ class RobertaForSequenceClassification(nn.Module):
         self.roberta_single= RobertaModel.from_pretrained(pretrain_model_dir)
         self.single_hidden2tag = RobertaClassificationHead(bert_hidden_dim, tagset_size)
 
-    def forward(self, input_ids, input_mask):
+    # def forward(self, input_ids, input_mask):
+    #     outputs_single = self.roberta_single(input_ids, input_mask, None)
+    #     hidden_states_single = outputs_single[1]#torch.tanh(self.hidden_layer_2(torch.tanh(self.hidden_layer_1(outputs_single[1])))) #(batch, hidden)
+    #
+    #     score_single = self.single_hidden2tag(hidden_states_single) #(batch, tag_set)
+    #     return score_single
+
+    def forward(self, input_ids, input_mask, lambda_value, is_train = False):
         outputs_single = self.roberta_single(input_ids, input_mask, None)
         hidden_states_single = outputs_single[1]#torch.tanh(self.hidden_layer_2(torch.tanh(self.hidden_layer_1(outputs_single[1])))) #(batch, hidden)
+        '''mixup'''
+        if is_train:
+            batch_size = input_ids.shape[0]#.cpu().numpy()
+            hidden_states_single_v1 = hidden_states_single.repeat(batch_size, 1)
+            hidden_states_single_v2 = torch.repeat_interleave(hidden_states_single, repeats=batch_size, dim=0)
+            combined_pairs = lambda_value*hidden_states_single_v1+(1.0-lambda_value)*hidden_states_single_v2 #(batch*batch, hidden)
+            score_single = self.single_hidden2tag(combined_pairs) #(batch, tag_set)
+            return score_single
 
-        score_single = self.single_hidden2tag(hidden_states_single) #(batch, tag_set)
-        return score_single
-
+        else:
+            score_single = self.single_hidden2tag(hidden_states_single) #(batch, tag_set)
+            return score_single
 
 
 class RobertaClassificationHead(nn.Module):
@@ -508,7 +523,20 @@ def examples_to_features(source_examples, label_list, args, tokenizer, batch_siz
 
     return dev_dataloader
 
+def loss_by_logits_and_2way_labels(logits, label_ids, device):
+    '''
+    logits: (batch, #class)
+    label_ids: a list of binary ids
+    '''
+    prob_matrix = F.log_softmax(logits.view(-1, 3), dim=1)
+    '''this step *1.0 is very important, otherwise bug'''
+    new_prob_matrix = prob_matrix*1.0
+    '''change the entail prob to p or 1-p'''
+    changed_places = torch.nonzero(label_ids.view(-1), as_tuple=False)
+    new_prob_matrix[changed_places, 0] = 1.0 - prob_matrix[changed_places, 0]
 
+    loss = F.nll_loss(new_prob_matrix, torch.zeros_like(label_ids).to(device).view(-1))
+    return loss
 
 def main():
     parser = argparse.ArgumentParser()
@@ -725,23 +753,40 @@ def main():
                 input_ids, input_mask, segment_ids, label_ids = batch
 
 
-                logits = model(input_ids, input_mask)
-                loss_fct = CrossEntropyLoss()
+                for _ in range(args.lambda_times):
+                    lambda_vec = beta.rvs(0.4, 0.4, size=1)[0]
+                    '''use mixup???'''
+                    use_mixup=args.use_mixup
+                    logits = model(input_ids, input_mask, lambda_vec, is_train=use_mixup)
 
-                loss = loss_fct(logits.view(-1, len(mnli_label_list)), label_ids.view(-1))
-                if n_gpu > 1:
-                    loss = loss.mean() # mean() to average on multi-gpu.
-                if args.gradient_accumulation_steps > 1:
-                    loss = loss / args.gradient_accumulation_steps
+                    # loss_fct = CrossEntropyLoss()
 
-                loss.backward()
+                    if use_mixup:
+                        '''mixup loss'''
+                        single_train_label_ids_v1 = label_ids.repeat(input_ids.shape[0])
+                        single_train_label_ids_v2 = torch.repeat_interleave(label_ids.view(-1, 1), repeats=input_ids.shape[0], dim=0)
+                        loss_v1 = loss_fct(logits.view(-1, len(mnli_label_list)), single_train_label_ids_v1.view(-1))
+                        loss_v2 = loss_fct(logits.view(-1, len(mnli_label_list)), single_train_label_ids_v2.view(-1))
+                        # loss_v1 = loss_by_logits_and_2way_labels(logits, single_train_label_ids_v1.view(-1), device)
+                        # loss_v2 = loss_by_logits_and_2way_labels(logits, single_train_label_ids_v2.view(-1), device)
+                        loss = lambda_vec*loss_v1+(1.0-lambda_vec)*loss_v2# + 1e-3*reg_loss
+                    else:
+                        # loss = loss_by_logits_and_2way_labels(logits, label_ids.view(-1), device)
+                        loss = loss_fct(logits.view(-1, len(mnli_label_list)), label_ids.view(-1))
 
-                tr_loss += loss.item()
-                nb_tr_examples += input_ids.size(0)
-                nb_tr_steps += 1
+                    if n_gpu > 1:
+                        loss = loss.mean() # mean() to average on multi-gpu.
+                    if args.gradient_accumulation_steps > 1:
+                        loss = loss / args.gradient_accumulation_steps
 
-                optimizer.step()
-                optimizer.zero_grad()
+                    loss.backward()
+
+                    tr_loss += loss.item()
+                    nb_tr_examples += input_ids.size(0)
+                    nb_tr_steps += 1
+
+                    optimizer.step()
+                    optimizer.zero_grad()
                 global_step += 1
                 iter_co+=1
 
@@ -764,7 +809,7 @@ def main():
                 gold_label_ids+=list(label_ids.detach().cpu().numpy())
 
                 with torch.no_grad():
-                    logits = model(input_ids, input_mask)
+                    logits = model(input_ids, input_mask, None, is_train=False)
                 if len(preds) == 0:
                     preds.append(logits.detach().cpu().numpy())
                 else:
@@ -820,105 +865,111 @@ def main():
                 input_ids, input_mask, segment_ids, label_ids = batch
 
 
-                logits = model(input_ids, input_mask)
-                # loss_fct = CrossEntropyLoss()
+                for _ in range(args.lambda_times):
+                    lambda_vec = beta.rvs(0.4, 0.4, size=1)[0]
+                    '''use mixup???'''
+                    use_mixup=args.use_mixup
+                    logits = model(input_ids, input_mask, lambda_vec, is_train=use_mixup)
+                    if use_mixup:
+                        '''mixup loss'''
+                        single_train_label_ids_v1 = label_ids.repeat(input_ids.shape[0])
+                        single_train_label_ids_v2 = torch.repeat_interleave(label_ids.view(-1, 1), repeats=input_ids.shape[0], dim=0)
+                        # loss_v1 = loss_fct(logits.view(-1, num_labels), single_train_label_ids_v1.view(-1))
+                        # loss_v2 = loss_fct(logits.view(-1, num_labels), single_train_label_ids_v2.view(-1))
+                        loss_v1 = loss_by_logits_and_2way_labels(logits, single_train_label_ids_v1.view(-1), device)
+                        loss_v2 = loss_by_logits_and_2way_labels(logits, single_train_label_ids_v2.view(-1), device)
+                        loss = lambda_vec*loss_v1+(1.0-lambda_vec)*loss_v2# + 1e-3*reg_loss
+                    else:
+                        loss = loss_by_logits_and_2way_labels(logits, label_ids.view(-1), device)
 
 
-                prob_matrix = F.log_softmax(logits.view(-1, 3), dim=1)
-                '''this step *1.0 is very important, otherwise bug'''
-                new_prob_matrix = prob_matrix*1.0
-                '''change the entail prob to p or 1-p'''
-                changed_places = torch.nonzero(label_ids.view(-1), as_tuple=False)
-                new_prob_matrix[changed_places, 0] = 1.0 - prob_matrix[changed_places, 0]
 
-                loss = F.nll_loss(new_prob_matrix, torch.zeros_like(label_ids).to(device).view(-1))
+                    if n_gpu > 1:
+                        loss = loss.mean() # mean() to average on multi-gpu.
+                    if args.gradient_accumulation_steps > 1:
+                        loss = loss / args.gradient_accumulation_steps
 
-                if n_gpu > 1:
-                    loss = loss.mean() # mean() to average on multi-gpu.
-                if args.gradient_accumulation_steps > 1:
-                    loss = loss / args.gradient_accumulation_steps
+                    loss.backward()
 
-                loss.backward()
+                    tr_loss += loss.item()
+                    nb_tr_examples += input_ids.size(0)
+                    nb_tr_steps += 1
 
-                tr_loss += loss.item()
-                nb_tr_examples += input_ids.size(0)
-                nb_tr_steps += 1
-
-                optimizer_finetune.step()
-                optimizer_finetune.zero_grad()
+                    optimizer_finetune.step()
+                    optimizer_finetune.zero_grad()
                 global_step += 1
                 iter_co+=1
                 # if iter_co %20==0:
-                if iter_co % len(train_dataloader)==0:
-                    '''
-                    start evaluate on dev set after this epoch
-                    '''
-                    model.eval()
+                # if iter_co % len(train_dataloader)==0:
+            '''
+            start evaluate on dev set after this epoch
+            '''
+            model.eval()
 
-                    for idd, dev_or_test_dataloader in enumerate([dev_dataloader, test_dataloader]):
+            for idd, dev_or_test_dataloader in enumerate([dev_dataloader, test_dataloader]):
 
 
-                        if idd == 0:
-                            logger.info("***** Running dev *****")
-                            logger.info("  Num examples = %d", len(dev_examples))
-                        else:
-                            logger.info("***** Running test *****")
-                            logger.info("  Num examples = %d", len(test_examples))
-                        # logger.info("  Batch size = %d", args.eval_batch_size)
+                if idd == 0:
+                    logger.info("***** Running dev *****")
+                    logger.info("  Num examples = %d", len(dev_examples))
+                else:
+                    logger.info("***** Running test *****")
+                    logger.info("  Num examples = %d", len(test_examples))
+                # logger.info("  Batch size = %d", args.eval_batch_size)
 
-                        eval_loss = 0
-                        nb_eval_steps = 0
-                        preds = []
-                        gold_label_ids = []
-                        # print('Evaluating...')
-                        for input_ids, input_mask, segment_ids, label_ids in dev_or_test_dataloader:
-                            input_ids = input_ids.to(device)
-                            input_mask = input_mask.to(device)
-                            segment_ids = segment_ids.to(device)
-                            label_ids = label_ids.to(device)
-                            gold_label_ids+=list(label_ids.detach().cpu().numpy())
+                eval_loss = 0
+                nb_eval_steps = 0
+                preds = []
+                gold_label_ids = []
+                # print('Evaluating...')
+                for input_ids, input_mask, segment_ids, label_ids in dev_or_test_dataloader:
+                    input_ids = input_ids.to(device)
+                    input_mask = input_mask.to(device)
+                    segment_ids = segment_ids.to(device)
+                    label_ids = label_ids.to(device)
+                    gold_label_ids+=list(label_ids.detach().cpu().numpy())
 
-                            with torch.no_grad():
-                                logits = model(input_ids, input_mask)
-                            if len(preds) == 0:
-                                preds.append(logits.detach().cpu().numpy())
-                            else:
-                                preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
+                    with torch.no_grad():
+                        logits = model(input_ids, input_mask)
+                    if len(preds) == 0:
+                        preds.append(logits.detach().cpu().numpy())
+                    else:
+                        preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
 
-                        preds = preds[0]
+                preds = preds[0]
 
-                        pred_probs = softmax(preds,axis=1)
-                        pred_label_ids_3way = list(np.argmax(pred_probs, axis=1))
-                        '''change from 3-way to 2-way'''
-                        pred_label_ids = []
-                        for pred_id in pred_label_ids_3way:
-                            if pred_id !=0:
-                                pred_label_ids.append(1)
-                            else:
-                                pred_label_ids.append(0)
+                pred_probs = softmax(preds,axis=1)
+                pred_label_ids_3way = list(np.argmax(pred_probs, axis=1))
+                '''change from 3-way to 2-way'''
+                pred_label_ids = []
+                for pred_id in pred_label_ids_3way:
+                    if pred_id !=0:
+                        pred_label_ids.append(1)
+                    else:
+                        pred_label_ids.append(0)
 
-                        gold_label_ids = gold_label_ids
-                        assert len(pred_label_ids) == len(gold_label_ids)
-                        hit_co = 0
-                        for k in range(len(pred_label_ids)):
-                            if pred_label_ids[k] == gold_label_ids[k]:
-                                hit_co +=1
-                        test_acc = hit_co/len(gold_label_ids)
+                gold_label_ids = gold_label_ids
+                assert len(pred_label_ids) == len(gold_label_ids)
+                hit_co = 0
+                for k in range(len(pred_label_ids)):
+                    if pred_label_ids[k] == gold_label_ids[k]:
+                        hit_co +=1
+                test_acc = hit_co/len(gold_label_ids)
 
-                        if idd == 0: # this is dev
-                            if test_acc > max_dev_acc:
-                                max_dev_acc = test_acc
-                                print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
+                if idd == 0: # this is dev
+                    if test_acc > max_dev_acc:
+                        max_dev_acc = test_acc
+                        print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
 
-                            else:
-                                print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
-                                break
-                        else: # this is test
-                            if test_acc > max_test_acc:
-                                max_test_acc = test_acc
+                    else:
+                        print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
+                        break
+                else: # this is test
+                    if test_acc > max_test_acc:
+                        max_test_acc = test_acc
 
-                            final_test_performance = test_acc
-                            print('\ntest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
+                    final_test_performance = test_acc
+                    print('\ntest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
         print('final_test_performance:', final_test_performance)
 
 
@@ -928,7 +979,7 @@ if __name__ == "__main__":
 
 '''
 
-CUDA_VISIBLE_DEVICES=4 python -u k.shot.STILTS.with.neighbors.py --task_name rte --do_train --do_lower_case --num_train_epochs 20 --train_batch_size 2 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10
+CUDA_VISIBLE_DEVICES=4 python -u k.shot.STILTS.with.neighbors.mixup.py --task_name rte --do_train --do_lower_case --num_train_epochs 20 --train_batch_size 2 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10 --use_mixup --lambda_times 15 --neighbor_size_limit 50
 
 100 neighbors
 84.32/0.68

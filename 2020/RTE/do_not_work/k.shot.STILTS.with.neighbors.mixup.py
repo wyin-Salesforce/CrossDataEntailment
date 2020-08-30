@@ -872,10 +872,10 @@ def main():
                 input_ids, input_mask, segment_ids, label_ids = batch
 
 
-                for _ in range(args.lambda_times):
+                for _ in range(1):
                     lambda_vec = beta.rvs(0.4, 0.4, size=1)[0]
                     '''use mixup???'''
-                    use_mixup=args.use_mixup
+                    use_mixup=False #args.use_mixup
                     logits = model(input_ids, input_mask, lambda_vec, is_train=use_mixup)
                     if use_mixup:
                         '''mixup loss'''

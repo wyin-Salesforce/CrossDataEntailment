@@ -696,8 +696,8 @@ def main():
             batch_logits = protonet(class_prototype_reps, last_hidden_batch)
 
             '''source side loss'''
-            loss_fct = CrossEntropyLoss()
-            source_loss_list = loss_fct(batch_logits[:source_last_hidden_batch.shape[0]].view(-1, source_num_labels), source_label_ids_batch.view(-1), reduction='none')
+            loss_fct = CrossEntropyLoss(reduction='none')
+            source_loss_list = loss_fct(batch_logits[:source_last_hidden_batch.shape[0]].view(-1, source_num_labels), source_label_ids_batch.view(-1))
 
             target_label_ids_batch = torch.tensor([0]*target_batch_size+[1]*target_batch_size, dtype=torch.long)
             target_batch_logits = batch_logits[-source_last_hidden_batch.shape[0]:]

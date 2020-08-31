@@ -891,8 +891,8 @@ def main():
                 target_logits = target_model(last_hidden, prob_of_entail)
 
 
-                target_prob_matrix = F.log_softmax((target_logits).view(-1, 3), dim=1)
-                prob_matrix = F.log_softmax(target_prob_matrix+source_prob, dim=1)
+                prob_matrix = F.log_softmax((target_logits).view(-1, 3), dim=1)
+                # prob_matrix = F.log_softmax(target_prob_matrix+source_prob, dim=1)
 
                 '''this step *1.0 is very important, otherwise bug'''
                 new_prob_matrix = prob_matrix*1.0

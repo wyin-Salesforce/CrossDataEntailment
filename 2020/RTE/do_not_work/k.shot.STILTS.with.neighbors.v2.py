@@ -755,7 +755,7 @@ def main():
                 input_ids, input_mask, segment_ids, label_ids = batch
 
 
-                logits = model(input_ids, input_mask)
+                logits,_ = model(input_ids, input_mask)
                 loss_fct = CrossEntropyLoss()
 
                 loss = loss_fct(logits.view(-1, len(mnli_label_list)), label_ids.view(-1))
@@ -794,7 +794,7 @@ def main():
                 gold_label_ids+=list(label_ids.detach().cpu().numpy())
 
                 with torch.no_grad():
-                    logits = model(input_ids, input_mask)
+                    logits,_ = model(input_ids, input_mask)
                 if len(preds) == 0:
                     preds.append(logits.detach().cpu().numpy())
                 else:
@@ -827,13 +827,13 @@ def main():
                 model_to_save = (
                     model.module if hasattr(model, "module") else model
                 )  # Take care of distributed/parallel training
-                store_transformers_models(model_to_save, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained', 'dev_seed_'+str(args.seed)+'_acc_'+str(max_dev_acc)+'.pt')
+                store_transformers_models(model_to_save, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained', 'dev_v2_seed_'+str(args.seed)+'_acc_'+str(max_dev_acc)+'.pt')
             else:
                 print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
 
 
         '''use MNLI to pretrain the target classifier'''
-        model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained/'+'dev_seed_'+str(args.seed)+'_acc_'+str(max_dev_acc)+'.pt'))
+        model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained/'+'dev_v2_seed_'+str(args.seed)+'_acc_'+str(max_dev_acc)+'.pt'))
         for _ in trange(3, desc="Epoch"):
             tr_loss = 0
             nb_tr_examples, nb_tr_steps = 0, 0

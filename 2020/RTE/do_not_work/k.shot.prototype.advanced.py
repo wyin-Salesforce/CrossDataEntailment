@@ -442,7 +442,8 @@ def loss_by_logits_and_2way_labels(logits, label_ids, device):
     changed_places = torch.nonzero(label_ids.view(-1), as_tuple=False)
     new_prob_matrix[changed_places, 0] = 1.0 - prob_matrix[changed_places, 0]
 
-    loss = F.nll_loss(new_prob_matrix, torch.zeros_like(label_ids).to(device).view(-1), reduction='none')
+    # loss = F.nll_loss(new_prob_matrix, torch.zeros_like(label_ids).to(device).view(-1), reduction='none')
+    loss = F.nll_loss(new_prob_matrix, torch.zeros_like(label_ids).to(device).view(-1))
     return loss
 
 def main():
@@ -672,14 +673,6 @@ def main():
                 kshot_neural_reps.append(last_hidden_neural)
             all_kshot_neural_reps = torch.cat(kshot_neural_reps, dim=0)
             kshot_neural_rep = torch.mean(all_kshot_neural_reps, dim=0, keepdim=True)
-            # kshot_contra_reps = []
-            # for contra_batch in source_kshot_contra_dataloader:
-            #     contra_batch = tuple(t.to(device) for t in contra_batch)
-            #     input_ids, input_mask, segment_ids, label_ids = contra_batch
-            #     roberta_model.eval()
-            #     with torch.no_grad():
-            #         last_hidden_contra, _ = roberta_model(input_ids, input_mask)
-            #     kshot_contra_reps.append(last_hidden_contra)
             kshot_contra_rep = kshot_neural_rep#torch.mean(torch.cat(kshot_contra_reps, dim=0), dim=0, keepdim=True)
 
             target_class_prototype_reps = torch.cat([kshot_entail_rep, kshot_neural_rep, kshot_contra_rep], dim=0) #(3, hidden)
@@ -696,14 +689,15 @@ def main():
             batch_logits = protonet(class_prototype_reps, last_hidden_batch)
 
             '''source side loss'''
-            loss_fct = CrossEntropyLoss(reduction='none')
+            # loss_fct = CrossEntropyLoss(reduction='none')
+            loss_fct = CrossEntropyLoss()
             source_loss_list = loss_fct(batch_logits[:source_last_hidden_batch.shape[0]].view(-1, source_num_labels), source_label_ids_batch.view(-1))
 
             target_label_ids_batch = torch.tensor([0]*selected_target_entail_rep.shape[0]+[1]*selected_target_neural_rep.shape[0], dtype=torch.long)
             target_batch_logits = batch_logits[-target_last_hidden_batch.shape[0]:]
             target_loss_list = loss_by_logits_and_2way_labels(target_batch_logits, target_label_ids_batch.view(-1), device)
 
-            loss = torch.mean(torch.cat([source_loss_list, target_loss_list]))
+            loss = source_loss_list+target_loss_list#torch.mean(torch.cat([source_loss_list, target_loss_list]))
             if n_gpu > 1:
                 loss = loss.mean() # mean() to average on multi-gpu.
             if args.gradient_accumulation_steps > 1:

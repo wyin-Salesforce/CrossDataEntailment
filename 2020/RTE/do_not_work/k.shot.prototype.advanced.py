@@ -811,7 +811,14 @@ def main():
             preds = preds[0]
 
             pred_probs = softmax(preds,axis=1)
-            pred_label_ids = list(np.argmax(pred_probs, axis=1))
+            pred_label_ids_3way = list(np.argmax(pred_probs, axis=1))
+            '''change from 3-way to 2-way'''
+            pred_label_ids = []
+            for pred_id in pred_label_ids_3way:
+                if pred_id !=0:
+                    pred_label_ids.append(1)
+                else:
+                    pred_label_ids.append(0)
 
             gold_label_ids = gold_label_ids
             assert len(pred_label_ids) == len(gold_label_ids)

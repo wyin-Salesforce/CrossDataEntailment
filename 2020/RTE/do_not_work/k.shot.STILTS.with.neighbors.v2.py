@@ -108,6 +108,30 @@ class RobertaClassificationHead(nn.Module):
         return x, last_hidden
 
 
+class RobertaForSequenceClassification_TargetClassifier(nn.Module):
+    def __init__(self, kshot, tagset_size):
+        super(RobertaForSequenceClassification_TargetClassifier, self).__init__()
+        '''
+        kshot: means the size of the total support set
+        '''
+        self.tagset_size = tagset_size
+
+        # self.roberta_single= RobertaModel.from_pretrained(pretrain_model_dir)
+        # self.single_hidden2tag = RobertaClassificationHead(bert_hidden_dim, tagset_size)
+        self.int_proj = nn.Linear(bert_hidden_dim, bert_hidden_dim+kshot)
+        '''+1 means we consider the MNLI entail prob as one extra feature'''
+        self.out_proj = nn.Linear(bert_hidden_dim+kshot+1, self.tagset_size)
+
+    def forward(self, hidden_states_batch, prob_batch):
+        '''
+        hidden_states_batch: (batch, hidden)
+        prob_batch: (batch, 1)
+        '''
+        layer1_hidden = torch.tanh(self.int_proj(hidden_states_batch))
+        layer2_input = torch.cat([layer1_hidden, prob_batch], dim=1) #(batch, hidden+1)
+
+        score_single = self.out_proj(layer2_input)
+        return score_single
 
 class InputExample(object):
     """A single training/test example for simple sequence classification."""
@@ -280,8 +304,6 @@ class RteProcessor(DataProcessor):
                 examples.append(
                     InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
             line_co+=1
-            # if line_co > 20000:
-            #     break
         readfile.close()
         print('loaded  MNLI size:', len(examples))
 
@@ -508,24 +530,9 @@ def examples_to_features(source_examples, label_list, args, tokenizer, batch_siz
     dev_dataloader = DataLoader(dev_data, sampler=dev_sampler, batch_size=batch_size)
 
 
-    return dev_dataloader, source_features
-
-
-def features_to_dataloader(source_features, batch_size, dataloader_mode='sequential'):
-    dev_all_input_ids = torch.tensor([f.input_ids for f in source_features], dtype=torch.long)
-    dev_all_input_mask = torch.tensor([f.input_mask for f in source_features], dtype=torch.long)
-    dev_all_segment_ids = torch.tensor([f.segment_ids for f in source_features], dtype=torch.long)
-    dev_all_label_ids = torch.tensor([f.label_id for f in source_features], dtype=torch.long)
-
-    dev_data = TensorDataset(dev_all_input_ids, dev_all_input_mask, dev_all_segment_ids, dev_all_label_ids)
-    if dataloader_mode=='sequential':
-        dev_sampler = SequentialSampler(dev_data)
-    else:
-        dev_sampler = RandomSampler(dev_data)
-    dev_dataloader = DataLoader(dev_data, sampler=dev_sampler, batch_size=batch_size)
-
-
     return dev_dataloader
+
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -593,6 +600,10 @@ def main():
                         type=int,
                         default=42,
                         help="random seed for initialization")
+    parser.add_argument('--neighbor_size_limit',
+                        type=int,
+                        default=500,
+                        help="random seed for initialization")
     parser.add_argument('--gradient_accumulation_steps',
                         type=int,
                         default=1,
@@ -658,82 +669,31 @@ def main():
     processor = processors[task_name]()
     output_mode = output_modes[task_name]
 
-    model = RobertaForSequenceClassification(3)
-    tokenizer = RobertaTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
-    model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_pretrained/_acc_0.9040886899918633.pt'))
-    # model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained/RTE.10shot.seed.42.pt'))
-    model.to(device)
 
-    label_list = ["entailment", "not_entailment"]
-    mnli_label_list = ["entailment", "neutral", "contradiction"]
+    train_examples = processor.get_RTE_as_train_k_shot('/export/home/Dataset/glue_data/RTE/train.tsv', args.kshot) #train_pu_half_v1.txt
     train_examples_MNLI = processor.get_MNLI_train('/export/home/Dataset/glue_data/MNLI/train.tsv')
 
-    train_MNLI_sequential_dataloader, train_MNLI_features = examples_to_features(train_examples_MNLI, mnli_label_list, args, tokenizer, 128, "classification", dataloader_mode='sequential')
-
-    '''get mnli hidden reps'''
-    print('get mnli hidden reps....')
-    mnli_all_reps = []
-    # for input_ids, input_mask, segment_ids, label_ids in train_MNLI_sequential_dataloader:
-    for _, batch in enumerate(tqdm(train_MNLI_sequential_dataloader, desc="Iteration MNLI Reps")):
-        input_ids, input_mask, segment_ids, label_ids = batch
-        input_ids = input_ids.to(device)
-        input_mask = input_mask.to(device)
-        model.eval()
-        with torch.no_grad():
-            _, hidden_batch = model(input_ids, input_mask)
-        mnli_all_reps.append(hidden_batch)
-    mnli_all_reps_matrix = torch.cat(mnli_all_reps, dim=0) #(#MNLI, hidden)
-    assert mnli_all_reps_matrix.shape[0] == len(train_MNLI_features)
-    '''get support set hidden reps'''
-    print('get support set hidden reps...')
-    train_examples = processor.get_RTE_as_train_k_shot('/export/home/Dataset/glue_data/RTE/train.tsv', args.kshot) #train_pu_half_v1.txt
-    train_dataloader,_ = examples_to_features(train_examples, label_list, args, tokenizer, args.train_batch_size, "classification", dataloader_mode='random')
-    support_all_reps = []
-    for input_ids, input_mask, segment_ids, label_ids in train_dataloader:
-        input_ids = input_ids.to(device)
-        input_mask = input_mask.to(device)
-        # segment_ids = segment_ids.to(device)
-        # label_ids = label_ids.to(device)
-        # gold_label_ids+=list(label_ids.detach().cpu().numpy())
-        model.eval()
-        with torch.no_grad():
-            _, hidden_batch = model(input_ids, input_mask)
-        support_all_reps.append(hidden_batch)
-    support_all_reps_matrix = torch.cat(support_all_reps, dim=0) #(#support, hidden)
-    assert support_all_reps_matrix.shape[0] == args.kshot*len(label_list)
-
-    '''compute neighbors'''
-    print('compute neighbors....')
-    '''dot product'''
-    neighbor_size_limit = 500
-    similarity_matrix = torch.mm(support_all_reps_matrix, torch.transpose(mnli_all_reps_matrix, 0, 1)) #(#support, #mnli)
-    indices_in_order = torch.argsort(similarity_matrix, dim=1)
-    neighbors_indices = indices_in_order[:, -neighbor_size_limit:].reshape(-1) #100*#support
-
-    '''euclidean_distance'''
-    # similarity_matrix =  torch.cdist(support_all_reps_matrix, mnli_all_reps_matrix, p=2)#(#support, #mnli)
-    # indices_in_order = torch.argsort(similarity_matrix, dim=1)
-    # # neighbors_indices = indices_in_order[:, -100:].reshape(-1) #100*#support
-    # neighbors_indices = indices_in_order[:, :100].reshape(-1) #100*#support
-
-
-
-    assert neighbors_indices.shape[0] == neighbor_size_limit*args.kshot*len(label_list)
-    neighbor_indices_list = neighbors_indices.detach().cpu().numpy().tolist()
-    selected_mnli_features = [train_MNLI_features[id] for id in neighbor_indices_list]
-
-    train_MNLI_random_dataloader = features_to_dataloader(selected_mnli_features, 5, dataloader_mode='random')
-
-
+    source_example_2_gramset = {}
+    for mnli_ex in train_examples_MNLI:
+        source_example_2_gramset[mnli_ex] = gram_set(mnli_ex)
+    print('MNLI gramset build over')
+    # neighbor_size_limit = 500
+    train_examples_neighbors = retrieve_neighbors_source_given_kshot_target(train_examples, source_example_2_gramset, args.neighbor_size_limit)
+    print('neighbor size:', len(train_examples_neighbors))
+    # train_examples_neighbors_2way = []
+    # for neighbor_ex in train_examples_neighbors:
+    #     if neighbor_ex.label !='entailment':
+    #         neighbor_ex.label = 'not_entailment'
+    #     train_examples_neighbors_2way.append(neighbor_ex)
 
 
     dev_examples = processor.get_RTE_as_dev('/export/home/Dataset/glue_data/RTE/dev.tsv')
     test_examples = processor.get_RTE_as_test('/export/home/Dataset/RTE/test_RTE_1235.txt')
-    # label_list = ["entailment", "not_entailment"]
-    # mnli_label_list = ["entailment", "neutral", "contradiction"]
+    label_list = ["entailment", "not_entailment"]
+    mnli_label_list = ["entailment", "neutral", "contradiction"]
     # train_examples, dev_examples, test_examples, label_list = load_CLINC150_with_specific_domain_sequence(args.DomainName, args.kshot, augment=False)
     num_labels = len(label_list)
-    print('num_labels:', num_labels, 'training size:', len(train_examples), 'neighbor size:', len(selected_mnli_features),  'dev size:', len(dev_examples), 'test size:', len(test_examples))
+    print('num_labels:', num_labels, 'training size:', len(train_examples), 'neighbor size:', len(train_examples_neighbors),  'dev size:', len(dev_examples), 'test size:', len(test_examples))
 
     num_train_optimization_steps = None
     num_train_optimization_steps = int(
@@ -741,6 +701,15 @@ def main():
     if args.local_rank != -1:
         num_train_optimization_steps = num_train_optimization_steps // torch.distributed.get_world_size()
 
+    model = RobertaForSequenceClassification(3)
+    tokenizer = RobertaTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
+    model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_pretrained/_acc_0.9040886899918633.pt'))
+    # model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained/RTE.10shot.seed.42.pt'))
+    model.to(device)
+
+
+    target_model = RobertaForSequenceClassification_TargetClassifier(args.kshot*num_labels, 3)
+    target_model.to(device)
 
 
     param_optimizer = list(model.named_parameters())
@@ -753,14 +722,14 @@ def main():
     optimizer = AdamW(optimizer_grouped_parameters,
                              lr=5e-7)
 
-    param_optimizer_finetune = list(model.named_parameters())
+    param_optimizer_target = list(target_model.named_parameters())
     no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
-    optimizer_grouped_parameters = [
-        {'params': [p for n, p in param_optimizer_finetune if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
-        {'params': [p for n, p in param_optimizer_finetune if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
+    optimizer_grouped_parameters_target = [
+        {'params': [p for n, p in param_optimizer_target if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
+        {'params': [p for n, p in param_optimizer_target if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
         ]
 
-    optimizer_finetune = AdamW(optimizer_grouped_parameters,
+    optimizer_target = AdamW(optimizer_grouped_parameters_target,
                              lr=args.learning_rate)
 
     global_step = 0
@@ -769,26 +738,120 @@ def main():
     max_test_acc = 0.0
     max_dev_acc = 0.0
     if args.do_train:
-        # train_dataloader = examples_to_features(train_examples, label_list, args, tokenizer, args.train_batch_size, "classification", dataloader_mode='random')
-        # train_neighbors_dataloader = examples_to_features(train_examples_neighbors, mnli_label_list, args, tokenizer, 5, "classification", dataloader_mode='random')
-        dev_dataloader,_ = examples_to_features(dev_examples, label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
-        test_dataloader,_ = examples_to_features(test_examples, label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
+        train_dataloader = examples_to_features(train_examples, label_list, args, tokenizer, args.train_batch_size, "classification", dataloader_mode='random')
+        train_neighbors_dataloader = examples_to_features(train_examples_neighbors, mnli_label_list, args, tokenizer, 5, "classification", dataloader_mode='random')
+        dev_dataloader = examples_to_features(dev_examples, label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
+        test_dataloader = examples_to_features(test_examples, label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
+        train_mnli_dataloader = examples_to_features(train_examples_MNLI, mnli_label_list, args, tokenizer, 32, "classification", dataloader_mode='random')
 
-        '''first pretrain on neighbors'''
-        iter_co = 0
-        for _ in trange(int(args.num_train_epochs), desc="Epoch"):
+        # '''first pretrain on neighbors'''
+        # iter_co = 0
+        # for _ in trange(int(args.num_train_epochs), desc="Epoch"):
+        #     tr_loss = 0
+        #     nb_tr_examples, nb_tr_steps = 0, 0
+        #     for step, batch in enumerate(tqdm(train_neighbors_dataloader, desc="Iteration")):
+        #         model.train()
+        #         batch = tuple(t.to(device) for t in batch)
+        #         input_ids, input_mask, segment_ids, label_ids = batch
+        #
+        #
+        #         logits = model(input_ids, input_mask)
+        #         loss_fct = CrossEntropyLoss()
+        #
+        #         loss = loss_fct(logits.view(-1, len(mnli_label_list)), label_ids.view(-1))
+        #         if n_gpu > 1:
+        #             loss = loss.mean() # mean() to average on multi-gpu.
+        #         if args.gradient_accumulation_steps > 1:
+        #             loss = loss / args.gradient_accumulation_steps
+        #
+        #         loss.backward()
+        #
+        #         tr_loss += loss.item()
+        #         nb_tr_examples += input_ids.size(0)
+        #         nb_tr_steps += 1
+        #
+        #         optimizer.step()
+        #         optimizer.zero_grad()
+        #         global_step += 1
+        #         iter_co+=1
+        #
+        #     '''
+        #     start evaluate on dev set after this epoch
+        #     '''
+        #     model.eval()
+        #
+        #
+        #     eval_loss = 0
+        #     nb_eval_steps = 0
+        #     preds = []
+        #     gold_label_ids = []
+        #     # print('Evaluating...')
+        #     for input_ids, input_mask, segment_ids, label_ids in dev_dataloader:
+        #         input_ids = input_ids.to(device)
+        #         input_mask = input_mask.to(device)
+        #         segment_ids = segment_ids.to(device)
+        #         label_ids = label_ids.to(device)
+        #         gold_label_ids+=list(label_ids.detach().cpu().numpy())
+        #
+        #         with torch.no_grad():
+        #             logits = model(input_ids, input_mask)
+        #         if len(preds) == 0:
+        #             preds.append(logits.detach().cpu().numpy())
+        #         else:
+        #             preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
+        #
+        #     preds = preds[0]
+        #
+        #     pred_probs = softmax(preds,axis=1)
+        #     pred_label_ids_3way = list(np.argmax(pred_probs, axis=1))
+        #     '''change from 3-way to 2-way'''
+        #     pred_label_ids = []
+        #     for pred_id in pred_label_ids_3way:
+        #         if pred_id !=0:
+        #             pred_label_ids.append(1)
+        #         else:
+        #             pred_label_ids.append(0)
+        #
+        #     gold_label_ids = gold_label_ids
+        #     assert len(pred_label_ids) == len(gold_label_ids)
+        #     hit_co = 0
+        #     for k in range(len(pred_label_ids)):
+        #         if pred_label_ids[k] == gold_label_ids[k]:
+        #             hit_co +=1
+        #     test_acc = hit_co/len(gold_label_ids)
+        #
+        #     if test_acc > max_dev_acc:
+        #         max_dev_acc = test_acc
+        #         print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
+        #         '''store the model, because we can test after a max_dev acc reached'''
+        #         model_to_save = (
+        #             model.module if hasattr(model, "module") else model
+        #         )  # Take care of distributed/parallel training
+        #         store_transformers_models(model_to_save, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained', 'dev_seed_'+str(args.seed)+'_acc_'+str(max_dev_acc)+'.pt')
+        #     else:
+        #         print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
+
+
+        '''use MNLI to pretrain the target classifier'''
+        # model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained/'+'dev_seed_'+str(args.seed)+'_acc_'+str(max_dev_acc)+'.pt'))
+        for _ in trange(1, desc="Epoch"):
             tr_loss = 0
             nb_tr_examples, nb_tr_steps = 0, 0
-            for step, batch in enumerate(tqdm(train_MNLI_random_dataloader, desc="Iteration")):
-                model.train()
+            for step, batch in enumerate(tqdm(train_mnli_dataloader, desc="Iteration")):
+
                 batch = tuple(t.to(device) for t in batch)
                 input_ids, input_mask, segment_ids, label_ids = batch
+                '''first get the rep'''
+                model.eval()
+                with torch.no_grad():
+                    logits, last_hidden = model(input_ids, input_mask)
+                prob_of_entail = F.log_softmax(logits.view(-1, 3), dim=1)[:,:1] #(batch, 1)
 
-
-                logits,_ = model(input_ids, input_mask)
+                target_model.train()
+                target_logits = target_model(last_hidden, prob_of_entail)
                 loss_fct = CrossEntropyLoss()
 
-                loss = loss_fct(logits.view(-1, len(mnli_label_list)), label_ids.view(-1))
+                loss = loss_fct(target_logits.view(-1, len(mnli_label_list)), label_ids.view(-1))
                 if n_gpu > 1:
                     loss = loss.mean() # mean() to average on multi-gpu.
                 if args.gradient_accumulation_steps > 1:
@@ -800,82 +863,12 @@ def main():
                 nb_tr_examples += input_ids.size(0)
                 nb_tr_steps += 1
 
-                optimizer.step()
-                optimizer.zero_grad()
-                global_step += 1
-                iter_co+=1
-
-            '''
-            start evaluate on dev set after this epoch
-            '''
-            model.eval()
-
-
-            eval_loss = 0
-            nb_eval_steps = 0
-            preds = []
-            gold_label_ids = []
-            # print('Evaluating...')
-            for input_ids, input_mask, segment_ids, label_ids in dev_dataloader:
-                input_ids = input_ids.to(device)
-                input_mask = input_mask.to(device)
-                segment_ids = segment_ids.to(device)
-                label_ids = label_ids.to(device)
-                gold_label_ids+=list(label_ids.detach().cpu().numpy())
-
-                with torch.no_grad():
-                    logits,_ = model(input_ids, input_mask)
-                if len(preds) == 0:
-                    preds.append(logits.detach().cpu().numpy())
-                else:
-                    preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
-
-            preds = preds[0]
-
-            pred_probs = softmax(preds,axis=1)
-            pred_label_ids_3way = list(np.argmax(pred_probs, axis=1))
-            '''change from 3-way to 2-way'''
-            pred_label_ids = []
-            for pred_id in pred_label_ids_3way:
-                if pred_id !=0:
-                    pred_label_ids.append(1)
-                else:
-                    pred_label_ids.append(0)
-
-            gold_label_ids = gold_label_ids
-            assert len(pred_label_ids) == len(gold_label_ids)
-            hit_co = 0
-            for k in range(len(pred_label_ids)):
-                if pred_label_ids[k] == gold_label_ids[k]:
-                    hit_co +=1
-            test_acc = hit_co/len(gold_label_ids)
-
-            if test_acc > max_dev_acc:
-                max_dev_acc = test_acc
-                print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
-                '''store the model, because we can test after a max_dev acc reached'''
-                model_to_save = (
-                    model.module if hasattr(model, "module") else model
-                )  # Take care of distributed/parallel training
-                store_transformers_models(model_to_save, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained', 'dev_seed_'+str(args.seed)+'_acc_'+str(max_dev_acc)+'.pt')
-            else:
-                print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
-
-
-
-
-
-
-
-
-
-
-
-
+                optimizer_target.step()
+                optimizer_target.zero_grad()
 
         '''fine-tune on kshot'''
 
-        model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained/'+'dev_seed_'+str(args.seed)+'_acc_'+str(max_dev_acc)+'.pt'))
+        # model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained/'+'dev_seed_'+str(args.seed)+'_acc_'+str(max_dev_acc)+'.pt'))
         iter_co = 0
         max_dev_acc=0.0
         final_test_performance = 0.0
@@ -883,16 +876,21 @@ def main():
             tr_loss = 0
             nb_tr_examples, nb_tr_steps = 0, 0
             for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
-                model.train()
+                # model.train()
                 batch = tuple(t.to(device) for t in batch)
                 input_ids, input_mask, segment_ids, label_ids = batch
 
+                '''first get the rep'''
+                model.eval()
+                with torch.no_grad():
+                    logits, last_hidden = model(input_ids, input_mask)
+                prob_of_entail = F.log_softmax(logits.view(-1, 3), dim=1)[:,:1] #(batch, 1)
 
-                logits, _ = model(input_ids, input_mask)
-                # loss_fct = CrossEntropyLoss()
+                target_model.train()
+                target_logits = target_model(last_hidden, prob_of_entail)
 
 
-                prob_matrix = F.log_softmax(logits.view(-1, 3), dim=1)
+                prob_matrix = F.log_softmax(target_logits.view(-1, 3), dim=1)
                 '''this step *1.0 is very important, otherwise bug'''
                 new_prob_matrix = prob_matrix*1.0
                 '''change the entail prob to p or 1-p'''
@@ -912,8 +910,8 @@ def main():
                 nb_tr_examples += input_ids.size(0)
                 nb_tr_steps += 1
 
-                optimizer_finetune.step()
-                optimizer_finetune.zero_grad()
+                optimizer_target.step()
+                optimizer_target.zero_grad()
                 global_step += 1
                 iter_co+=1
                 # if iter_co %20==0:
@@ -922,6 +920,7 @@ def main():
                     start evaluate on dev set after this epoch
                     '''
                     model.eval()
+                    target_model.eval()
 
                     for idd, dev_or_test_dataloader in enumerate([dev_dataloader, test_dataloader]):
 
@@ -947,7 +946,11 @@ def main():
                             gold_label_ids+=list(label_ids.detach().cpu().numpy())
 
                             with torch.no_grad():
-                                logits, _ = model(input_ids, input_mask)
+                                source_logits, last_hidden = model(input_ids, input_mask)
+                            prob_of_entail = F.log_softmax(source_logits.view(-1, 3), dim=1)[:,:1] #(batch, 1)
+                            with torch.no_grad():
+                                logits = target_model(last_hidden, prob_of_entail)
+
                             if len(preds) == 0:
                                 preds.append(logits.detach().cpu().numpy())
                             else:
@@ -996,12 +999,21 @@ if __name__ == "__main__":
 
 '''
 
-CUDA_VISIBLE_DEVICES=6 python -u k.shot.STILTS.with.neighbors.v2.py --task_name rte --do_train --do_lower_case --num_train_epochs 20 --train_batch_size 2 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10
+CUDA_VISIBLE_DEVICES=7 python -u k.shot.STILTS.with.neighbors.v2.py --task_name rte --do_train --do_lower_case --num_train_epochs 20 --train_batch_size 2 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10
 
-dot product:
-83.9/1.01
+100 neighbors
+84.32/0.68
 
-euclidean distance
-83.71/1.13
 
+400 neighbors
+84.47/0.35
+
+500 neighbors
+84.56/0.14
+
+600 neighbors
+84.32/0.58
+
+800 neighbors
+84.08/0.56
 '''

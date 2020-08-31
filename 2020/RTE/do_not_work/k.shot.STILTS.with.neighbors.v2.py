@@ -884,13 +884,16 @@ def main():
                 model.eval()
                 with torch.no_grad():
                     logits, last_hidden = model(input_ids, input_mask)
-                prob_of_entail = F.log_softmax(logits.view(-1, 3), dim=1)[:,:1] #(batch, 1)
+                source_prob = F.log_softmax(logits.view(-1, 3), dim=1)
+                prob_of_entail = source_prob[:,:1] #(batch, 1)
 
                 target_model.train()
                 target_logits = target_model(last_hidden, prob_of_entail)
 
 
-                prob_matrix = F.log_softmax(target_logits.view(-1, 3), dim=1)
+                prob_matrix = F.log_softmax((target_logits+source_prob).view(-1, 3), dim=1)
+                # prob_matrix = prob_matrix+source_prob
+
                 '''this step *1.0 is very important, otherwise bug'''
                 new_prob_matrix = prob_matrix*1.0
                 '''change the entail prob to p or 1-p'''
@@ -947,10 +950,13 @@ def main():
 
                             with torch.no_grad():
                                 source_logits, last_hidden = model(input_ids, input_mask)
-                            prob_of_entail = F.log_softmax(source_logits.view(-1, 3), dim=1)[:,:1] #(batch, 1)
+
+                            source_prob = F.log_softmax(source_logits.view(-1, 3), dim=1)
+                            prob_of_entail = source_prob[:,:1] #(batch, 1)
                             with torch.no_grad():
                                 logits = target_model(last_hidden, prob_of_entail)
 
+                            logits = logits+source_prob
                             if len(preds) == 0:
                                 preds.append(logits.detach().cpu().numpy())
                             else:

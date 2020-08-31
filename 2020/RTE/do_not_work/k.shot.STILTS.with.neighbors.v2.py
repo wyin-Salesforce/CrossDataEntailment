@@ -673,13 +673,13 @@ def main():
     train_examples = processor.get_RTE_as_train_k_shot('/export/home/Dataset/glue_data/RTE/train.tsv', args.kshot) #train_pu_half_v1.txt
     train_examples_MNLI = processor.get_MNLI_train('/export/home/Dataset/glue_data/MNLI/train.tsv')
 
-    # source_example_2_gramset = {}
-    # for mnli_ex in train_examples_MNLI:
-    #     source_example_2_gramset[mnli_ex] = gram_set(mnli_ex)
-    # print('MNLI gramset build over')
+    source_example_2_gramset = {}
+    for mnli_ex in train_examples_MNLI:
+        source_example_2_gramset[mnli_ex] = gram_set(mnli_ex)
+    print('MNLI gramset build over')
     # neighbor_size_limit = 500
-    train_examples_neighbors = []#retrieve_neighbors_source_given_kshot_target(train_examples, source_example_2_gramset, args.neighbor_size_limit)
-    # print('neighbor size:', len(train_examples_neighbors))
+    train_examples_neighbors = retrieve_neighbors_source_given_kshot_target(train_examples, source_example_2_gramset, args.neighbor_size_limit)
+    print('neighbor size:', len(train_examples_neighbors))
     # train_examples_neighbors_2way = []
     # for neighbor_ex in train_examples_neighbors:
     #     if neighbor_ex.label !='entailment':
@@ -739,132 +739,132 @@ def main():
     max_dev_acc = 0.0
     if args.do_train:
         train_dataloader = examples_to_features(train_examples, label_list, args, tokenizer, args.train_batch_size, "classification", dataloader_mode='random')
-        # train_neighbors_dataloader = examples_to_features(train_examples_neighbors, mnli_label_list, args, tokenizer, 5, "classification", dataloader_mode='random')
+        train_neighbors_dataloader = examples_to_features(train_examples_neighbors, mnli_label_list, args, tokenizer, 5, "classification", dataloader_mode='random')
         dev_dataloader = examples_to_features(dev_examples, label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
         test_dataloader = examples_to_features(test_examples, label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
-        # train_mnli_dataloader = examples_to_features(train_examples_MNLI, mnli_label_list, args, tokenizer, 32, "classification", dataloader_mode='random')
+        train_mnli_dataloader = examples_to_features(train_examples_MNLI, mnli_label_list, args, tokenizer, 32, "classification", dataloader_mode='random')
 
-        # '''first pretrain on neighbors'''
-        # iter_co = 0
-        # for _ in trange(int(args.num_train_epochs), desc="Epoch"):
-        #     tr_loss = 0
-        #     nb_tr_examples, nb_tr_steps = 0, 0
-        #     for step, batch in enumerate(tqdm(train_neighbors_dataloader, desc="Iteration")):
-        #         model.train()
-        #         batch = tuple(t.to(device) for t in batch)
-        #         input_ids, input_mask, segment_ids, label_ids = batch
-        #
-        #
-        #         logits,_ = model(input_ids, input_mask)
-        #         loss_fct = CrossEntropyLoss()
-        #
-        #         loss = loss_fct(logits.view(-1, len(mnli_label_list)), label_ids.view(-1))
-        #         if n_gpu > 1:
-        #             loss = loss.mean() # mean() to average on multi-gpu.
-        #         if args.gradient_accumulation_steps > 1:
-        #             loss = loss / args.gradient_accumulation_steps
-        #
-        #         loss.backward()
-        #
-        #         tr_loss += loss.item()
-        #         nb_tr_examples += input_ids.size(0)
-        #         nb_tr_steps += 1
-        #
-        #         optimizer.step()
-        #         optimizer.zero_grad()
-        #         global_step += 1
-        #         iter_co+=1
-        #
-        #     '''
-        #     start evaluate on dev set after this epoch
-        #     '''
-        #     model.eval()
-        #
-        #
-        #     eval_loss = 0
-        #     nb_eval_steps = 0
-        #     preds = []
-        #     gold_label_ids = []
-        #     # print('Evaluating...')
-        #     for input_ids, input_mask, segment_ids, label_ids in dev_dataloader:
-        #         input_ids = input_ids.to(device)
-        #         input_mask = input_mask.to(device)
-        #         segment_ids = segment_ids.to(device)
-        #         label_ids = label_ids.to(device)
-        #         gold_label_ids+=list(label_ids.detach().cpu().numpy())
-        #
-        #         with torch.no_grad():
-        #             logits,_ = model(input_ids, input_mask)
-        #         if len(preds) == 0:
-        #             preds.append(logits.detach().cpu().numpy())
-        #         else:
-        #             preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
-        #
-        #     preds = preds[0]
-        #
-        #     pred_probs = softmax(preds,axis=1)
-        #     pred_label_ids_3way = list(np.argmax(pred_probs, axis=1))
-        #     '''change from 3-way to 2-way'''
-        #     pred_label_ids = []
-        #     for pred_id in pred_label_ids_3way:
-        #         if pred_id !=0:
-        #             pred_label_ids.append(1)
-        #         else:
-        #             pred_label_ids.append(0)
-        #
-        #     gold_label_ids = gold_label_ids
-        #     assert len(pred_label_ids) == len(gold_label_ids)
-        #     hit_co = 0
-        #     for k in range(len(pred_label_ids)):
-        #         if pred_label_ids[k] == gold_label_ids[k]:
-        #             hit_co +=1
-        #     test_acc = hit_co/len(gold_label_ids)
-        #
-        #     if test_acc > max_dev_acc:
-        #         max_dev_acc = test_acc
-        #         print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
-        #         '''store the model, because we can test after a max_dev acc reached'''
-        #         model_to_save = (
-        #             model.module if hasattr(model, "module") else model
-        #         )  # Take care of distributed/parallel training
-        #         store_transformers_models(model_to_save, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained', 'dev_v2_seed_'+str(args.seed)+'_acc_'+str(max_dev_acc)+'.pt')
-        #     else:
-        #         print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
-        #
-        #
-        # '''use MNLI to pretrain the target classifier'''
-        # model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained/'+'dev_v2_seed_'+str(args.seed)+'_acc_'+str(max_dev_acc)+'.pt'))
-        # for _ in trange(3, desc="Epoch"):
-        #     tr_loss = 0
-        #     nb_tr_examples, nb_tr_steps = 0, 0
-        #     for step, batch in enumerate(tqdm(train_mnli_dataloader, desc="Iteration")):
-        #
-        #         batch = tuple(t.to(device) for t in batch)
-        #         input_ids, input_mask, segment_ids, label_ids = batch
-        #         '''first get the rep'''
-        #         model.eval()
-        #         with torch.no_grad():
-        #             logits, last_hidden = model(input_ids, input_mask)
-        #         prob_of_entail = F.log_softmax(logits.view(-1, 3), dim=1)[:,:1] #(batch, 1)
-        #
-        #         target_model.train()
-        #         target_logits = target_model(last_hidden, prob_of_entail)
-        #         loss_fct = CrossEntropyLoss()
-        #
-        #         loss = loss_fct(target_logits.view(-1, len(mnli_label_list)), label_ids.view(-1))
-        #         if n_gpu > 1:
-        #             loss = loss.mean() # mean() to average on multi-gpu.
-        #         if args.gradient_accumulation_steps > 1:
-        #             loss = loss / args.gradient_accumulation_steps
-        #
-        #         loss.backward()
-        #
-        #         tr_loss += loss.item()
-        #         nb_tr_examples += input_ids.size(0)
-        #         nb_tr_steps += 1
-        #
-        #         optimizer_target.step()
-        #         optimizer_target.zero_grad()
+        '''first pretrain on neighbors'''
+        iter_co = 0
+        for _ in trange(int(args.num_train_epochs), desc="Epoch"):
+            tr_loss = 0
+            nb_tr_examples, nb_tr_steps = 0, 0
+            for step, batch in enumerate(tqdm(train_neighbors_dataloader, desc="Iteration")):
+                model.train()
+                batch = tuple(t.to(device) for t in batch)
+                input_ids, input_mask, segment_ids, label_ids = batch
+
+
+                logits,_ = model(input_ids, input_mask)
+                loss_fct = CrossEntropyLoss()
+
+                loss = loss_fct(logits.view(-1, len(mnli_label_list)), label_ids.view(-1))
+                if n_gpu > 1:
+                    loss = loss.mean() # mean() to average on multi-gpu.
+                if args.gradient_accumulation_steps > 1:
+                    loss = loss / args.gradient_accumulation_steps
+
+                loss.backward()
+
+                tr_loss += loss.item()
+                nb_tr_examples += input_ids.size(0)
+                nb_tr_steps += 1
+
+                optimizer.step()
+                optimizer.zero_grad()
+                global_step += 1
+                iter_co+=1
+
+            '''
+            start evaluate on dev set after this epoch
+            '''
+            model.eval()
+
+
+            eval_loss = 0
+            nb_eval_steps = 0
+            preds = []
+            gold_label_ids = []
+            # print('Evaluating...')
+            for input_ids, input_mask, segment_ids, label_ids in dev_dataloader:
+                input_ids = input_ids.to(device)
+                input_mask = input_mask.to(device)
+                segment_ids = segment_ids.to(device)
+                label_ids = label_ids.to(device)
+                gold_label_ids+=list(label_ids.detach().cpu().numpy())
+
+                with torch.no_grad():
+                    logits,_ = model(input_ids, input_mask)
+                if len(preds) == 0:
+                    preds.append(logits.detach().cpu().numpy())
+                else:
+                    preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
+
+            preds = preds[0]
+
+            pred_probs = softmax(preds,axis=1)
+            pred_label_ids_3way = list(np.argmax(pred_probs, axis=1))
+            '''change from 3-way to 2-way'''
+            pred_label_ids = []
+            for pred_id in pred_label_ids_3way:
+                if pred_id !=0:
+                    pred_label_ids.append(1)
+                else:
+                    pred_label_ids.append(0)
+
+            gold_label_ids = gold_label_ids
+            assert len(pred_label_ids) == len(gold_label_ids)
+            hit_co = 0
+            for k in range(len(pred_label_ids)):
+                if pred_label_ids[k] == gold_label_ids[k]:
+                    hit_co +=1
+            test_acc = hit_co/len(gold_label_ids)
+
+            if test_acc > max_dev_acc:
+                max_dev_acc = test_acc
+                print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
+                '''store the model, because we can test after a max_dev acc reached'''
+                model_to_save = (
+                    model.module if hasattr(model, "module") else model
+                )  # Take care of distributed/parallel training
+                store_transformers_models(model_to_save, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained', 'dev_v2_seed_'+str(args.seed)+'_acc_'+str(max_dev_acc)+'.pt')
+            else:
+                print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
+
+
+        '''use MNLI to pretrain the target classifier'''
+        model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained/'+'dev_v2_seed_'+str(args.seed)+'_acc_'+str(max_dev_acc)+'.pt'))
+        for _ in trange(3, desc="Epoch"):
+            tr_loss = 0
+            nb_tr_examples, nb_tr_steps = 0, 0
+            for step, batch in enumerate(tqdm(train_mnli_dataloader, desc="Iteration")):
+
+                batch = tuple(t.to(device) for t in batch)
+                input_ids, input_mask, segment_ids, label_ids = batch
+                '''first get the rep'''
+                model.eval()
+                with torch.no_grad():
+                    logits, last_hidden = model(input_ids, input_mask)
+                prob_of_entail = F.log_softmax(logits.view(-1, 3), dim=1)[:,:1] #(batch, 1)
+
+                target_model.train()
+                target_logits = target_model(last_hidden, prob_of_entail)
+                loss_fct = CrossEntropyLoss()
+
+                loss = loss_fct(target_logits.view(-1, len(mnli_label_list)), label_ids.view(-1))
+                if n_gpu > 1:
+                    loss = loss.mean() # mean() to average on multi-gpu.
+                if args.gradient_accumulation_steps > 1:
+                    loss = loss / args.gradient_accumulation_steps
+
+                loss.backward()
+
+                tr_loss += loss.item()
+                nb_tr_examples += input_ids.size(0)
+                nb_tr_steps += 1
+
+                optimizer_target.step()
+                optimizer_target.zero_grad()
 
         '''fine-tune on kshot'''
 
@@ -884,16 +884,13 @@ def main():
                 model.eval()
                 with torch.no_grad():
                     logits, last_hidden = model(input_ids, input_mask)
-                source_prob = F.log_softmax(logits.view(-1, 3), dim=1)
-                prob_of_entail = source_prob[:,:1] #(batch, 1)
+                prob_of_entail = F.log_softmax(logits.view(-1, 3), dim=1)[:,:1] #(batch, 1)
 
                 target_model.train()
                 target_logits = target_model(last_hidden, prob_of_entail)
 
 
-                prob_matrix = F.log_softmax((target_logits).view(-1, 3), dim=1)
-                # prob_matrix = F.log_softmax(target_prob_matrix+source_prob, dim=1)
-
+                prob_matrix = F.log_softmax(target_logits.view(-1, 3), dim=1)
                 '''this step *1.0 is very important, otherwise bug'''
                 new_prob_matrix = prob_matrix*1.0
                 '''change the entail prob to p or 1-p'''
@@ -950,13 +947,10 @@ def main():
 
                             with torch.no_grad():
                                 source_logits, last_hidden = model(input_ids, input_mask)
-
-                            source_prob = F.log_softmax(source_logits.view(-1, 3), dim=1)
-                            prob_of_entail = source_prob[:,:1] #(batch, 1)
+                            prob_of_entail = F.log_softmax(source_logits.view(-1, 3), dim=1)[:,:1] #(batch, 1)
                             with torch.no_grad():
-                                target_logits = target_model(last_hidden, prob_of_entail)
+                                logits = target_model(last_hidden, prob_of_entail)
 
-                            logits = F.log_softmax(target_logits, dim=1)+source_prob
                             if len(preds) == 0:
                                 preds.append(logits.detach().cpu().numpy())
                             else:
@@ -1003,10 +997,23 @@ def main():
 if __name__ == "__main__":
     main()
 
-
 '''
 
-CUDA_VISIBLE_DEVICES=4 python -u k.shot.STILTS.with.neighbors.v2.py --task_name rte --do_train --do_lower_case --num_train_epochs 20 --train_batch_size 2 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10 --neighbor_size_limit 500
+CUDA_VISIBLE_DEVICES=4 python -u k.shot.STILTS.with.neighbors.py --task_name rte --do_train --do_lower_case --num_train_epochs 20 --train_batch_size 2 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10
+
+100 neighbors
+84.32/0.68
 
 
+400 neighbors
+84.47/0.35
+
+500 neighbors
+84.56/0.14
+
+600 neighbors
+84.32/0.58
+
+800 neighbors
+84.08/0.56
 '''

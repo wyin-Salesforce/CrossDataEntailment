@@ -791,11 +791,13 @@ def main():
                         gold_label_ids+=list(label_ids.detach().cpu().numpy())
                         roberta_model.eval()
                         with torch.no_grad():
-                            last_hidden_target_batch, _ = roberta_model(input_ids, input_mask)
+                            last_hidden_target_batch, logits_from_source = roberta_model(input_ids, input_mask)
 
                         with torch.no_grad():
                             logits = protonet(class_prototype_reps, last_hidden_target_batch)
 
+                        '''combine with logits from source domain'''
+                        logits = logits+logits_from_source
 
                         if len(preds) == 0:
                             preds.append(logits.detach().cpu().numpy())
@@ -844,6 +846,6 @@ if __name__ == "__main__":
     main()
 
 '''
-CUDA_VISIBLE_DEVICES=6 python -u k.shot.prototype.advanced.py --do_lower_case --num_train_epochs 20 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10
+CUDA_VISIBLE_DEVICES=7 python -u k.shot.prototype.advanced.py --do_lower_case --num_train_epochs 20 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10
 
 '''

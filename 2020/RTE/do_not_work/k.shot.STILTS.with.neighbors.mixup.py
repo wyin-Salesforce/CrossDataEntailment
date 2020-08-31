@@ -988,19 +988,5 @@ if __name__ == "__main__":
 
 CUDA_VISIBLE_DEVICES=4 python -u k.shot.STILTS.with.neighbors.mixup.py --task_name rte --do_train --do_lower_case --num_train_epochs 20 --train_batch_size 2 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10 --use_mixup --lambda_times 15 --neighbor_size_limit 50
 
-100 neighbors
-84.32/0.68
-
-
-400 neighbors
-84.47/0.35
-
-500 neighbors
-84.56/0.14
-
-600 neighbors
-84.32/0.58
-
-800 neighbors
-84.08/0.56
+dont work
 '''

@@ -477,7 +477,10 @@ def retrieve_neighbors_source_given_kshot_target(target_examples, source_example
             j+=1
         sorted_d = sorted([(score, ex) for (ex,score) in source_ex_2_score.items()],key=operator.itemgetter(0), reverse=True)
         neighbor_exs = [ex for (score, ex) in sorted_d[:topN]]
+        '''consider the most dissimilar neighbors'''
+        furthest_neighbor_exs = [ex for (score, ex) in sorted_d[-topN:]]
         returned_exs+=neighbor_exs
+        returned_exs+=furthest_neighbor_exs
     print('neighbor retrieve over')
     return returned_exs
 

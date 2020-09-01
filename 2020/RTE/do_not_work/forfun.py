@@ -753,7 +753,7 @@ def main():
             _, logits = roberta_model(input_ids, input_mask)
             loss_fct = CrossEntropyLoss()
 
-            loss = loss_fct(logits.view(-1, len(source_label_list)), label_ids.view(-1))
+            loss = loss_fct(logits.view(-1, len(mnli_label_list)), label_ids.view(-1))
             if n_gpu > 1:
                 loss = loss.mean() # mean() to average on multi-gpu.
             if args.gradient_accumulation_steps > 1:
@@ -833,7 +833,7 @@ if __name__ == "__main__":
     main()
 
 '''
-CUDA_VISIBLE_DEVICES=7 python -u forfun.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10 --neighbor_size_limit 500 --num_train_epochs_neighbors 20
+CUDA_VISIBLE_DEVICES=6 python -u forfun.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10 --neighbor_size_limit 500 --num_train_epochs_neighbors 20
 
 don't help
 83.91/0.65

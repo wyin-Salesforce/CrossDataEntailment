@@ -320,6 +320,36 @@ def get_RTE_as_train_k_shot(filename, k_shot):
     else:
         return random.sample(examples_entail, k_shot), random.sample(examples_non_entail, k_shot)
 
+def get_RTE_as_train_k_shot_copied(filename, k_shot):
+    '''
+    can read the training file, dev and test file
+    '''
+    examples_entail=[]
+    examples_non_entail=[]
+    readfile = codecs.open(filename, 'r', 'utf-8')
+    line_co=0
+    for row in readfile:
+        if line_co>0:
+            line=row.strip().split('\t')
+            guid = "train-"+str(line_co-1)
+            text_a = line[1].strip()
+            text_b = line[2].strip()
+            label = 'entailment' if line[3].strip()=='entailment' else 'not_entailment' #["entailment", "not_entailment"]
+            if label == 'entailment':
+                examples_entail.append(
+                    InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+            else:
+                examples_non_entail.append(
+                    InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+        line_co+=1
+    readfile.close()
+    print('loaded  entail size:', len(examples_entail), 'non-entail size:', len(examples_non_entail))
+    '''sampling'''
+    if k_shot > 99999:
+        return examples_entail+examples_non_entail
+    else:
+        sampled_examples = random.sample(examples_entail, k_shot)+random.sample(examples_non_entail, k_shot)
+        return sampled_examples
 
 def get_RTE_as_dev(filename):
     '''
@@ -602,7 +632,8 @@ def main():
 
 
 
-    target_kshot_entail_examples, target_kshot_nonentail_examples = get_RTE_as_train_k_shot('/export/home/Dataset/glue_data/RTE/train.tsv', args.kshot) #train_pu_half_v1.txt
+    # target_kshot_entail_examples, target_kshot_nonentail_examples = get_RTE_as_train_k_shot('/export/home/Dataset/glue_data/RTE/train.tsv', args.kshot) #train_pu_half_v1.txt
+    train_examples = get_RTE_as_train_k_shot_copied('/export/home/Dataset/glue_data/RTE/train.tsv', args.kshot) #train_pu_half_v1.txt
     target_dev_examples = get_RTE_as_dev('/export/home/Dataset/glue_data/RTE/dev.tsv')
     target_test_examples = get_RTE_as_test('/export/home/Dataset/RTE/test_RTE_1235.txt')
     source_kshot_entail, source_kshot_neural, source_kshot_contra, source_remaining_examples, train_examples_MNLI = get_MNLI_train('/export/home/Dataset/glue_data/MNLI/train.tsv', args.kshot)
@@ -615,7 +646,7 @@ def main():
         source_example_2_gramset[mnli_ex] = gram_set(mnli_ex)
     print('MNLI gramset build over')
     # neighbor_size_limit = 500
-    train_examples_neighbors = retrieve_neighbors_source_given_kshot_target(target_kshot_entail_examples+ target_kshot_nonentail_examples, source_example_2_gramset, args.neighbor_size_limit)
+    train_examples_neighbors = retrieve_neighbors_source_given_kshot_target(train_examples, source_example_2_gramset, args.neighbor_size_limit)
     print('neighbor size:', len(train_examples_neighbors))
 
     target_label_list = ["entailment", "not_entailment"]
@@ -624,20 +655,10 @@ def main():
     target_num_labels = len(target_label_list)
     print('training size:', len(source_examples), 'dev size:', len(target_dev_examples), 'test size:', len(target_test_examples))
 
-    num_train_optimization_steps = None
-    num_train_optimization_steps = int(
-        len(source_remaining_examples) / args.train_batch_size / args.gradient_accumulation_steps) * args.num_train_epochs
-    if args.local_rank != -1:
-        num_train_optimization_steps = num_train_optimization_steps // torch.distributed.get_world_size()
-
     roberta_model = RobertaForSequenceClassification(3)
     tokenizer = RobertaTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
     roberta_model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_pretrained/_acc_0.9040886899918633.pt'))
     roberta_model.to(device)
-    # roberta_model.eval()
-
-    protonet = PrototypeNet(bert_hidden_dim)
-    protonet.to(device)
 
 
     param_optimizer_pretrain = list(roberta_model.named_parameters())
@@ -659,16 +680,7 @@ def main():
 
     retrieve_batch_size = 5
 
-    # source_kshot_entail_dataloader = examples_to_features(source_kshot_entail, source_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
-    # source_kshot_neural_dataloader = examples_to_features(source_kshot_neural, source_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
-    # source_kshot_contra_dataloader = examples_to_features(source_kshot_contra, source_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
-    # source_remain_ex_dataloader = examples_to_features(source_remaining_examples, source_label_list, args, tokenizer, args.train_batch_size, "classification", dataloader_mode='random')
-    #
-    # target_kshot_entail_dataloader = examples_to_features(target_kshot_entail_examples, target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
-    # target_kshot_nonentail_dataloader = examples_to_features(target_kshot_nonentail_examples, target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
     target_dev_dataloader = examples_to_features(target_dev_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='random')
-    target_test_dataloader = examples_to_features(target_test_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='random')
-
     train_neighbors_dataloader = examples_to_features(train_examples_neighbors, source_label_list, args, tokenizer, 5, "classification", dataloader_mode='random')
 
 
@@ -750,11 +762,11 @@ def main():
         if test_acc > max_dev_acc_pretrain:
             max_dev_acc_pretrain = test_acc
             print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc_pretrain, '\n')
-            '''store the model, because we can test after a max_dev acc reached'''
-            model_to_save = (
-                roberta_model.module if hasattr(roberta_model, "module") else roberta_model
-            )  # Take care of distributed/parallel training
-            store_transformers_models(model_to_save, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained', 'dev_seed_'+str(args.seed)+'_acc_'+str(max_dev_acc_pretrain)+'.pt')
+            # '''store the model, because we can test after a max_dev acc reached'''
+            # model_to_save = (
+            #     roberta_model.module if hasattr(roberta_model, "module") else roberta_model
+            # )  # Take care of distributed/parallel training
+            # store_transformers_models(model_to_save, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained', 'dev_seed_'+str(args.seed)+'_acc_'+str(max_dev_acc_pretrain)+'.pt')
         else:
             print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc_pretrain, '\n')
 
@@ -767,7 +779,7 @@ if __name__ == "__main__":
     main()
 
 '''
-CUDA_VISIBLE_DEVICES=7 python -u forfun.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10 --neighbor_size_limit 500 --num_train_epochs_neighbors 1
+CUDA_VISIBLE_DEVICES=7 python -u forfun.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10 --neighbor_size_limit 500 --num_train_epochs_neighbors 20
 
 don't help
 83.91/0.65

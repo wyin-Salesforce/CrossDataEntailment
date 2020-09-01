@@ -657,6 +657,9 @@ def main():
     train_examples_neighbors = retrieve_neighbors_source_given_kshot_target(train_examples, source_example_2_gramset, args.neighbor_size_limit)
     print('neighbor size:', len(train_examples_neighbors))
 
+    for ex in train_examples_neighbors[:10]:
+        print(ex.text_a)
+    exit(0)
 
     dev_examples = processor.get_RTE_as_dev('/export/home/Dataset/glue_data/RTE/dev.tsv')
     test_examples = processor.get_RTE_as_test('/export/home/Dataset/RTE/test_RTE_1235.txt')

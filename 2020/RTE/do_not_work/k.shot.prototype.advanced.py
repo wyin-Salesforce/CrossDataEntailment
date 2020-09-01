@@ -21,6 +21,7 @@ from tqdm import tqdm, trange
 from scipy.stats import beta
 from torch.nn import CrossEntropyLoss, MSELoss
 from scipy.special import softmax
+from torch.nn.parameter import Parameter
 # from scipy.stats import pearsonr, spearmanr
 # from sklearn.metrics import matthews_corrcoef, f1_score
 from torch.nn import functional as F
@@ -265,6 +266,8 @@ class PrototypeNet(nn.Module):
         self.HiddenLayer_3 = nn.Linear(hidden_size, 1)
         self.dropout = nn.Dropout(0.1)
 
+        self.bias = Parameter(torch.Tensor(3))
+
 
     def forward(self, rep_classes,rep_query_batch):
         '''
@@ -280,6 +283,9 @@ class PrototypeNet(nn.Module):
         all_scores = torch.sigmoid(self.HiddenLayer_3(self.dropout(torch.tanh(self.HiddenLayer_2(self.dropout(torch.tanh(self.HiddenLayer_1(combined_rep)))))))) #(#class*batch, 1)
         score_matrix_to_fold = all_scores.view(-1, class_size) #(batch_size, class_size*2)
         score_matrix = score_matrix_to_fold[:,:3]+score_matrix_to_fold[:, -3:]#(batch_size, class_size)
+
+        score_matrix=score_matrix+self.bias.view(-1,3)
+
         return score_matrix
 
 

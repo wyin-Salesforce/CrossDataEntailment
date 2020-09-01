@@ -631,9 +631,6 @@ def main():
     if n_gpu > 0:
         torch.cuda.manual_seed_all(args.seed)
 
-    if not args.do_train and not args.do_eval:
-        raise ValueError("At least one of `do_train` or `do_eval` must be True.")
-
 
     task_name = args.task_name.lower()
 
@@ -668,7 +665,6 @@ def main():
     model = RobertaForSequenceClassification(3)
     tokenizer = RobertaTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
     model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_pretrained/_acc_0.9040886899918633.pt'))
-    # model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained/RTE.10shot.seed.42.pt'))
     model.to(device)
 
     param_optimizer = list(model.named_parameters())
@@ -694,12 +690,11 @@ def main():
         dev_dataloader = examples_to_features(dev_examples, label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
         test_dataloader = examples_to_features(test_examples, label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
 
-        '''first pretrain on neighbors'''
         iter_co = 0
-        for _ in trange(int(args.num_train_epochs), desc="Epoch"):
+        for _ in trange(20, desc="Epoch"):
             tr_loss = 0
             nb_tr_examples, nb_tr_steps = 0, 0
-            for step, batch in enumerate(tqdm(train_neighbors_dataloader, desc="Iteration")):
+            for step, batch in enumerate(tqdm(train_neighbors_dataloader, desc="PretrainOnNeighbors")):
                 model.train()
                 batch = tuple(t.to(device) for t in batch)
                 input_ids, input_mask, segment_ids, label_ids = batch
@@ -729,8 +724,6 @@ def main():
             start evaluate on dev set after this epoch
             '''
             model.eval()
-
-
             eval_loss = 0
             nb_eval_steps = 0
             preds = []
@@ -773,13 +766,101 @@ def main():
             if test_acc > max_dev_acc:
                 max_dev_acc = test_acc
                 print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
-                '''store the model, because we can test after a max_dev acc reached'''
-                model_to_save = (
-                    model.module if hasattr(model, "module") else model
-                )  # Take care of distributed/parallel training
-                store_transformers_models(model_to_save, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained', 'dev_seed_'+str(args.seed)+'_acc_'+str(max_dev_acc)+'.pt')
+                # '''store the model, because we can test after a max_dev acc reached'''
+                # model_to_save = (
+                #     roberta_model.module if hasattr(roberta_model, "module") else roberta_model
+                # )  # Take care of distributed/parallel training
+                # store_transformers_models(model_to_save, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained', 'dev_seed_'+str(args.seed)+'_acc_'+str(max_dev_acc_pretrain)+'.pt')
             else:
                 print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
+
+
+        # '''first pretrain on neighbors'''
+        # iter_co = 0
+        # for _ in trange(int(args.num_train_epochs), desc="Epoch"):
+        #     tr_loss = 0
+        #     nb_tr_examples, nb_tr_steps = 0, 0
+        #     for step, batch in enumerate(tqdm(train_neighbors_dataloader, desc="Iteration")):
+        #         model.train()
+        #         batch = tuple(t.to(device) for t in batch)
+        #         input_ids, input_mask, segment_ids, label_ids = batch
+        #
+        #
+        #         logits = model(input_ids, input_mask)
+        #         loss_fct = CrossEntropyLoss()
+        #
+        #         loss = loss_fct(logits.view(-1, len(mnli_label_list)), label_ids.view(-1))
+        #         if n_gpu > 1:
+        #             loss = loss.mean() # mean() to average on multi-gpu.
+        #         if args.gradient_accumulation_steps > 1:
+        #             loss = loss / args.gradient_accumulation_steps
+        #
+        #         loss.backward()
+        #
+        #         tr_loss += loss.item()
+        #         nb_tr_examples += input_ids.size(0)
+        #         nb_tr_steps += 1
+        #
+        #         optimizer.step()
+        #         optimizer.zero_grad()
+        #         global_step += 1
+        #         iter_co+=1
+        #
+        #     '''
+        #     start evaluate on dev set after this epoch
+        #     '''
+        #     model.eval()
+        #
+        #
+        #     eval_loss = 0
+        #     nb_eval_steps = 0
+        #     preds = []
+        #     gold_label_ids = []
+        #     # print('Evaluating...')
+        #     for input_ids, input_mask, segment_ids, label_ids in dev_dataloader:
+        #         input_ids = input_ids.to(device)
+        #         input_mask = input_mask.to(device)
+        #         segment_ids = segment_ids.to(device)
+        #         label_ids = label_ids.to(device)
+        #         gold_label_ids+=list(label_ids.detach().cpu().numpy())
+        #
+        #         with torch.no_grad():
+        #             logits = model(input_ids, input_mask)
+        #         if len(preds) == 0:
+        #             preds.append(logits.detach().cpu().numpy())
+        #         else:
+        #             preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
+        #
+        #     preds = preds[0]
+        #
+        #     pred_probs = softmax(preds,axis=1)
+        #     pred_label_ids_3way = list(np.argmax(pred_probs, axis=1))
+        #     '''change from 3-way to 2-way'''
+        #     pred_label_ids = []
+        #     for pred_id in pred_label_ids_3way:
+        #         if pred_id !=0:
+        #             pred_label_ids.append(1)
+        #         else:
+        #             pred_label_ids.append(0)
+        #
+        #     gold_label_ids = gold_label_ids
+        #     assert len(pred_label_ids) == len(gold_label_ids)
+        #     hit_co = 0
+        #     for k in range(len(pred_label_ids)):
+        #         if pred_label_ids[k] == gold_label_ids[k]:
+        #             hit_co +=1
+        #     test_acc = hit_co/len(gold_label_ids)
+        #
+        #     if test_acc > max_dev_acc:
+        #         max_dev_acc = test_acc
+        #         print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
+        #         '''store the model, because we can test after a max_dev acc reached'''
+        #         model_to_save = (
+        #             model.module if hasattr(model, "module") else model
+        #         )  # Take care of distributed/parallel training
+        #         store_transformers_models(model_to_save, tokenizer, '/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained', 'dev_seed_'+str(args.seed)+'_acc_'+str(max_dev_acc)+'.pt')
+        #     else:
+        #         print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
 
 
 
@@ -790,7 +871,7 @@ if __name__ == "__main__":
 
 '''
 
-CUDA_VISIBLE_DEVICES=4 python -u k.shot.STILTS.with.neighbors.py --task_name rte --do_train --do_lower_case --num_train_epochs 20 --train_batch_size 2 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10
+CUDA_VISIBLE_DEVICES=4 python -u forfun.truth.py --task_name rte --do_train --do_lower_case --num_train_epochs 20 --train_batch_size 2 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10
 
 100 neighbors
 84.32/0.68

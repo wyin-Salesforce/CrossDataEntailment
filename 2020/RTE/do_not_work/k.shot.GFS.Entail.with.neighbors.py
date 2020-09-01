@@ -616,7 +616,9 @@ def main():
     train_examples_neighbors = retrieve_neighbors_source_given_kshot_target(target_kshot_entail_examples+ target_kshot_nonentail_examples, source_example_2_gramset, args.neighbor_size_limit)
     print('neighbor size:', len(train_examples_neighbors))
 
-
+    for ex in train_examples_neighbors[:10]:
+        print(ex.text_a)
+    exit(0)
     target_label_list = ["entailment", "not_entailment"]
     source_label_list = ["entailment", "neutral", "contradiction"]
     source_num_labels = len(source_label_list)
@@ -1014,5 +1016,6 @@ if __name__ == "__main__":
 '''
 CUDA_VISIBLE_DEVICES=7 python -u k.shot.GFS.Entail.with.neighbors.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10 --neighbor_size_limit 500 --num_train_epochs_neighbors 1
 
-
+don't help
+83.91/0.65
 '''

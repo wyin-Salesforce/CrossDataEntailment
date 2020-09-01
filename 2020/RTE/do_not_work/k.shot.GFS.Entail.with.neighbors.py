@@ -616,7 +616,7 @@ def main():
     train_examples_neighbors = retrieve_neighbors_source_given_kshot_target(target_kshot_entail_examples+ target_kshot_nonentail_examples, source_example_2_gramset, args.neighbor_size_limit)
     print('neighbor size:', len(train_examples_neighbors))
 
-    for ex in train_examples_neighbors[:10]:
+    for ex in train_examples_neighbors[-10:]:
         print(ex.text_a)
     exit(0)
     target_label_list = ["entailment", "not_entailment"]

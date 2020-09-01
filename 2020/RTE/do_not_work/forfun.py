@@ -442,30 +442,6 @@ def get_MNLI_train(filename, k_shot):
     return kshot_entail, kshot_neural, kshot_contra, remaining_examples, examples
 
 
-def get_MNLI_train_copied(filename):
-    '''
-    classes: ["entailment", "neutral", "contradiction"]
-    '''
-
-    examples=[]
-    readfile = codecs.open(filename, 'r', 'utf-8')
-    line_co=0
-    for row in readfile:
-        if line_co>0:
-            line=row.strip().split('\t')
-            guid = "train-"+str(line_co-1)
-            # text_a = 'MNLI. '+line[8].strip()
-            text_a = line[8].strip()
-            text_b = line[9].strip()
-            label = line[-1].strip() #["entailment", "neutral", "contradiction"]
-            examples.append(
-                InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
-        line_co+=1
-    readfile.close()
-    print('loaded  MNLI size:', len(examples))
-
-    return examples #train, dev
-
 def examples_to_features(source_examples, label_list, args, tokenizer, batch_size, output_mode, dataloader_mode='sequential'):
     source_features = convert_examples_to_features(
         source_examples, label_list, args.max_seq_length, tokenizer, output_mode,
@@ -657,39 +633,14 @@ def main():
 
 
     # target_kshot_entail_examples, target_kshot_nonentail_examples = get_RTE_as_train_k_shot('/export/home/Dataset/glue_data/RTE/train.tsv', args.kshot) #train_pu_half_v1.txt
-    # train_examples = get_RTE_as_train_k_shot_copied('/export/home/Dataset/glue_data/RTE/train.tsv', args.kshot) #train_pu_half_v1.txt
-    # target_dev_examples = get_RTE_as_dev('/export/home/Dataset/glue_data/RTE/dev.tsv')
-    # target_test_examples = get_RTE_as_test('/export/home/Dataset/RTE/test_RTE_1235.txt')
-    # source_kshot_entail, source_kshot_neural, source_kshot_contra, source_remaining_examples, train_examples_MNLI = get_MNLI_train('/export/home/Dataset/glue_data/MNLI/train.tsv', args.kshot)
-    # source_examples = source_kshot_entail+ source_kshot_neural+ source_kshot_contra+ source_remaining_examples
-    #
-    # '''search for neighbors'''
-    # # train_examples_MNLI = source_kshot_entail+ source_kshot_neural+ source_kshot_contra+ source_remaining_examples
-    # source_example_2_gramset = {}
-    # for mnli_ex in train_examples_MNLI:
-    #     source_example_2_gramset[mnli_ex] = gram_set(mnli_ex)
-    # print('MNLI gramset build over')
-    # # neighbor_size_limit = 500
-    # train_examples_neighbors = retrieve_neighbors_source_given_kshot_target(train_examples, source_example_2_gramset, args.neighbor_size_limit)
-    # print('neighbor size:', len(train_examples_neighbors))
-    #
-    # target_label_list = ["entailment", "not_entailment"]
-    # source_label_list = ["entailment", "neutral", "contradiction"]
-    # source_num_labels = len(source_label_list)
-    # target_num_labels = len(target_label_list)
-    # print('training size:', len(source_examples), 'dev size:', len(target_dev_examples), 'test size:', len(target_test_examples))
-
-
-
-
-
-
-
-
-
     train_examples = get_RTE_as_train_k_shot_copied('/export/home/Dataset/glue_data/RTE/train.tsv', args.kshot) #train_pu_half_v1.txt
-    train_examples_MNLI = get_MNLI_train_copied('/export/home/Dataset/glue_data/MNLI/train.tsv')
+    target_dev_examples = get_RTE_as_dev('/export/home/Dataset/glue_data/RTE/dev.tsv')
+    target_test_examples = get_RTE_as_test('/export/home/Dataset/RTE/test_RTE_1235.txt')
+    source_kshot_entail, source_kshot_neural, source_kshot_contra, source_remaining_examples, train_examples_MNLI = get_MNLI_train('/export/home/Dataset/glue_data/MNLI/train.tsv', args.kshot)
+    source_examples = source_kshot_entail+ source_kshot_neural+ source_kshot_contra+ source_remaining_examples
 
+    '''search for neighbors'''
+    # train_examples_MNLI = source_kshot_entail+ source_kshot_neural+ source_kshot_contra+ source_remaining_examples
     source_example_2_gramset = {}
     for mnli_ex in train_examples_MNLI:
         source_example_2_gramset[mnli_ex] = gram_set(mnli_ex)
@@ -698,13 +649,11 @@ def main():
     train_examples_neighbors = retrieve_neighbors_source_given_kshot_target(train_examples, source_example_2_gramset, args.neighbor_size_limit)
     print('neighbor size:', len(train_examples_neighbors))
 
-
-    dev_examples = get_RTE_as_dev('/export/home/Dataset/glue_data/RTE/dev.tsv')
-    test_examples = get_RTE_as_test('/export/home/Dataset/RTE/test_RTE_1235.txt')
-    label_list = ["entailment", "not_entailment"]
-    mnli_label_list = ["entailment", "neutral", "contradiction"]
-    num_labels = len(label_list)
-    print('num_labels:', num_labels, 'training size:', len(train_examples), 'neighbor size:', len(train_examples_neighbors),  'dev size:', len(dev_examples), 'test size:', len(test_examples))
+    target_label_list = ["entailment", "not_entailment"]
+    source_label_list = ["entailment", "neutral", "contradiction"]
+    source_num_labels = len(source_label_list)
+    target_num_labels = len(target_label_list)
+    print('training size:', len(source_examples), 'dev size:', len(target_dev_examples), 'test size:', len(target_test_examples))
 
 
 
@@ -734,8 +683,8 @@ def main():
 
     retrieve_batch_size = 5
 
-    target_dev_dataloader = examples_to_features(dev_examples, label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='random')
-    train_neighbors_dataloader = examples_to_features(train_examples_neighbors, mnli_label_list, args, tokenizer, 5, "classification", dataloader_mode='random')
+    target_dev_dataloader = examples_to_features(target_dev_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='random')
+    train_neighbors_dataloader = examples_to_features(train_examples_neighbors, source_label_list, args, tokenizer, 5, "classification", dataloader_mode='random')
 
 
     '''first pretrain on neighbors'''
@@ -753,7 +702,7 @@ def main():
             _, logits = roberta_model(input_ids, input_mask)
             loss_fct = CrossEntropyLoss()
 
-            loss = loss_fct(logits.view(-1, len(mnli_label_list)), label_ids.view(-1))
+            loss = loss_fct(logits.view(-1, len(source_label_list)), label_ids.view(-1))
             if n_gpu > 1:
                 loss = loss.mean() # mean() to average on multi-gpu.
             if args.gradient_accumulation_steps > 1:
@@ -833,7 +782,7 @@ if __name__ == "__main__":
     main()
 
 '''
-CUDA_VISIBLE_DEVICES=6 python -u forfun.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10 --neighbor_size_limit 500 --num_train_epochs_neighbors 20
+CUDA_VISIBLE_DEVICES=7 python -u forfun.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10 --neighbor_size_limit 500 --num_train_epochs_neighbors 20
 
 don't help
 83.91/0.65

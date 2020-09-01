@@ -266,7 +266,7 @@ class PrototypeNet(nn.Module):
         self.HiddenLayer_3 = nn.Linear(hidden_size, 1)
         self.dropout = nn.Dropout(0.1)
 
-        self.bias = Parameter(torch.Tensor(3))
+        # self.bias = Parameter(torch.Tensor(3))
 
 
     def forward(self, rep_classes,rep_query_batch):
@@ -284,7 +284,7 @@ class PrototypeNet(nn.Module):
         score_matrix_to_fold = all_scores.view(-1, class_size) #(batch_size, class_size*2)
         score_matrix = score_matrix_to_fold[:,:3]+score_matrix_to_fold[:, -3:]#(batch_size, class_size)
 
-        score_matrix=score_matrix+self.bias.view(-1,3)
+        # score_matrix=score_matrix+self.bias.view(-1,3)
 
         return score_matrix
 

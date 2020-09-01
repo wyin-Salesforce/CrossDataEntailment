@@ -797,7 +797,7 @@ def main():
                             logits = protonet(class_prototype_reps, last_hidden_target_batch)
 
                         '''combine with logits from source domain'''
-                        logits = logits+logits_from_source
+                        logits = F.log_softmax(logits,dim=1)+F.log_softmax(logits_from_source,dim=1)
 
                         if len(preds) == 0:
                             preds.append(logits.detach().cpu().numpy())

@@ -662,7 +662,10 @@ def main():
     roberta_model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_pretrained/_acc_0.9040886899918633.pt'))
     roberta_model.to(device)
 
+    protonet = PrototypeNet(bert_hidden_dim)
+    protonet.to(device)
 
+    
     param_optimizer_pretrain = list(roberta_model.named_parameters())
     no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
     optimizer_grouped_parameters_pretrain = [

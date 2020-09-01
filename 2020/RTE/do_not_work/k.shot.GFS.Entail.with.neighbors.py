@@ -638,6 +638,18 @@ def main():
     protonet = PrototypeNet(bert_hidden_dim)
     protonet.to(device)
 
+
+    param_optimizer_pretrain = list(roberta_model.named_parameters())
+    no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
+    optimizer_grouped_parameters_pretrain = [
+        {'params': [p for n, p in param_optimizer_pretrain if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
+        {'params': [p for n, p in param_optimizer_pretrain if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
+        ]
+
+    optimizer_pretrain = AdamW(optimizer_grouped_parameters_pretrain,
+                             lr=5e-7)
+
+
     param_optimizer = list(protonet.named_parameters())
     no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
     optimizer_grouped_parameters = [
@@ -695,8 +707,8 @@ def main():
             nb_tr_examples += input_ids.size(0)
             nb_tr_steps += 1
 
-            optimizer.step()
-            optimizer.zero_grad()
+            optimizer_pretrain.step()
+            optimizer_pretrain.zero_grad()
             global_step += 1
             iter_co+=1
 

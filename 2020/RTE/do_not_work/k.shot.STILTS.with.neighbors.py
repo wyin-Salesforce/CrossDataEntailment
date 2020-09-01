@@ -656,11 +656,6 @@ def main():
     # neighbor_size_limit = 500
     train_examples_neighbors = retrieve_neighbors_source_given_kshot_target(train_examples, source_example_2_gramset, args.neighbor_size_limit)
     print('neighbor size:', len(train_examples_neighbors))
-    # train_examples_neighbors_2way = []
-    # for neighbor_ex in train_examples_neighbors:
-    #     if neighbor_ex.label !='entailment':
-    #         neighbor_ex.label = 'not_entailment'
-    #     train_examples_neighbors_2way.append(neighbor_ex)
 
 
     dev_examples = processor.get_RTE_as_dev('/export/home/Dataset/glue_data/RTE/dev.tsv')

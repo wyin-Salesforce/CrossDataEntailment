@@ -12,6 +12,7 @@ import sys
 import codecs
 import numpy as np
 import torch
+import operator
 import torch.nn as nn
 from collections import defaultdict
 from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,

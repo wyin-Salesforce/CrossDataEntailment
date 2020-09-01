@@ -373,6 +373,7 @@ def get_MNLI_train(filename, k_shot):
     examples_entail = []
     examples_neural = []
     examples_contra = []
+    examples = []
     readfile = codecs.open(filename, 'r', 'utf-8')
     line_co=0
     for row in readfile:
@@ -383,7 +384,8 @@ def get_MNLI_train(filename, k_shot):
             text_a = line[8].strip()
             text_b = line[9].strip()
             label = line[-1].strip() #["entailment", "neutral", "contradiction"]
-
+            examples.append(
+                InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
             if label == 'entailment':
                 examples_entail.append(
                     InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
@@ -407,7 +409,7 @@ def get_MNLI_train(filename, k_shot):
             remaining_examples.append(ex)
 
     assert len(kshot_entail)+len(kshot_neural)+len(kshot_contra)+len(remaining_examples)==len(examples_entail+examples_neural+examples_contra)
-    return kshot_entail, kshot_neural, kshot_contra, remaining_examples
+    return kshot_entail, kshot_neural, kshot_contra, remaining_examples, examples
 
 
 def examples_to_features(source_examples, label_list, args, tokenizer, batch_size, output_mode, dataloader_mode='sequential'):
@@ -603,11 +605,11 @@ def main():
     target_kshot_entail_examples, target_kshot_nonentail_examples = get_RTE_as_train_k_shot('/export/home/Dataset/glue_data/RTE/train.tsv', args.kshot) #train_pu_half_v1.txt
     target_dev_examples = get_RTE_as_dev('/export/home/Dataset/glue_data/RTE/dev.tsv')
     target_test_examples = get_RTE_as_test('/export/home/Dataset/RTE/test_RTE_1235.txt')
-    source_kshot_entail, source_kshot_neural, source_kshot_contra, source_remaining_examples = get_MNLI_train('/export/home/Dataset/glue_data/MNLI/train.tsv', args.kshot)
+    source_kshot_entail, source_kshot_neural, source_kshot_contra, source_remaining_examples, train_examples_MNLI = get_MNLI_train('/export/home/Dataset/glue_data/MNLI/train.tsv', args.kshot)
     source_examples = source_kshot_entail+ source_kshot_neural+ source_kshot_contra+ source_remaining_examples
 
     '''search for neighbors'''
-    train_examples_MNLI = source_kshot_entail+ source_kshot_neural+ source_kshot_contra+ source_remaining_examples
+    # train_examples_MNLI = source_kshot_entail+ source_kshot_neural+ source_kshot_contra+ source_remaining_examples
     source_example_2_gramset = {}
     for mnli_ex in train_examples_MNLI:
         source_example_2_gramset[mnli_ex] = gram_set(mnli_ex)

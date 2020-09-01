@@ -656,7 +656,6 @@ def main():
     # neighbor_size_limit = 500
     train_examples_neighbors = retrieve_neighbors_source_given_kshot_target(train_examples, source_example_2_gramset, args.neighbor_size_limit)
     print('neighbor size:', len(train_examples_neighbors))
-
     for ex in train_examples_neighbors[-10:]:
         print(ex.text_a)
     exit(0)

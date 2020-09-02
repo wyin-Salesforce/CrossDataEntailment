@@ -632,7 +632,7 @@ def main():
 
 
 
-    # target_kshot_entail_examples, target_kshot_nonentail_examples = get_RTE_as_train_k_shot('/export/home/Dataset/glue_data/RTE/train.tsv', args.kshot) #train_pu_half_v1.txt
+    target_kshot_entail_examples, target_kshot_nonentail_examples = get_RTE_as_train_k_shot('/export/home/Dataset/glue_data/RTE/train.tsv', args.kshot) #train_pu_half_v1.txt
     train_examples = get_RTE_as_train_k_shot_copied('/export/home/Dataset/glue_data/RTE/train.tsv', args.kshot) #train_pu_half_v1.txt
     target_dev_examples = get_RTE_as_dev('/export/home/Dataset/glue_data/RTE/dev.tsv')
     target_test_examples = get_RTE_as_test('/export/home/Dataset/RTE/test_RTE_1235.txt')
@@ -662,6 +662,8 @@ def main():
     roberta_model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_pretrained/_acc_0.9040886899918633.pt'))
     roberta_model.to(device)
 
+    protonet = PrototypeNet(bert_hidden_dim)
+    protonet.to(device)
 
     param_optimizer_pretrain = list(roberta_model.named_parameters())
     no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
@@ -673,6 +675,15 @@ def main():
     optimizer_pretrain = AdamW(optimizer_grouped_parameters_pretrain,
                              lr=5e-7)
 
+    param_optimizer = list(protonet.named_parameters())
+    no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
+    optimizer_grouped_parameters = [
+        {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
+        {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
+        ]
+
+    optimizer = AdamW(optimizer_grouped_parameters,
+                             lr=args.learning_rate)
 
     global_step = 0
     nb_tr_steps = 0

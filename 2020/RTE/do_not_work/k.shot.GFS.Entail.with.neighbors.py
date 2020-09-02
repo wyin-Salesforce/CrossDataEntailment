@@ -366,14 +366,14 @@ def get_RTE_as_test(filename):
     print('loaded test size:', line_co)
     return examples
 
-def get_MNLI_train(filename, k_shot):
+def get_MNLI_train_kshot(filename, k_shot):
     '''
     classes: ["entailment", "neutral", "contradiction"]
     '''
     examples_entail = []
     examples_neural = []
     examples_contra = []
-    examples = []
+
     readfile = codecs.open(filename, 'r', 'utf-8')
     line_co=0
     for row in readfile:
@@ -384,8 +384,6 @@ def get_MNLI_train(filename, k_shot):
             text_a = line[8].strip()
             text_b = line[9].strip()
             label = line[-1].strip() #["entailment", "neutral", "contradiction"]
-            examples.append(
-                InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
             if label == 'entailment':
                 examples_entail.append(
                     InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
@@ -409,9 +407,31 @@ def get_MNLI_train(filename, k_shot):
             remaining_examples.append(ex)
 
     assert len(kshot_entail)+len(kshot_neural)+len(kshot_contra)+len(remaining_examples)==len(examples_entail+examples_neural+examples_contra)
-    return kshot_entail, kshot_neural, kshot_contra, remaining_examples, examples
+    return kshot_entail, kshot_neural, kshot_contra, remaining_examples
 
+def get_MNLI_train(filename):
+    '''
+    classes: ["entailment", "neutral", "contradiction"]
+    '''
 
+    examples=[]
+    readfile = codecs.open(filename, 'r', 'utf-8')
+    line_co=0
+    for row in readfile:
+        if line_co>0:
+            line=row.strip().split('\t')
+            guid = "train-"+str(line_co-1)
+            # text_a = 'MNLI. '+line[8].strip()
+            text_a = line[8].strip()
+            text_b = line[9].strip()
+            label = line[-1].strip() #["entailment", "neutral", "contradiction"]
+            examples.append(
+                InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+        line_co+=1
+    readfile.close()
+    print('loaded  MNLI size:', len(examples))
+
+    return examples #train, dev
 def examples_to_features(source_examples, label_list, args, tokenizer, batch_size, output_mode, dataloader_mode='sequential'):
     source_features = convert_examples_to_features(
         source_examples, label_list, args.max_seq_length, tokenizer, output_mode,
@@ -607,9 +627,8 @@ def main():
     target_kshot_nonentail_examples = train_examples[args.kshot:]
     target_dev_examples = get_RTE_as_dev('/export/home/Dataset/glue_data/RTE/dev.tsv')
     target_test_examples = get_RTE_as_test('/export/home/Dataset/RTE/test_RTE_1235.txt')
-    source_kshot_entail, source_kshot_neural, source_kshot_contra, source_remaining_examples, train_examples_MNLI = get_MNLI_train('/export/home/Dataset/glue_data/MNLI/train.tsv', args.kshot)
-    source_examples = source_kshot_entail+ source_kshot_neural+ source_kshot_contra+ source_remaining_examples
 
+    train_examples_MNLI = get_MNLI_train('/export/home/Dataset/glue_data/MNLI/train.tsv')
     '''search for neighbors'''
     source_example_2_gramset = {}
     for mnli_ex in train_examples_MNLI:
@@ -622,7 +641,7 @@ def main():
     source_label_list = ["entailment", "neutral", "contradiction"]
     source_num_labels = len(source_label_list)
     target_num_labels = len(target_label_list)
-    print('training size:', len(source_examples), 'dev size:', len(target_dev_examples), 'test size:', len(target_test_examples))
+    print('training size:', len(train_examples_MNLI), 'dev size:', len(target_dev_examples), 'test size:', len(target_test_examples))
 
 
     roberta_model = RobertaForSequenceClassification(3)
@@ -666,15 +685,12 @@ def main():
     train_dataloader_not_used = examples_to_features(train_examples, target_label_list, args, tokenizer, 2, "classification", dataloader_mode='random')
     train_neighbors_dataloader = examples_to_features(train_examples_neighbors, source_label_list, args, tokenizer, 5, "classification", dataloader_mode='random')
 
-    source_kshot_entail_dataloader = examples_to_features(source_kshot_entail, source_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
-    source_kshot_neural_dataloader = examples_to_features(source_kshot_neural, source_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
-    source_kshot_contra_dataloader = examples_to_features(source_kshot_contra, source_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
-    source_remain_ex_dataloader = examples_to_features(source_remaining_examples, source_label_list, args, tokenizer, args.train_batch_size, "classification", dataloader_mode='random')
+
 
     target_kshot_entail_dataloader = examples_to_features(target_kshot_entail_examples, target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
     target_kshot_nonentail_dataloader = examples_to_features(target_kshot_nonentail_examples, target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
-    target_dev_dataloader = examples_to_features(target_dev_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='random')
-    target_test_dataloader = examples_to_features(target_test_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='random')
+    target_dev_dataloader = examples_to_features(target_dev_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
+    target_test_dataloader = examples_to_features(target_test_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
 
 
 
@@ -768,6 +784,14 @@ def main():
 
 
     '''starting to train'''
+    source_kshot_entail, source_kshot_neural, source_kshot_contra, source_remaining_examples = get_MNLI_train_kshot('/export/home/Dataset/glue_data/MNLI/train.tsv', args.kshot)
+    # source_examples = source_kshot_entail+ source_kshot_neural+ source_kshot_contra+ source_remaining_examples
+
+    source_kshot_entail_dataloader = examples_to_features(source_kshot_entail, source_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
+    source_kshot_neural_dataloader = examples_to_features(source_kshot_neural, source_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
+    source_kshot_contra_dataloader = examples_to_features(source_kshot_contra, source_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
+    source_remain_ex_dataloader = examples_to_features(source_remaining_examples, source_label_list, args, tokenizer, args.train_batch_size, "classification", dataloader_mode='random')
+
     roberta_model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained/'+'dev_seed_'+str(args.seed)+'_acc_'+str(max_dev_acc_pretrain)+'.pt'))
     iter_co = 0
     final_test_performance = 0.0
@@ -1011,7 +1035,7 @@ if __name__ == "__main__":
     main()
 
 '''
-CUDA_VISIBLE_DEVICES=6 python -u k.shot.GFS.Entail.with.neighbors.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10 --neighbor_size_limit 500 --num_train_epochs_neighbors 1
+CUDA_VISIBLE_DEVICES=6 python -u k.shot.GFS.Entail.with.neighbors.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10 --neighbor_size_limit 500 --num_train_epochs_neighbors 20
 
 don't help
 83.91/0.65

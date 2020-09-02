@@ -785,7 +785,6 @@ def main():
 
     '''starting to train'''
     source_kshot_entail, source_kshot_neural, source_kshot_contra, source_remaining_examples = get_MNLI_train_kshot('/export/home/Dataset/glue_data/MNLI/train.tsv', args.kshot)
-    # source_examples = source_kshot_entail+ source_kshot_neural+ source_kshot_contra+ source_remaining_examples
 
     source_kshot_entail_dataloader = examples_to_features(source_kshot_entail, source_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
     source_kshot_neural_dataloader = examples_to_features(source_kshot_neural, source_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')

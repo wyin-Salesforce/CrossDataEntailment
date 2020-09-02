@@ -854,6 +854,7 @@ if __name__ == "__main__":
 '''
 CUDA_VISIBLE_DEVICES=5 python -u k.shot.prototype.advanced.py --do_lower_case --num_train_epochs 20 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10
 
+target batch 2
 84.56
 85.26
 84.16
@@ -861,4 +862,13 @@ CUDA_VISIBLE_DEVICES=5 python -u k.shot.prototype.advanced.py --do_lower_case --
 85.26
 
 84.81/0.42
+
+target batch 5
+85.22
+84.99
+84.19
+84.79
+85.29
+
+84.89/0.4
 '''

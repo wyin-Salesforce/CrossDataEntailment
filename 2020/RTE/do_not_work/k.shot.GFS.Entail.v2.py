@@ -803,7 +803,9 @@ def main():
                             logits = protonet(class_prototype_reps, last_hidden_target_batch)
 
                         '''combine with logits from source domain'''
-                        weight = 0.7
+                        print('logits:', logits)
+                        print('logits_from_source:', logits_from_source)
+                        weight = 0.9
                         logits = weight*logits+(1.0-weight)*logits_from_source
 
                         if len(preds) == 0:
@@ -834,17 +836,17 @@ def main():
                     if idd == 0: # this is dev
                         if test_acc > max_dev_acc:
                             max_dev_acc = test_acc
-                            print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
+                            print('\niter', iter_co, '\tdev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
 
                         else:
-                            print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
+                            print('\niter', iter_co, '\tdev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
                             break
                     else: # this is test
                         if test_acc > max_test_acc:
                             max_test_acc = test_acc
 
                         final_test_performance = test_acc
-                        print('\ntest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
+                        print('\niter', iter_co, '\ttest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
     print('final_test_performance:', final_test_performance)
 
 
@@ -853,7 +855,7 @@ if __name__ == "__main__":
     main()
 
 '''
-CUDA_VISIBLE_DEVICES=6 python -u k.shot.GFS.Entail.v2.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10
+CUDA_VISIBLE_DEVICES=7 python -u k.shot.GFS.Entail.v2.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10
 
 
 84.81/0.42

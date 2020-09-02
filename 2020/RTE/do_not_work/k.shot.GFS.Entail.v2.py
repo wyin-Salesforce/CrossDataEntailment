@@ -809,9 +809,9 @@ def main():
                         '''combine with logits from source domain'''
                         # print('logits:', logits)
                         # print('logits_from_source:', logits_from_source)
-                        weight = 0.95
-                        logits = weight*logits+(1.0-weight)*torch.sigmoid(logits_from_source)
-
+                        # weight = 0.95
+                        # logits = weight*logits+(1.0-weight)*torch.sigmoid(logits_from_source)
+                        logits = torch.max(torch.cat([logits[None,:,:], torch.sigmoid(logits_from_source)[None, :,:]], dim=0), dim=0)[0]
                         if len(preds) == 0:
                             preds.append(logits.detach().cpu().numpy())
                         else:

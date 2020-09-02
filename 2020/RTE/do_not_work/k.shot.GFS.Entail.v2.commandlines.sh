@@ -51,6 +51,8 @@ CUDA_VISIBLE_DEVICES=4 python -u k.shot.GFS.Entail.v2.py \
     --kshot $SHOT > log.RTE.GFS.Entail.v2.0.9.source.$TARGETBATCHSIZE.targetBatch.$SHOT.shot.seed.64.txt 2>&1 &
 
 
+
+
 CUDA_VISIBLE_DEVICES=3 python -u k.shot.GFS.Entail.v2.py \
     --do_lower_case \
     --num_train_epochs $EPOCHSIZE \

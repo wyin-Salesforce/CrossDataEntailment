@@ -628,7 +628,8 @@ def main():
     target_dev_examples = get_RTE_as_dev('/export/home/Dataset/glue_data/RTE/dev.tsv')
     target_test_examples = get_RTE_as_test('/export/home/Dataset/RTE/test_RTE_1235.txt')
 
-    train_examples_MNLI = get_MNLI_train('/export/home/Dataset/glue_data/MNLI/train.tsv')
+    source_kshot_entail, source_kshot_neural, source_kshot_contra, source_remaining_examples = get_MNLI_train_kshot('/export/home/Dataset/glue_data/MNLI/train.tsv', args.kshot)
+    train_examples_MNLI = source_kshot_entail+ source_kshot_neural+ source_kshot_contra+ source_remaining_examples#get_MNLI_train('/export/home/Dataset/glue_data/MNLI/train.tsv')
     '''search for neighbors'''
     source_example_2_gramset = {}
     for mnli_ex in train_examples_MNLI:
@@ -682,7 +683,7 @@ def main():
 
     retrieve_batch_size = 5
 
-    train_dataloader_not_used = examples_to_features(train_examples, target_label_list, args, tokenizer, 2, "classification", dataloader_mode='random')
+    # train_dataloader_not_used = examples_to_features(train_examples, target_label_list, args, tokenizer, 2, "classification", dataloader_mode='random')
     train_neighbors_dataloader = examples_to_features(train_examples_neighbors, source_label_list, args, tokenizer, 5, "classification", dataloader_mode='random')
 
 
@@ -692,6 +693,11 @@ def main():
     target_dev_dataloader = examples_to_features(target_dev_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
     target_test_dataloader = examples_to_features(target_test_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
 
+
+    source_kshot_entail_dataloader = examples_to_features(source_kshot_entail, source_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
+    source_kshot_neural_dataloader = examples_to_features(source_kshot_neural, source_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
+    source_kshot_contra_dataloader = examples_to_features(source_kshot_contra, source_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
+    source_remain_ex_dataloader = examples_to_features(source_remaining_examples, source_label_list, args, tokenizer, args.train_batch_size, "classification", dataloader_mode='random')
 
 
 
@@ -784,12 +790,6 @@ def main():
 
 
     '''starting to train'''
-    source_kshot_entail, source_kshot_neural, source_kshot_contra, source_remaining_examples = get_MNLI_train_kshot('/export/home/Dataset/glue_data/MNLI/train.tsv', args.kshot)
-
-    source_kshot_entail_dataloader = examples_to_features(source_kshot_entail, source_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
-    source_kshot_neural_dataloader = examples_to_features(source_kshot_neural, source_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
-    source_kshot_contra_dataloader = examples_to_features(source_kshot_contra, source_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
-    source_remain_ex_dataloader = examples_to_features(source_remaining_examples, source_label_list, args, tokenizer, args.train_batch_size, "classification", dataloader_mode='random')
 
     roberta_model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_biased_pretrained/'+'dev_seed_'+str(args.seed)+'_acc_'+str(max_dev_acc_pretrain)+'.pt'))
     iter_co = 0

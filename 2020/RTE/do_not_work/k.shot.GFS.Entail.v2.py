@@ -482,6 +482,10 @@ def main():
                         default=16,
                         type=int,
                         help="Total batch size for training.")
+    parser.add_argument("--target_train_batch_size",
+                        default=2,
+                        type=int,
+                        help="Total batch size for training.")
     parser.add_argument("--eval_batch_size",
                         default=64,
                         type=int,
@@ -686,7 +690,7 @@ def main():
             class_prototype_reps = torch.cat([source_class_prototype_reps, target_class_prototype_reps], dim=0) #(6, hidden)
 
             '''forward to model'''
-            target_batch_size = 2 #10*3
+            target_batch_size = args.target_train_batch_size #10*3
             selected_target_entail_rep = all_kshot_entail_reps[torch.randperm(all_kshot_entail_reps.shape[0])[:target_batch_size]]
             selected_target_neural_rep = all_kshot_neural_reps[torch.randperm(all_kshot_neural_reps.shape[0])[:target_batch_size]]
             target_last_hidden_batch = torch.cat([selected_target_entail_rep, selected_target_neural_rep])
@@ -805,8 +809,8 @@ def main():
                         '''combine with logits from source domain'''
                         # print('logits:', logits)
                         # print('logits_from_source:', logits_from_source)
-                        weight = 0.7
-                        logits = weight*logits+(1.0-weight)*torch.sigmoid(logits_from_source)
+                        # weight = 0.7
+                        # logits = weight*logits+(1.0-weight)*torch.sigmoid(logits_from_source)
 
                         if len(preds) == 0:
                             preds.append(logits.detach().cpu().numpy())
@@ -855,8 +859,8 @@ if __name__ == "__main__":
     main()
 
 '''
-CUDA_VISIBLE_DEVICES=7 python -u k.shot.GFS.Entail.v2.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10
+CUDA_VISIBLE_DEVICES=7 python -u k.shot.GFS.Entail.v2.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10 --target_train_batch_size 2
 
 
-84.81/0.42
+
 '''

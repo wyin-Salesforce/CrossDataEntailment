@@ -803,8 +803,8 @@ def main():
                             logits = protonet(class_prototype_reps, last_hidden_target_batch)
 
                         '''combine with logits from source domain'''
-                        print('logits:', logits)
-                        print('logits_from_source:', logits_from_source)
+                        # print('logits:', logits)
+                        # print('logits_from_source:', logits_from_source)
                         weight = 0.9
                         logits = weight*logits+(1.0-weight)*torch.sigmoid(logits_from_source)
 

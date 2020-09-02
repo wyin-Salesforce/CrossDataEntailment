@@ -803,7 +803,7 @@ def main():
                             logits = protonet(class_prototype_reps, last_hidden_target_batch)
 
                         '''combine with logits from source domain'''
-                        weight = 0.9
+                        weight = 0.8
                         logits = weight*logits+(1.0-weight)*logits_from_source
 
                         if len(preds) == 0:

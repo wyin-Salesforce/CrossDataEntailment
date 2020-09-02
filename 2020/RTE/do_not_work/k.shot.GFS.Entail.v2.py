@@ -280,7 +280,8 @@ class PrototypeNet(nn.Module):
         repeat_rep_query = torch.repeat_interleave(rep_query_batch, repeats=class_size, dim=0)
         combined_rep = torch.cat([repeat_rep_classes, repeat_rep_query, repeat_rep_classes*repeat_rep_query], dim=1) #(#class*batch, 3*hidden)
 
-        all_scores = torch.sigmoid(self.HiddenLayer_3(self.dropout(torch.tanh(self.HiddenLayer_2(self.dropout(torch.tanh(self.HiddenLayer_1(combined_rep)))))))) #(#class*batch, 1)
+        # all_scores = torch.sigmoid(self.HiddenLayer_3(self.dropout(torch.tanh(self.HiddenLayer_2(self.dropout(torch.tanh(self.HiddenLayer_1(combined_rep)))))))) #(#class*batch, 1)
+        all_scores = torch.sigmoid(self.HiddenLayer_3(torch.tanh(self.HiddenLayer_2(torch.tanh(self.HiddenLayer_1(combined_rep)))))) #(#class*batch, 1)
         score_matrix_to_fold = all_scores.view(-1, class_size) #(batch_size, class_size*2)
         score_matrix = score_matrix_to_fold[:,:3]+score_matrix_to_fold[:, -3:]#(batch_size, class_size)
 
@@ -690,9 +691,9 @@ def main():
             class_prototype_reps = torch.cat([source_class_prototype_reps, target_class_prototype_reps], dim=0) #(6, hidden)
 
             '''forward to model'''
-            # target_batch_size = args.target_train_batch_size #10*3
-            target_batch_size_entail = random.randrange(5)+1
-            target_batch_size_neural = random.randrange(5)+1
+            target_batch_size = args.target_train_batch_size #10*3
+            target_batch_size_entail = target_batch_size#random.randrange(5)+1
+            target_batch_size_neural = target_batch_size#random.randrange(5)+1
 
 
             selected_target_entail_rep = all_kshot_entail_reps[torch.randperm(all_kshot_entail_reps.shape[0])[:target_batch_size_entail]]

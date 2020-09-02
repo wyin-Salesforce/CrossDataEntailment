@@ -678,10 +678,10 @@ def main():
     source_num_labels = len(source_label_list)
     target_num_labels = len(target_label_list)
 
-    source_kshot_entail, source_kshot_neural, source_kshot_contra, source_remaining_examples = get_MNLI_train_kshot('/export/home/Dataset/glue_data/MNLI/train.tsv', args.kshot)
-    source_examples = source_kshot_entail+ source_kshot_neural+ source_kshot_contra+ source_remaining_examples
+    # source_kshot_entail, source_kshot_neural, source_kshot_contra, source_remaining_examples = get_MNLI_train_kshot('/export/home/Dataset/glue_data/MNLI/train.tsv', args.kshot)
+    # source_examples = source_kshot_entail+ source_kshot_neural+ source_kshot_contra+ source_remaining_examples
 
-    print('training size:', len(source_examples), 'dev size:', len(target_dev_examples), 'test size:', len(target_test_examples))
+    print('dev size:', len(target_dev_examples), 'test size:', len(target_test_examples))
 
 
 

@@ -659,8 +659,7 @@ def main():
     # train_examples = get_RTE_as_train_k_shot_copied('/export/home/Dataset/glue_data/RTE/train.tsv', args.kshot) #train_pu_half_v1.txt
     target_kshot_entail_examples = train_examples[:args.kshot]
     target_kshot_nonentail_examples = train_examples[args.kshot:]
-    target_dev_examples = get_RTE_as_dev('/export/home/Dataset/glue_data/RTE/dev.tsv')
-    target_test_examples = get_RTE_as_test('/export/home/Dataset/RTE/test_RTE_1235.txt')
+
     train_examples_MNLI = get_MNLI_train('/export/home/Dataset/glue_data/MNLI/train.tsv')
 
 
@@ -672,6 +671,9 @@ def main():
     # neighbor_size_limit = 500
     train_examples_neighbors = retrieve_neighbors_source_given_kshot_target(train_examples, source_example_2_gramset, args.neighbor_size_limit)
     print('neighbor size:', len(train_examples_neighbors))
+
+    target_dev_examples = get_RTE_as_dev('/export/home/Dataset/glue_data/RTE/dev.tsv')
+    target_test_examples = get_RTE_as_test('/export/home/Dataset/RTE/test_RTE_1235.txt')
 
     target_label_list = ["entailment", "not_entailment"]
     source_label_list = ["entailment", "neutral", "contradiction"]
@@ -712,7 +714,7 @@ def main():
 
     train_dataloader_not_used = examples_to_features(train_examples, target_label_list, args, tokenizer, 2, "classification", dataloader_mode='random')
     train_neighbors_dataloader = examples_to_features(train_examples_neighbors, source_label_list, args, tokenizer, 5, "classification", dataloader_mode='random')
-    target_dev_dataloader = examples_to_features(target_dev_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='random')
+    target_dev_dataloader = examples_to_features(target_dev_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
 
 
     '''first pretrain on neighbors'''

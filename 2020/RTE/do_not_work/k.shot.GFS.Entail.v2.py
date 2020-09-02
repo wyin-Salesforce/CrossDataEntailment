@@ -805,7 +805,7 @@ def main():
                         '''combine with logits from source domain'''
                         # print('logits:', logits)
                         # print('logits_from_source:', logits_from_source)
-                        weight = 0.9
+                        weight = 0.8
                         logits = weight*logits+(1.0-weight)*torch.sigmoid(logits_from_source)
 
                         if len(preds) == 0:

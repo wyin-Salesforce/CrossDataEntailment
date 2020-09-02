@@ -691,8 +691,8 @@ def main():
 
             '''forward to model'''
             # target_batch_size = args.target_train_batch_size #10*3
-            target_batch_size_entail = random.randrange(5)
-            target_batch_size_neural = random.randrange(5)
+            target_batch_size_entail = random.randrange(5)+1
+            target_batch_size_neural = random.randrange(5)+1
 
 
             selected_target_entail_rep = all_kshot_entail_reps[torch.randperm(all_kshot_entail_reps.shape[0])[:target_batch_size_entail]]

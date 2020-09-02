@@ -809,8 +809,8 @@ def main():
                         '''combine with logits from source domain'''
                         # print('logits:', logits)
                         # print('logits_from_source:', logits_from_source)
-                        # weight = 0.7
-                        # logits = weight*logits+(1.0-weight)*torch.sigmoid(logits_from_source)
+                        weight = 0.9
+                        logits = weight*logits+(1.0-weight)*torch.sigmoid(logits_from_source)
 
                         if len(preds) == 0:
                             preds.append(logits.detach().cpu().numpy())
@@ -851,6 +851,8 @@ def main():
 
                         final_test_performance = test_acc
                         print('\niter', iter_co, '\ttest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
+            if iter_co == 1000:
+                break
     print('final_test_performance:', final_test_performance)
 
 

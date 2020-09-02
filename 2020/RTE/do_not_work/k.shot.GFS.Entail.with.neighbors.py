@@ -289,7 +289,7 @@ class PrototypeNet(nn.Module):
 
         return score_matrix
 
-def get_RTE_as_train_k_shot_copied(filename, k_shot):
+def get_RTE_as_train_k_shot(filename, k_shot):
     '''
     can read the training file, dev and test file
     '''
@@ -319,36 +319,6 @@ def get_RTE_as_train_k_shot_copied(filename, k_shot):
     else:
         sampled_examples = random.sample(examples_entail, k_shot)+random.sample(examples_non_entail, k_shot)
         return sampled_examples
-
-def get_RTE_as_train_k_shot(filename, k_shot):
-    '''
-    can read the training file, dev and test file
-    '''
-    examples_entail=[]
-    examples_non_entail=[]
-    readfile = codecs.open(filename, 'r', 'utf-8')
-    line_co=0
-    for row in readfile:
-        if line_co>0:
-            line=row.strip().split('\t')
-            guid = "train-"+str(line_co-1)
-            text_a = line[1].strip()
-            text_b = line[2].strip()
-            label = 'entailment' if line[3].strip()=='entailment' else 'not_entailment' #["entailment", "not_entailment"]
-            if label == 'entailment':
-                examples_entail.append(
-                    InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
-            else:
-                examples_non_entail.append(
-                    InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
-        line_co+=1
-    readfile.close()
-    print('loaded  entail size:', len(examples_entail), 'non-entail size:', len(examples_non_entail))
-    '''sampling'''
-    if k_shot > 99999:
-        return examples_entail, examples_non_entail
-    else:
-        return random.sample(examples_entail, k_shot), random.sample(examples_non_entail, k_shot)
 
 
 def get_RTE_as_dev(filename):
@@ -632,20 +602,19 @@ def main():
 
 
 
-    target_kshot_entail_examples, target_kshot_nonentail_examples = get_RTE_as_train_k_shot('/export/home/Dataset/glue_data/RTE/train.tsv', args.kshot) #train_pu_half_v1.txt
-    train_examples = get_RTE_as_train_k_shot_copied('/export/home/Dataset/glue_data/RTE/train.tsv', args.kshot) #train_pu_half_v1.txt
+    train_examples= get_RTE_as_train_k_shot('/export/home/Dataset/glue_data/RTE/train.tsv', args.kshot) #train_pu_half_v1.txt
+    target_kshot_entail_examples = train_examples[:args.kshot]
+    target_kshot_nonentail_examples = train_examples[args.kshot:]
     target_dev_examples = get_RTE_as_dev('/export/home/Dataset/glue_data/RTE/dev.tsv')
     target_test_examples = get_RTE_as_test('/export/home/Dataset/RTE/test_RTE_1235.txt')
     source_kshot_entail, source_kshot_neural, source_kshot_contra, source_remaining_examples, train_examples_MNLI = get_MNLI_train('/export/home/Dataset/glue_data/MNLI/train.tsv', args.kshot)
     source_examples = source_kshot_entail+ source_kshot_neural+ source_kshot_contra+ source_remaining_examples
 
     '''search for neighbors'''
-    # train_examples_MNLI = source_kshot_entail+ source_kshot_neural+ source_kshot_contra+ source_remaining_examples
     source_example_2_gramset = {}
     for mnli_ex in train_examples_MNLI:
         source_example_2_gramset[mnli_ex] = gram_set(mnli_ex)
     print('MNLI gramset build over')
-    # neighbor_size_limit = 500
     train_examples_neighbors = retrieve_neighbors_source_given_kshot_target(train_examples, source_example_2_gramset, args.neighbor_size_limit)
     print('neighbor size:', len(train_examples_neighbors))
 
@@ -694,6 +663,9 @@ def main():
 
     retrieve_batch_size = 5
 
+    train_dataloader_not_used = examples_to_features(train_examples, target_label_list, args, tokenizer, 2, "classification", dataloader_mode='random')
+    train_neighbors_dataloader = examples_to_features(train_examples_neighbors, source_label_list, args, tokenizer, 5, "classification", dataloader_mode='random')
+
     source_kshot_entail_dataloader = examples_to_features(source_kshot_entail, source_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
     source_kshot_neural_dataloader = examples_to_features(source_kshot_neural, source_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
     source_kshot_contra_dataloader = examples_to_features(source_kshot_contra, source_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
@@ -704,7 +676,7 @@ def main():
     target_dev_dataloader = examples_to_features(target_dev_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='random')
     target_test_dataloader = examples_to_features(target_test_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='random')
 
-    train_neighbors_dataloader = examples_to_features(train_examples_neighbors, source_label_list, args, tokenizer, 5, "classification", dataloader_mode='random')
+
 
 
     '''first pretrain on neighbors'''

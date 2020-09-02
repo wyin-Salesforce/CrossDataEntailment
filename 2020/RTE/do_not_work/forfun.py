@@ -678,9 +678,6 @@ def main():
     source_num_labels = len(source_label_list)
     target_num_labels = len(target_label_list)
 
-    # source_kshot_entail, source_kshot_neural, source_kshot_contra, source_remaining_examples = get_MNLI_train_kshot('/export/home/Dataset/glue_data/MNLI/train.tsv', args.kshot)
-    # source_examples = source_kshot_entail+ source_kshot_neural+ source_kshot_contra+ source_remaining_examples
-
     print('dev size:', len(target_dev_examples), 'test size:', len(target_test_examples))
 
 
@@ -691,8 +688,6 @@ def main():
     roberta_model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_pretrained/_acc_0.9040886899918633.pt'))
     roberta_model.to(device)
 
-    # protonet = PrototypeNet(bert_hidden_dim)
-    # protonet.to(device)
 
     param_optimizer_pretrain = list(roberta_model.named_parameters())
     no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
@@ -704,15 +699,7 @@ def main():
     optimizer_pretrain = AdamW(optimizer_grouped_parameters_pretrain,
                              lr=5e-7)
 
-    # param_optimizer = list(protonet.named_parameters())
-    # no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
-    # optimizer_grouped_parameters = [
-    #     {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
-    #     {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
-    #     ]
-    #
-    # optimizer = AdamW(optimizer_grouped_parameters,
-    #                          lr=args.learning_rate)
+
 
     global_step = 0
     nb_tr_steps = 0
@@ -722,8 +709,10 @@ def main():
 
     retrieve_batch_size = 5
 
-    target_dev_dataloader = examples_to_features(target_dev_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='random')
+
+    train_dataloader_not_used = examples_to_features(train_examples, target_label_list, args, tokenizer, 2, "classification", dataloader_mode='random')
     train_neighbors_dataloader = examples_to_features(train_examples_neighbors, source_label_list, args, tokenizer, 5, "classification", dataloader_mode='random')
+    target_dev_dataloader = examples_to_features(target_dev_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='random')
 
 
     '''first pretrain on neighbors'''

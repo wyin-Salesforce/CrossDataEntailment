@@ -690,9 +690,13 @@ def main():
             class_prototype_reps = torch.cat([source_class_prototype_reps, target_class_prototype_reps], dim=0) #(6, hidden)
 
             '''forward to model'''
-            target_batch_size = args.target_train_batch_size #10*3
-            selected_target_entail_rep = all_kshot_entail_reps[torch.randperm(all_kshot_entail_reps.shape[0])[:target_batch_size]]
-            selected_target_neural_rep = all_kshot_neural_reps[torch.randperm(all_kshot_neural_reps.shape[0])[:target_batch_size]]
+            # target_batch_size = args.target_train_batch_size #10*3
+            target_batch_size_entail = random.randrange(5)
+            target_batch_size_neural = random.randrange(5)
+
+
+            selected_target_entail_rep = all_kshot_entail_reps[torch.randperm(all_kshot_entail_reps.shape[0])[:target_batch_size_entail]]
+            selected_target_neural_rep = all_kshot_neural_reps[torch.randperm(all_kshot_neural_reps.shape[0])[:target_batch_size_neural]]
             target_last_hidden_batch = torch.cat([selected_target_entail_rep, selected_target_neural_rep])
 
             last_hidden_batch = torch.cat([source_last_hidden_batch, target_last_hidden_batch], dim=0) #(train_batch_size+10*2)
@@ -811,7 +815,7 @@ def main():
                         # print('logits_from_source:', logits_from_source)
                         # weight = 0.95
                         # logits = weight*logits+(1.0-weight)*torch.sigmoid(logits_from_source)
-                        logits = torch.max(torch.cat([logits[None,:,:], torch.sigmoid(logits_from_source)[None, :,:]], dim=0), dim=0)[0]
+                        # logits = torch.max(torch.cat([logits[None,:,:], torch.sigmoid(logits_from_source)[None, :,:]], dim=0), dim=0)[0]
                         if len(preds) == 0:
                             preds.append(logits.detach().cpu().numpy())
                         else:

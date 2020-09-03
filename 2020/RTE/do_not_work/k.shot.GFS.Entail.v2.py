@@ -264,7 +264,7 @@ class PrototypeNet(nn.Module):
         self.HiddenLayer_1 = nn.Linear(3*hidden_size, 2*hidden_size)
         self.HiddenLayer_2 = nn.Linear(2*hidden_size, hidden_size)
         self.HiddenLayer_3 = nn.Linear(hidden_size, 1)
-        self.dropout = nn.Dropout(0.08)
+        self.dropout = nn.Dropout(0.1)
 
         # self.bias = Parameter(torch.Tensor(3))
 

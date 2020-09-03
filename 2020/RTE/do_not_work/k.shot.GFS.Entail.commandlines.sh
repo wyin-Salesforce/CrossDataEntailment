@@ -4,10 +4,10 @@ export TARGETBATCHSIZE=2
 export EPOCHSIZE=1 #only need max 5 epochs
 export LEARNINGRATE=1e-6
 export DROPOUT=0.1
-export PRETAINEPOCHS=2
+export PRETAINEPOCHS=3
 
 
-CUDA_VISIBLE_DEVICES=5 python -u k.shot.GFS.Entail.py \
+CUDA_VISIBLE_DEVICES=0 python -u k.shot.GFS.Entail.py \
     --do_lower_case \
     --num_train_epochs $EPOCHSIZE \
     --train_batch_size $BATCHSIZE \
@@ -19,7 +19,7 @@ CUDA_VISIBLE_DEVICES=5 python -u k.shot.GFS.Entail.py \
     --pretrain_epochs $PRETAINEPOCHS \
     --kshot $SHOT > log.RTE.GFS.Entail.source.pretrain.epoch.$PRETAINEPOCHS.drop.$DROPOUT.$TARGETBATCHSIZE.targetBatch.$SHOT.shot.seed.42.txt 2>&1 &
 
-CUDA_VISIBLE_DEVICES=6 python -u k.shot.GFS.Entail.py \
+CUDA_VISIBLE_DEVICES=1 python -u k.shot.GFS.Entail.py \
     --do_lower_case \
     --num_train_epochs $EPOCHSIZE \
     --train_batch_size $BATCHSIZE \
@@ -31,7 +31,7 @@ CUDA_VISIBLE_DEVICES=6 python -u k.shot.GFS.Entail.py \
     --pretrain_epochs $PRETAINEPOCHS \
     --kshot $SHOT > log.RTE.GFS.Entail.source.pretrain.epoch.$PRETAINEPOCHS.drop.$DROPOUT.$TARGETBATCHSIZE.targetBatch.$SHOT.shot.seed.16.txt 2>&1 &
 
-CUDA_VISIBLE_DEVICES=7 python -u k.shot.GFS.Entail.py \
+CUDA_VISIBLE_DEVICES=2 python -u k.shot.GFS.Entail.py \
     --do_lower_case \
     --num_train_epochs $EPOCHSIZE \
     --train_batch_size $BATCHSIZE \
@@ -43,7 +43,7 @@ CUDA_VISIBLE_DEVICES=7 python -u k.shot.GFS.Entail.py \
     --pretrain_epochs $PRETAINEPOCHS \
     --kshot $SHOT > log.RTE.GFS.Entail.source.pretrain.epoch.$PRETAINEPOCHS.drop.$DROPOUT.$TARGETBATCHSIZE.targetBatch.$SHOT.shot.seed.32.txt 2>&1 &
 
-CUDA_VISIBLE_DEVICES=5 python -u k.shot.GFS.Entail.py \
+CUDA_VISIBLE_DEVICES=3 python -u k.shot.GFS.Entail.py \
     --do_lower_case \
     --num_train_epochs $EPOCHSIZE \
     --train_batch_size $BATCHSIZE \
@@ -56,7 +56,7 @@ CUDA_VISIBLE_DEVICES=5 python -u k.shot.GFS.Entail.py \
     --kshot $SHOT > log.RTE.GFS.Entail.source.pretrain.epoch.$PRETAINEPOCHS.drop.$DROPOUT.$TARGETBATCHSIZE.targetBatch.$SHOT.shot.seed.64.txt 2>&1 &
 
 
-CUDA_VISIBLE_DEVICES=6 python -u k.shot.GFS.Entail.py \
+CUDA_VISIBLE_DEVICES=4 python -u k.shot.GFS.Entail.py \
     --do_lower_case \
     --num_train_epochs $EPOCHSIZE \
     --train_batch_size $BATCHSIZE \

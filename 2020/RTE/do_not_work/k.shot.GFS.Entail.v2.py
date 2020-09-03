@@ -336,7 +336,7 @@ class PrototypeNet(nn.Module):
         output_1 = self.dropout(torch.tanh(self.HiddenLayer_1(combined_rep))) +combined_rep
         output_2 = self.dropout(torch.tanh(self.HiddenLayer_2(output_1))) +output_1
         output_3 = self.dropout(torch.tanh(self.HiddenLayer_3(output_2)))
-        output_4 = self.dropout(torch.tanh(self.HiddenLayer_4(output_2)))
+        output_4 = self.dropout(torch.tanh(self.HiddenLayer_4(output_3)))
         all_scores = torch.sigmoid(self.HiddenLayer_5(output_4))
 
 

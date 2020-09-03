@@ -264,7 +264,7 @@ class PrototypeNet(nn.Module):
         self.HiddenLayer_1 = nn.Linear(3*hidden_size, 2*hidden_size)
         self.HiddenLayer_2 = nn.Linear(2*hidden_size, hidden_size)
         self.HiddenLayer_3 = nn.Linear(hidden_size, 1)
-        self.dropout = nn.Dropout(0.1)
+        self.dropout = nn.Dropout(0.15)
 
         # self.bias = Parameter(torch.Tensor(3))
 
@@ -280,8 +280,8 @@ class PrototypeNet(nn.Module):
         repeat_rep_query = torch.repeat_interleave(rep_query_batch, repeats=class_size, dim=0)
         combined_rep = torch.cat([repeat_rep_classes, repeat_rep_query, repeat_rep_classes*repeat_rep_query], dim=1) #(#class*batch, 3*hidden)
 
-        # all_scores = torch.sigmoid(self.HiddenLayer_3(self.dropout(torch.tanh(self.HiddenLayer_2(self.dropout(torch.tanh(self.HiddenLayer_1(combined_rep)))))))) #(#class*batch, 1)
-        all_scores = torch.sigmoid(self.HiddenLayer_3(torch.tanh(self.HiddenLayer_2(torch.tanh(self.HiddenLayer_1(combined_rep)))))) #(#class*batch, 1)
+        all_scores = torch.sigmoid(self.HiddenLayer_3(self.dropout(torch.tanh(self.HiddenLayer_2(self.dropout(torch.tanh(self.HiddenLayer_1(combined_rep)))))))) #(#class*batch, 1)
+
         score_matrix_to_fold = all_scores.view(-1, class_size) #(batch_size, class_size*2)
         score_matrix = score_matrix_to_fold[:,:3]+score_matrix_to_fold[:, -3:]#(batch_size, class_size)
 

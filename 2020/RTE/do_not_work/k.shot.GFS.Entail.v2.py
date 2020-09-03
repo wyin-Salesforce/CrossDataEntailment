@@ -284,11 +284,39 @@ class RobertaClassificationHead(nn.Module):
 #         return score_matrix
 
 
+# class PrototypeNet(nn.Module):
+#     def __init__(self, hidden_size):
+#         super(PrototypeNet, self).__init__()
+#         self.HiddenLayer_1 = nn.Linear(4*hidden_size, 8*hidden_size)
+#         self.HiddenLayer_2 = nn.Linear(8*hidden_size, 4*hidden_size)
+#         self.HiddenLayer_3 = nn.Linear(4*hidden_size, 2*hidden_size)
+#         self.HiddenLayer_4 = nn.Linear(2*hidden_size, hidden_size)
+#         self.HiddenLayer_5 = nn.Linear(hidden_size, 1)
+#         self.dropout = nn.Dropout(0.1)
+#
+#     def forward(self, rep_classes,rep_query_batch):
+#         '''
+#         rep_classes: (#class*2, hidden_size), 3 comes from MNLI, 3 comes from target
+#         rep_query_batch: (batch_size, hidden_size)
+#         '''
+#         class_size = rep_classes.shape[0]
+#         batch_size = rep_query_batch.shape[0]
+#         repeat_rep_classes = rep_classes.repeat(batch_size, 1)
+#         repeat_rep_query = torch.repeat_interleave(rep_query_batch, repeats=class_size, dim=0)
+#         combined_rep = torch.cat([repeat_rep_classes, repeat_rep_query, repeat_rep_classes*repeat_rep_query, repeat_rep_classes-repeat_rep_query], dim=1) #(#class*batch, 3*hidden)
+#
+#         all_scores = torch.sigmoid(self.HiddenLayer_5(self.dropout(torch.tanh(self.HiddenLayer_4(self.dropout(torch.tanh(self.HiddenLayer_3(self.dropout(torch.tanh(self.HiddenLayer_2(self.dropout(torch.tanh(self.HiddenLayer_1(combined_rep)))))))))))))) #(#class*batch, 1)
+#
+#         score_matrix_to_fold = all_scores.view(-1, class_size) #(batch_size, class_size*2)
+#         score_matrix = score_matrix_to_fold[:,:3]+score_matrix_to_fold[:, -3:]#(batch_size, class_size)
+#         return score_matrix
+
+
 class PrototypeNet(nn.Module):
     def __init__(self, hidden_size):
         super(PrototypeNet, self).__init__()
-        self.HiddenLayer_1 = nn.Linear(4*hidden_size, 8*hidden_size)
-        self.HiddenLayer_2 = nn.Linear(8*hidden_size, 4*hidden_size)
+        self.HiddenLayer_1 = nn.Linear(4*hidden_size, 4*hidden_size)
+        self.HiddenLayer_2 = nn.Linear(4*hidden_size, 4*hidden_size)
         self.HiddenLayer_3 = nn.Linear(4*hidden_size, 2*hidden_size)
         self.HiddenLayer_4 = nn.Linear(2*hidden_size, hidden_size)
         self.HiddenLayer_5 = nn.Linear(hidden_size, 1)
@@ -305,11 +333,22 @@ class PrototypeNet(nn.Module):
         repeat_rep_query = torch.repeat_interleave(rep_query_batch, repeats=class_size, dim=0)
         combined_rep = torch.cat([repeat_rep_classes, repeat_rep_query, repeat_rep_classes*repeat_rep_query, repeat_rep_classes-repeat_rep_query], dim=1) #(#class*batch, 3*hidden)
 
-        all_scores = torch.sigmoid(self.HiddenLayer_5(self.dropout(torch.tanh(self.HiddenLayer_4(self.dropout(torch.tanh(self.HiddenLayer_3(self.dropout(torch.tanh(self.HiddenLayer_2(self.dropout(torch.tanh(self.HiddenLayer_1(combined_rep)))))))))))))) #(#class*batch, 1)
+        output_1 = self.dropout(torch.tanh(self.HiddenLayer_1(combined_rep))) +combined_rep
+        output_2 = self.dropout(torch.tanh(self.HiddenLayer_2(output_1))) +output_1
+        output_3 = self.dropout(torch.tanh(self.HiddenLayer_3(output_2)))
+        output_4 = self.dropout(torch.tanh(self.HiddenLayer_4(output_2)))
+        all_scores = torch.sigmoid(self.HiddenLayer_5(output_4))
+
+
+
+
+
+        # all_scores = torch.sigmoid(self.HiddenLayer_3(self.dropout(torch.tanh(self.HiddenLayer_2(self.dropout(torch.tanh(self.HiddenLayer_1(combined_rep)))))))) #(#class*batch, 1)
 
         score_matrix_to_fold = all_scores.view(-1, class_size) #(batch_size, class_size*2)
         score_matrix = score_matrix_to_fold[:,:3]+score_matrix_to_fold[:, -3:]#(batch_size, class_size)
         return score_matrix
+
 
 def get_RTE_as_train_k_shot(filename, k_shot):
     '''
@@ -877,7 +916,7 @@ def main():
 
                         final_test_performance = test_acc
                         print('\niter', iter_co, '\ttest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
-            if iter_co == 4000:
+            if iter_co == 3000:
                 break
     print('final_test_performance:', final_test_performance)
 
@@ -889,6 +928,8 @@ if __name__ == "__main__":
 '''
 CUDA_VISIBLE_DEVICES=7 python -u k.shot.GFS.Entail.v2.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10 --target_train_batch_size 2
 
-
+a,b,a*b,a-b; drop0.1; batch 5, max 3000 iter
+[85.02, 85.29, 84.22, 85.39, 85.22]
+85.03/0.42
 
 '''

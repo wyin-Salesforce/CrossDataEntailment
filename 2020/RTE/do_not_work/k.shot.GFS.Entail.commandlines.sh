@@ -4,7 +4,7 @@ export TARGETBATCHSIZE=2
 export EPOCHSIZE=1 #only need max 5 epochs
 export LEARNINGRATE=1e-6
 export DROPOUT=0.1
-export PRETAINEPOCHS = 1
+export PRETAINEPOCHS=1
 
 
 CUDA_VISIBLE_DEVICES=0 python -u k.shot.GFS.Entail.py \

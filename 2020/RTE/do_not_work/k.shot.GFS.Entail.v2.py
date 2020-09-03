@@ -921,7 +921,6 @@ def main():
     print('final_test_performance:', final_test_performance)
 
 
-
 if __name__ == "__main__":
     main()
 
@@ -931,5 +930,9 @@ CUDA_VISIBLE_DEVICES=7 python -u k.shot.GFS.Entail.v2.py --do_lower_case --num_t
 a,b,a*b,a-b; drop0.1; batch 5, max 3000 iter
 [85.02, 85.29, 84.22, 85.39, 85.22]
 85.03/0.42
+
+residualmodel batch 2
+[85.59, 85.46, 84.79, 85.22, 85.32]
+85.28/0.27
 
 '''

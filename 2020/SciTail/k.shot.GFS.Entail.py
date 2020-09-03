@@ -297,22 +297,24 @@ class PrototypeNet(nn.Module):
         return score_matrix
 
 
-def get_RTE_as_train_k_shot(filename, k_shot):
+def get_SciTail_as_train_k_shot(filename, k_shot):
     '''
-    can read the training file, dev and test file
+    classes: entails, neutral
     '''
     examples_entail=[]
     examples_non_entail=[]
     readfile = codecs.open(filename, 'r', 'utf-8')
     line_co=0
     for row in readfile:
-        if line_co>0:
-            line=row.strip().split('\t')
+
+        line=row.strip().split('\t')
+        if len(line)==3:
             guid = "train-"+str(line_co-1)
-            text_a = line[1].strip()
-            text_b = line[2].strip()
-            label = 'entailment' if line[3].strip()=='entailment' else 'not_entailment' #["entailment", "not_entailment"]
-            if label == 'entailment':
+            # text_a = 'SciTail. '+line[0].strip()
+            text_a = line[0].strip()
+            text_b = line[1].strip()
+            label = line[2].strip()
+            if label == 'entails':
                 examples_entail.append(
                     InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
             else:
@@ -323,55 +325,38 @@ def get_RTE_as_train_k_shot(filename, k_shot):
     print('loaded  entail size:', len(examples_entail), 'non-entail size:', len(examples_non_entail))
     '''sampling'''
     if k_shot > 99999:
-        return examples_entail, examples_non_entail
+        return examples_entail+examples_non_entail
     else:
         return random.sample(examples_entail, k_shot), random.sample(examples_non_entail, k_shot)
+        # sampled_examples = random.sample(examples_entail, k_shot)+random.sample(examples_non_entail, k_shot)
+        # return sampled_examples
 
 
-def get_RTE_as_dev(filename):
+def get_SciTail_dev_and_test(train_filename, dev_filename):
     '''
-    can read the training file, dev and test file
+    classes: entails, neutral
     '''
-    examples=[]
-    readfile = codecs.open(filename, 'r', 'utf-8')
-    line_co=0
-    for row in readfile:
-        if line_co>0:
+    examples_per_file = []
+    for filename in [train_filename, dev_filename]:
+        examples=[]
+        readfile = codecs.open(filename, 'r', 'utf-8')
+        line_co=0
+        for row in readfile:
+
             line=row.strip().split('\t')
-            guid = "dev-"+str(line_co-1)
-            text_a = line[1].strip()
-            text_b = line[2].strip()
-            # label = line[3].strip() #["entailment", "not_entailment"]
-            label = 'entailment' if line[3].strip()=='entailment' else 'not_entailment'
-            # label = 'entailment'  if line[3] == 'entailment' else 'neutral'
-            examples.append(
-                InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
-        line_co+=1
-        # if line_co > 20000:
-        #     break
-    readfile.close()
-    print('loaded  size:', line_co-1)
-    return examples
+            if len(line) == 3:
+                guid = "train-"+str(line_co-1)
+                # text_a = 'SciTail. '+line[0].strip()
+                text_a = line[0].strip()
+                text_b = line[1].strip()
+                label = line[2].strip()
+                examples.append(
+                    InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
 
-def get_RTE_as_test(filename):
-    readfile = codecs.open(filename, 'r', 'utf-8')
-    line_co=0
-    examples=[]
-    for row in readfile:
-        line=row.strip().split('\t')
-        if len(line)==3:
-            guid = "test-"+str(line_co)
-            text_a = line[1]
-            text_b = line[2]
-            '''for RTE, we currently only choose randomly two labels in the set, in prediction we then decide the predicted labels'''
-            label = 'entailment'  if line[0] == '1' else 'not_entailment'
-            examples.append(
-                InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
-            line_co+=1
-
-    readfile.close()
-    print('loaded test size:', line_co)
-    return examples
+        readfile.close()
+        print('loaded  SciTail size:', len(examples))
+        examples_per_file.append(examples)
+    return examples_per_file[0], examples_per_file[1] #train, dev
 
 def get_MNLI_train(filename, k_shot):
     '''
@@ -568,23 +553,20 @@ def main():
 
 
 
-    target_kshot_entail_examples, target_kshot_nonentail_examples = get_RTE_as_train_k_shot('/export/home/Dataset/glue_data/RTE/train.tsv', args.kshot) #train_pu_half_v1.txt
-    target_dev_examples = get_RTE_as_dev('/export/home/Dataset/glue_data/RTE/dev.tsv')
-    target_test_examples = get_RTE_as_test('/export/home/Dataset/RTE/test_RTE_1235.txt')
+    scitail_path = '/export/home/Dataset/SciTailV1/tsv_format/'
+    target_kshot_entail_examples, target_kshot_nonentail_examples = get_SciTail_as_train_k_shot(scitail_path+'scitail_1.0_train.tsv', args.kshot) #train_pu_half_v1.txt
+    target_dev_examples, target_test_examples = get_SciTail_dev_and_test(scitail_path+'scitail_1.0_dev.tsv', scitail_path+'scitail_1.0_test.tsv')
+
+
     source_kshot_size = max(10, args.kshot)
     source_kshot_entail, source_kshot_neural, source_kshot_contra, source_remaining_examples = get_MNLI_train('/export/home/Dataset/glue_data/MNLI/train.tsv', source_kshot_size)
     source_examples = source_kshot_entail+ source_kshot_neural+ source_kshot_contra+ source_remaining_examples
-    target_label_list = ["entailment", "not_entailment"]
+    target_label_list = ["entails", "neutral"]
     source_label_list = ["entailment", "neutral", "contradiction"]
     source_num_labels = len(source_label_list)
     target_num_labels = len(target_label_list)
     print('training size:', len(source_examples), 'dev size:', len(target_dev_examples), 'test size:', len(target_test_examples))
 
-    num_train_optimization_steps = None
-    num_train_optimization_steps = int(
-        len(source_remaining_examples) / args.train_batch_size / args.gradient_accumulation_steps) * args.num_train_epochs
-    if args.local_rank != -1:
-        num_train_optimization_steps = num_train_optimization_steps // torch.distributed.get_world_size()
 
     roberta_model = RobertaForSequenceClassification(3)
     tokenizer = RobertaTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)

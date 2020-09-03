@@ -636,12 +636,6 @@ def main():
     target_num_labels = len(target_label_list)
     print('dev size:', len(target_dev_examples), 'test size:', len(target_test_examples))
 
-    num_train_optimization_steps = None
-    num_train_optimization_steps = int(
-        len(source_remaining_examples) / args.train_batch_size / args.gradient_accumulation_steps) * args.num_train_epochs
-    if args.local_rank != -1:
-        num_train_optimization_steps = num_train_optimization_steps // torch.distributed.get_world_size()
-
     roberta_model = RobertaForSequenceClassification(3)
     tokenizer = RobertaTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
     roberta_model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_pretrained/_acc_0.9040886899918633.pt'))

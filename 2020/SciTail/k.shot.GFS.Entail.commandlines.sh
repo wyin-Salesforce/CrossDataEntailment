@@ -1,4 +1,4 @@
-export SHOT=50 #1, 3, 5, 10, 100000
+export SHOT=200 #1, 3, 5, 10, 100000
 export BATCHSIZE=32 #2, 3, 5, 2, 5
 export TARGETBATCHSIZE=5
 export EPOCHSIZE=1 #only need max 5 epochs

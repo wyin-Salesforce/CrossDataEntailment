@@ -1,6 +1,6 @@
-export SHOT=200 #1, 3, 5, 10, 100000
+export SHOT=10000 #1, 3, 5, 10, 100000
 export BATCHSIZE=32 #2, 3, 5, 2, 5
-export TARGETBATCHSIZE=5
+export TARGETBATCHSIZE=32
 export EPOCHSIZE=1 #only need max 5 epochs
 export LEARNINGRATE=1e-7
 export DROPOUT=0.1

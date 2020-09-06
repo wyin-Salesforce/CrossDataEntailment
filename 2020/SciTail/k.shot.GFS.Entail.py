@@ -564,7 +564,7 @@ def main():
     target_dev_examples, target_test_examples = get_SciTail_dev_and_test(scitail_path+'scitail_1.0_dev.tsv', scitail_path+'scitail_1.0_test.tsv')
 
 
-    source_kshot_size = max(10, args.kshot)
+    source_kshot_size = 10# if args.kshot>10 else 10 if max(10, args.kshot)
     source_kshot_entail, source_kshot_neural, source_kshot_contra, source_remaining_examples = get_MNLI_train('/export/home/Dataset/glue_data/MNLI/train.tsv', source_kshot_size)
     source_examples = source_kshot_entail+ source_kshot_neural+ source_kshot_contra+ source_remaining_examples
     target_label_list = ["entails", "neutral"]

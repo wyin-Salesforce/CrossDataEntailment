@@ -327,7 +327,13 @@ def get_SciTail_as_train_k_shot(filename, k_shot):
     if k_shot > 99999:
         return examples_entail+examples_non_entail
     else:
-        return random.sample(examples_entail, k_shot), random.sample(examples_non_entail, k_shot)
+        k_shot_entail = k_shot
+        k_shot_non_entail = k_shot
+        if k_shot > len(examples_entail):
+            k_shot_entail = len(examples_entail)
+        if k_shot > len(examples_non_entail):
+            k_shot_non_entail = len(examples_non_entail)
+        return random.sample(examples_entail, k_shot_entail), random.sample(examples_non_entail, k_shot_non_entail)
         # sampled_examples = random.sample(examples_entail, k_shot)+random.sample(examples_non_entail, k_shot)
         # return sampled_examples
 

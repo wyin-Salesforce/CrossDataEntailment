@@ -262,9 +262,9 @@ class RobertaClassificationHead(nn.Module):
 class PrototypeNet(nn.Module):
     def __init__(self, hidden_size):
         super(PrototypeNet, self).__init__()
-        self.HiddenLayer_1 = nn.Linear(2*hidden_size, 2*hidden_size)
-        self.HiddenLayer_2 = nn.Linear(2*hidden_size, 2*hidden_size)
-        self.HiddenLayer_3 = nn.Linear(2*hidden_size, 2*hidden_size)
+        self.HiddenLayer_1 = nn.Linear(4*hidden_size, 4*hidden_size)
+        self.HiddenLayer_2 = nn.Linear(4*hidden_size, 4*hidden_size)
+        self.HiddenLayer_3 = nn.Linear(4*hidden_size, 2*hidden_size)
         self.HiddenLayer_4 = nn.Linear(2*hidden_size, hidden_size)
         self.HiddenLayer_5 = nn.Linear(hidden_size, 1)
         self.dropout = nn.Dropout(0.1)
@@ -278,7 +278,7 @@ class PrototypeNet(nn.Module):
         batch_size = rep_query_batch.shape[0]
         repeat_rep_classes = rep_classes.repeat(batch_size, 1)
         repeat_rep_query = torch.repeat_interleave(rep_query_batch, repeats=class_size, dim=0)
-        combined_rep = torch.cat([repeat_rep_classes, repeat_rep_query], dim=1) #(#class*batch, 3*hidden)
+        combined_rep = torch.cat([repeat_rep_classes, repeat_rep_query, repeat_rep_classes*repeat_rep_query, repeat_rep_classes-repeat_rep_query], dim=1) #(#class*batch, 3*hidden)
 
         output_1 = self.dropout(torch.tanh(self.HiddenLayer_1(combined_rep))) +combined_rep
         output_2 = self.dropout(torch.tanh(self.HiddenLayer_2(output_1))) +output_1
@@ -606,6 +606,7 @@ def main():
 
     target_kshot_entail_dataloader = examples_to_features(target_kshot_entail_examples, target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
     target_kshot_nonentail_dataloader = examples_to_features(target_kshot_nonentail_examples, target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
+    target_dev_examples = target_kshot_entail_examples[:500]+target_kshot_nonentail_examples[:500]
     target_dev_dataloader = examples_to_features(target_dev_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='random')
     target_test_dataloader = examples_to_features(target_test_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='random')
 

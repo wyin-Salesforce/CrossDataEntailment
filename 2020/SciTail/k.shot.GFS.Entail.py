@@ -576,7 +576,7 @@ def main():
 
     roberta_model = RobertaForSequenceClassification(3)
     tokenizer = RobertaTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
-    roberta_model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_pretrained/_acc_0.9040886899918633.pt'))
+    # roberta_model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_pretrained/_acc_0.9040886899918633.pt'))
     roberta_model.to(device)
     roberta_model.eval()
 
@@ -860,7 +860,7 @@ if __name__ == "__main__":
     main()
 
 '''
-CUDA_VISIBLE_DEVICES=7 python -u k.shot.GFS.Entail.v2.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10 --target_train_batch_size 2
+CUDA_VISIBLE_DEVICES=7 python -u k.shot.GFS.Entail.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10 --target_train_batch_size 2
 
 a,b,a*b,a-b; drop0.1; batch 5, max 3000 iter
 [85.02, 85.29, 84.22, 85.39, 85.22]

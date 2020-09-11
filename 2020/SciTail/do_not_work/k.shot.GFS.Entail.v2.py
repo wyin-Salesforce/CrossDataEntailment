@@ -673,6 +673,29 @@ def main():
     class_prototype_reps = torch.cat([source_class_prototype_reps, target_class_prototype_reps], dim=0) #(6, hidden)
 
 
+    dev_last_hidden_target_batch = []
+    for input_ids, input_mask, segment_ids, label_ids in target_dev_dataloader:
+        input_ids = input_ids.to(device)
+        input_mask = input_mask.to(device)
+        segment_ids = segment_ids.to(device)
+        label_ids = label_ids.to(device)
+        gold_label_ids+=list(label_ids.detach().cpu().numpy())
+        roberta_model.eval()
+        with torch.no_grad():
+            last_hidden_target_batch, logits_from_source = roberta_model(input_ids, input_mask)
+        dev_last_hidden_target_batch.append(last_hidden_target_batch)
+
+    test_last_hidden_target_batch = []
+    for input_ids, input_mask, segment_ids, label_ids in target_test_dataloader:
+        input_ids = input_ids.to(device)
+        input_mask = input_mask.to(device)
+        segment_ids = segment_ids.to(device)
+        label_ids = label_ids.to(device)
+        gold_label_ids+=list(label_ids.detach().cpu().numpy())
+        roberta_model.eval()
+        with torch.no_grad():
+            last_hidden_target_batch, logits_from_source = roberta_model(input_ids, input_mask)
+        test_last_hidden_target_batch.append(last_hidden_target_batch)
 
     '''starting to train'''
     iter_co = 0
@@ -797,16 +820,20 @@ def main():
                     preds = []
                     gold_label_ids = []
                     # print('Evaluating...')
-                    for input_ids, input_mask, segment_ids, label_ids in dev_or_test_dataloader:
-                        input_ids = input_ids.to(device)
-                        input_mask = input_mask.to(device)
-                        segment_ids = segment_ids.to(device)
-                        label_ids = label_ids.to(device)
-                        gold_label_ids+=list(label_ids.detach().cpu().numpy())
-                        roberta_model.eval()
-                        with torch.no_grad():
-                            last_hidden_target_batch, logits_from_source = roberta_model(input_ids, input_mask)
+                    for batch_id, batch in enumerate(dev_or_test_dataloader):
+                        # input_ids = input_ids.to(device)
+                        # input_mask = input_mask.to(device)
+                        # segment_ids = segment_ids.to(device)
+                        # label_ids = label_ids.to(device)
+                        # gold_label_ids+=list(label_ids.detach().cpu().numpy())
+                        # roberta_model.eval()
+                        # with torch.no_grad():
+                        #     last_hidden_target_batch, logits_from_source = roberta_model(input_ids, input_mask)
 
+                        if idd == 0: #dev
+                            last_hidden_target_batch = dev_last_hidden_target_batch[batch_id]
+                        else:
+                            last_hidden_target_batch = test_last_hidden_target_batch[batch_id]
                         with torch.no_grad():
                             logits = protonet(class_prototype_reps, last_hidden_target_batch)
 
@@ -865,12 +892,7 @@ if __name__ == "__main__":
 '''
 CUDA_VISIBLE_DEVICES=6 python -u k.shot.GFS.Entail.v2.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 500 --target_train_batch_size 2
 
-a,b,a*b,a-b; drop0.1; batch 5, max 3000 iter
-[85.02, 85.29, 84.22, 85.39, 85.22]
-85.03/0.42
-
-residualmodel batch 2
-[85.59, 85.46, 84.79, 85.22, 85.32]
-85.28/0.27
+modifications:
+move the support reps of both source and target before the real training
 
 '''

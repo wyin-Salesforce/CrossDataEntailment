@@ -324,18 +324,17 @@ def get_SciTail_as_train_k_shot(filename, k_shot):
     readfile.close()
     print('loaded  entail size:', len(examples_entail), 'non-entail size:', len(examples_non_entail))
     '''sampling'''
-    if k_shot > 99999:
-        return examples_entail+examples_non_entail
-    else:
-        k_shot_entail = k_shot
-        k_shot_non_entail = k_shot
-        if k_shot > len(examples_entail):
-            k_shot_entail = len(examples_entail)
-        if k_shot > len(examples_non_entail):
-            k_shot_non_entail = len(examples_non_entail)
-        return random.sample(examples_entail, k_shot_entail), random.sample(examples_non_entail, k_shot_non_entail)
-        # sampled_examples = random.sample(examples_entail, k_shot)+random.sample(examples_non_entail, k_shot)
-        # return sampled_examples
+    # if k_shot > 99999:
+    #     return examples_entail, examples_non_entail
+    # else:
+    k_shot_entail = k_shot
+    k_shot_non_entail = k_shot
+    if k_shot > len(examples_entail):
+        k_shot_entail = len(examples_entail)
+    if k_shot > len(examples_non_entail):
+        k_shot_non_entail = len(examples_non_entail)
+    return random.sample(examples_entail, k_shot_entail), random.sample(examples_non_entail, k_shot_non_entail)
+
 
 
 def get_SciTail_dev_and_test(train_filename, dev_filename):
@@ -864,7 +863,7 @@ if __name__ == "__main__":
     main()
 
 '''
-CUDA_VISIBLE_DEVICES=7 python -u k.shot.GFS.Entail.v2.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 500 --target_train_batch_size 2
+CUDA_VISIBLE_DEVICES=6 python -u k.shot.GFS.Entail.v2.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 500 --target_train_batch_size 2
 
 a,b,a*b,a-b; drop0.1; batch 5, max 3000 iter
 [85.02, 85.29, 84.22, 85.39, 85.22]

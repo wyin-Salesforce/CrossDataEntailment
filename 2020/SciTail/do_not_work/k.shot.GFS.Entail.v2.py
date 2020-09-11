@@ -679,7 +679,7 @@ def main():
         input_mask = input_mask.to(device)
         segment_ids = segment_ids.to(device)
         label_ids = label_ids.to(device)
-        gold_label_ids+=list(label_ids.detach().cpu().numpy())
+        # gold_label_ids+=list(label_ids.detach().cpu().numpy())
         roberta_model.eval()
         with torch.no_grad():
             last_hidden_target_batch, logits_from_source = roberta_model(input_ids, input_mask)
@@ -691,7 +691,7 @@ def main():
         input_mask = input_mask.to(device)
         segment_ids = segment_ids.to(device)
         label_ids = label_ids.to(device)
-        gold_label_ids+=list(label_ids.detach().cpu().numpy())
+        # gold_label_ids+=list(label_ids.detach().cpu().numpy())
         roberta_model.eval()
         with torch.no_grad():
             last_hidden_target_batch, logits_from_source = roberta_model(input_ids, input_mask)

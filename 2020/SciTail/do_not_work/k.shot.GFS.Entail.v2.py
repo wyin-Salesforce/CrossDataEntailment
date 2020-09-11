@@ -674,24 +674,26 @@ def main():
 
 
     dev_last_hidden_target_batch = []
+    dev_gold_label_ids = []
     for input_ids, input_mask, segment_ids, label_ids in target_dev_dataloader:
         input_ids = input_ids.to(device)
         input_mask = input_mask.to(device)
         segment_ids = segment_ids.to(device)
         label_ids = label_ids.to(device)
-        # gold_label_ids+=list(label_ids.detach().cpu().numpy())
+        dev_gold_label_ids+=list(label_ids.detach().cpu().numpy())
         roberta_model.eval()
         with torch.no_grad():
             last_hidden_target_batch, logits_from_source = roberta_model(input_ids, input_mask)
         dev_last_hidden_target_batch.append(last_hidden_target_batch)
 
     test_last_hidden_target_batch = []
+    test_gold_label_ids = []
     for input_ids, input_mask, segment_ids, label_ids in target_test_dataloader:
         input_ids = input_ids.to(device)
         input_mask = input_mask.to(device)
         segment_ids = segment_ids.to(device)
         label_ids = label_ids.to(device)
-        # gold_label_ids+=list(label_ids.detach().cpu().numpy())
+        test_gold_label_ids+=list(label_ids.detach().cpu().numpy())
         roberta_model.eval()
         with torch.no_grad():
             last_hidden_target_batch, logits_from_source = roberta_model(input_ids, input_mask)
@@ -818,8 +820,7 @@ def main():
                     eval_loss = 0
                     nb_eval_steps = 0
                     preds = []
-                    gold_label_ids = []
-                    # print('Evaluating...')
+
                     for batch_id, batch in enumerate(dev_or_test_dataloader):
                         # input_ids = input_ids.to(device)
                         # input_mask = input_mask.to(device)
@@ -859,7 +860,8 @@ def main():
                         else:
                             pred_label_ids.append(0)
 
-                    gold_label_ids = gold_label_ids
+                    gold_label_ids = dev_gold_label_ids if idd == 0 else test_gold_label_ids
+                    # gold_label_ids = gold_label_ids
                     assert len(pred_label_ids) == len(gold_label_ids)
                     hit_co = 0
                     for k in range(len(pred_label_ids)):

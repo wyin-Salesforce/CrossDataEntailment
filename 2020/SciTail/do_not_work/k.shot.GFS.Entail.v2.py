@@ -743,7 +743,7 @@ def main():
             target_loss_list = loss_by_logits_and_2way_labels(target_batch_logits, target_label_ids_batch.view(-1), device)
 
             loss = target_loss_list#source_loss_list+target_loss_list#torch.mean(torch.cat([source_loss_list, target_loss_list]))
-            print('iter_co: ',iter_co, ' loss:', loss)
+            # print('iter_co: ',iter_co, ' loss:', loss)
             if n_gpu > 1:
                 loss = loss.mean() # mean() to average on multi-gpu.
             if args.gradient_accumulation_steps > 1:
@@ -803,6 +803,8 @@ def main():
                             pred_label_ids.append(0)
 
                     gold_label_ids = dev_gold_label_ids if idd == 0 else test_gold_label_ids
+                    print('pred_label_ids:', pred_label_ids)
+                    print('gold_label_ids:', gold_label_ids)
                     # gold_label_ids = gold_label_ids
                     assert len(pred_label_ids) == len(gold_label_ids)
                     hit_co = 0

@@ -719,9 +719,12 @@ def main():
             target_batch_size_entail = target_batch_size#random.randrange(5)+1
             target_batch_size_neural = target_batch_size#random.randrange(5)+1
 
-
-            selected_target_entail_rep = all_kshot_entail_reps[torch.randperm(all_kshot_entail_reps.shape[0])[:target_batch_size_entail]]
-            selected_target_neural_rep = all_kshot_neural_reps[torch.randperm(all_kshot_neural_reps.shape[0])[:target_batch_size_neural]]
+            target_selected_entail_ids = torch.randperm(all_kshot_entail_reps.shape[0])[:target_batch_size_entail]
+            target_selected_neural_ids = torch.randperm(all_kshot_neural_reps.shape[0])[:target_batch_size_neural]
+            print('target_selected_entail_ids:', target_selected_entail_ids)
+            print('target_selected_neural_ids:', target_selected_neural_ids)
+            selected_target_entail_rep = all_kshot_entail_reps[target_selected_entail_ids]
+            selected_target_neural_rep = all_kshot_neural_reps[target_selected_neural_ids]
             target_last_hidden_batch = torch.cat([selected_target_entail_rep, selected_target_neural_rep])
 
             last_hidden_batch = torch.cat([source_last_hidden_batch, target_last_hidden_batch], dim=0) #(train_batch_size+10*2)

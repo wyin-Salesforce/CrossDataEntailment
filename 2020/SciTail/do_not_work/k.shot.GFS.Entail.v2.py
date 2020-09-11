@@ -439,16 +439,16 @@ def loss_by_logits_and_2way_labels(logits, label_ids, device):
     logits: (batch, #class)
     label_ids: a list of binary ids
     '''
-    prob_matrix = F.log_softmax(logits.view(-1, 3), dim=1)
+    prob_matrix = F.softmax(logits.view(-1, 3), dim=1)
     '''this step *1.0 is very important, otherwise bug'''
     new_prob_matrix = prob_matrix*1.0
     '''change the entail prob to p or 1-p'''
     changed_places = torch.nonzero(label_ids.view(-1), as_tuple=False)
     new_prob_matrix[changed_places, 0] = 1.0 - prob_matrix[changed_places, 0]
-
+    log_new_prob_matrix = torch.log(new_prob_matrix)
     print('new_prob_matrix:', new_prob_matrix)
-    loss = F.nll_loss(new_prob_matrix, torch.zeros_like(label_ids).to(device).view(-1))
-    loss_list = F.nll_loss(new_prob_matrix, torch.zeros_like(label_ids).to(device).view(-1), reduction='none')
+    loss = F.nll_loss(log_new_prob_matrix, torch.zeros_like(label_ids).to(device).view(-1))
+    loss_list = F.nll_loss(log_new_prob_matrix, torch.zeros_like(label_ids).to(device).view(-1), reduction='none')
     print('loss_list:', loss_list)
     print('loss:', loss)
     return loss

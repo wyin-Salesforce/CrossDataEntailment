@@ -446,11 +446,11 @@ def loss_by_logits_and_2way_labels(logits, label_ids, device):
     changed_places = torch.nonzero(label_ids.view(-1), as_tuple=False)
     new_prob_matrix[changed_places, 0] = 1.0 - prob_matrix[changed_places, 0]
     log_new_prob_matrix = torch.log(new_prob_matrix)
-    print('new_prob_matrix:', new_prob_matrix)
+    # print('new_prob_matrix:', new_prob_matrix)
     loss = F.nll_loss(log_new_prob_matrix, torch.zeros_like(label_ids).to(device).view(-1))
-    loss_list = F.nll_loss(log_new_prob_matrix, torch.zeros_like(label_ids).to(device).view(-1), reduction='none')
-    print('loss_list:', loss_list)
-    print('loss:', loss)
+    # loss_list = F.nll_loss(log_new_prob_matrix, torch.zeros_like(label_ids).to(device).view(-1), reduction='none')
+    # print('loss_list:', loss_list)
+    # print('loss:', loss)
     return loss
 
 def main():

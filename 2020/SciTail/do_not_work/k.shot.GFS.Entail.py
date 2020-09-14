@@ -270,7 +270,7 @@ class PrototypeNet(nn.Module):
         self.dropout = nn.Dropout(0.1)
 
         self.score_proj = nn.Linear(3, 3)
-        self.score_proj_weight = nn.Linear(3, 3)
+        self.score_proj_weight = nn.Linear(6, 3)
 
     def forward(self, rep_classes,rep_query_batch):
         '''
@@ -294,7 +294,7 @@ class PrototypeNet(nn.Module):
 
         score_from_source = torch.sigmoid(self.score_proj(score_matrix_to_fold[:,:3]))
         score_from_target = torch.sigmoid(self.score_proj(score_matrix_to_fold[:, -3:]))
-        weight_4_highway = torch.sigmoid(self.score_proj_weight(score_matrix_to_fold[:,:3]))
+        weight_4_highway = torch.sigmoid(self.score_proj_weight(score_matrix_to_fold))
         score_matrix = weight_4_highway*(score_from_source)+(1.0-weight_4_highway)*score_from_target
 
 
@@ -888,14 +888,11 @@ if __name__ == "__main__":
     main()
 
 '''
-CUDA_VISIBLE_DEVICES=7 python -u k.shot.GFS.Entail.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10 --target_train_batch_size 6
+CUDA_VISIBLE_DEVICES=7 python -u k.shot.GFS.Entail.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-4 --max_seq_length 128 --seed 42 --kshot 10 --target_train_batch_size 6
 
-a,b,a*b,a-b; drop0.1; batch 5, max 3000 iter
-[85.02, 85.29, 84.22, 85.39, 85.22]
-85.03/0.42
-
-residualmodel batch 2
-[85.59, 85.46, 84.79, 85.22, 85.32]
-85.28/0.27
+1e-4
+84.94@70
+5e-5
+84.43@256
 
 '''

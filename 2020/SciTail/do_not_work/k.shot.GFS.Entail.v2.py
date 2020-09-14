@@ -652,7 +652,7 @@ def main():
 
     target_kshot_entail_dataloader = examples_to_features(target_kshot_entail_examples, target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
     target_kshot_nonentail_dataloader = examples_to_features(target_kshot_nonentail_examples, target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
-    target_dev_examples = target_kshot_entail_examples[:500]+target_kshot_nonentail_examples[:500]
+    # target_dev_examples = target_kshot_entail_examples[:500]+target_kshot_nonentail_examples[:500]
     target_dev_dataloader = examples_to_features(target_dev_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
     target_test_dataloader = examples_to_features(target_test_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
 
@@ -748,6 +748,7 @@ def main():
 
     '''starting to train'''
     iter_co = 0
+    loss_accu= 0.0
     final_test_performance = 0.0
     for _ in trange(int(args.num_train_epochs), desc="Epoch"):
         tr_loss = 0
@@ -786,7 +787,8 @@ def main():
             target_loss_list = loss_by_logits_and_2way_labels(target_batch_logits, target_label_ids_batch.view(-1), device)
 
             loss = target_loss_list#source_loss_list+target_loss_list#torch.mean(torch.cat([source_loss_list, target_loss_list]))
-            print('iter_co: ',iter_co, ' loss:', loss)
+            loss_accu+=loss
+
             if n_gpu > 1:
                 loss = loss.mean() # mean() to average on multi-gpu.
             if args.gradient_accumulation_steps > 1:
@@ -802,7 +804,9 @@ def main():
             optimizer.zero_grad()
             global_step += 1
             iter_co+=1
-            if iter_co %5==0:
+
+            if iter_co %50==0:
+                print('iter_co: ',iter_co, ' loss:', loss_accu/iter_co)
                 # if iter_co % len(source_remain_ex_dataloader)==0:
                 '''
                 start evaluate on dev set after this epoch

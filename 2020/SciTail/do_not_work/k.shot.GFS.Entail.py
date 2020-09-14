@@ -269,6 +269,9 @@ class PrototypeNet(nn.Module):
         self.HiddenLayer_5 = nn.Linear(hidden_size, 1)
         self.dropout = nn.Dropout(0.1)
 
+        self.score_proj = nn.Linear(3, 3)
+        self.score_proj_weight = nn.Linear(3, 3)
+
     def forward(self, rep_classes,rep_query_batch):
         '''
         rep_classes: (#class*2, hidden_size), 3 comes from MNLI, 3 comes from target
@@ -286,14 +289,15 @@ class PrototypeNet(nn.Module):
         output_4 = self.dropout(torch.tanh(self.HiddenLayer_4(output_3)))
         all_scores = torch.sigmoid(self.HiddenLayer_5(output_4))
 
-
-
-
-
-        # all_scores = torch.sigmoid(self.HiddenLayer_3(self.dropout(torch.tanh(self.HiddenLayer_2(self.dropout(torch.tanh(self.HiddenLayer_1(combined_rep)))))))) #(#class*batch, 1)
-
         score_matrix_to_fold = all_scores.view(-1, class_size) #(batch_size, class_size*2)
-        score_matrix = score_matrix_to_fold[:,:3]+score_matrix_to_fold[:, -3:]#(batch_size, class_size)
+        # score_matrix = score_matrix_to_fold[:,:3]+score_matrix_to_fold[:, -3:]#(batch_size, class_size)
+
+        score_from_source = torch.sigmoid(self.score_proj(score_matrix_to_fold[:,:3]))
+        score_from_target = torch.sigmoid(self.score_proj(score_matrix_to_fold[:, -3:]))
+        weight_4_highway = torch.sigmoid(self.score_proj_weight(score_matrix_to_fold[:,:3]))
+        score_matrix = weight_4_highway*(score_from_source)+(1.0-weight_4_highway)*score_from_target
+
+
         return score_matrix
 
 
@@ -466,7 +470,7 @@ def loss_by_logits_and_2way_labels(logits, label_ids, device):
     changed_rows = torch.nonzero(label_ids.view(-1), as_tuple=False)
     new_prob_matrix[changed_rows] = 1.0 - prob_matrix[changed_rows]
     # print('new_prob_matrix after:', new_prob_matrix)
-    log_new_prob_matrix = torch.log(F.softmax(new_prob_matrix))
+    log_new_prob_matrix = torch.log(F.softmax(new_prob_matrix, dim=1))
     # print('new_prob_matrix after log:', log_new_prob_matrix)
     loss = F.nll_loss(log_new_prob_matrix, torch.zeros_like(label_ids).to(device).view(-1))
     # loss_list = F.nll_loss(log_new_prob_matrix, torch.zeros_like(label_ids).to(device).view(-1), reduction='none')

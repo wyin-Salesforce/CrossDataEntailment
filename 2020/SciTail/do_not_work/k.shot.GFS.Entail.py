@@ -292,13 +292,12 @@ class PrototypeNet(nn.Module):
         score_matrix_to_fold = all_scores.view(-1, class_size) #(batch_size, class_size*2)
         # score_matrix = score_matrix_to_fold[:,:3]+score_matrix_to_fold[:, -3:]#(batch_size, class_size)
 
-        score_from_source = score_matrix_to_fold[:,:3]#torch.sigmoid(self.score_proj(score_matrix_to_fold[:,:3]))
-        score_from_target = score_matrix_to_fold[:, -3:]#torch.sigmoid(self.score_proj(score_matrix_to_fold[:, -3:]))
+        score_from_source = torch.sigmoid(self.score_proj(score_matrix_to_fold[:,:3]))
+        score_from_target = torch.sigmoid(self.score_proj(score_matrix_to_fold[:, -3:]))
         weight_4_highway = torch.sigmoid(self.score_proj_weight(score_matrix_to_fold))
         score_matrix = weight_4_highway*(score_from_source)+(1.0-weight_4_highway)*score_from_target
 
         return score_matrix
-
 
 def get_SciTail_as_train_k_shot(filename, k_shot):
     '''

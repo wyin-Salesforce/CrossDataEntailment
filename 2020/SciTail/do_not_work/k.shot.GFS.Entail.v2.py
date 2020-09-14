@@ -874,8 +874,8 @@ def main():
 
                         final_test_performance = test_acc
                         print('\niter', iter_co, '\ttest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
-            if iter_co == 1000:#3000:
-                break
+            # if iter_co == 1000:#3000:
+            #     break
     print('final_test_performance:', final_test_performance)
 
 
@@ -883,7 +883,7 @@ if __name__ == "__main__":
     main()
 
 '''
-CUDA_VISIBLE_DEVICES=6 python -u k.shot.GFS.Entail.v2.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 500 --target_train_batch_size 2
+CUDA_VISIBLE_DEVICES=6 python -u k.shot.GFS.Entail.v2.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-3 --max_seq_length 128 --seed 42 --kshot 500 --target_train_batch_size 32
 
 modifications:
 move the support reps of both source and target before the real training

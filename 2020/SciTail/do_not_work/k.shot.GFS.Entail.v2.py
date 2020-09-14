@@ -443,6 +443,7 @@ def loss_by_logits_and_2way_labels(logits, label_ids, device):
     '''this step *1.0 is very important, otherwise bug'''
     new_prob_matrix = prob_matrix*1.0
     '''change the entail prob to p or 1-p'''
+    print('label_ids:', label_ids)
     changed_places = torch.nonzero(label_ids.view(-1), as_tuple=False)
     new_prob_matrix[changed_places, 0] = 1.0 - prob_matrix[changed_places, 0]
     log_new_prob_matrix = torch.log(new_prob_matrix)
@@ -452,6 +453,22 @@ def loss_by_logits_and_2way_labels(logits, label_ids, device):
     # print('loss_list:', loss_list)
     # print('loss:', loss)
     return loss
+
+# def loss_by_logits_and_2way_labels(logits, label_ids, device):
+#     '''
+#     logits: (batch, #class)
+#     label_ids: a list of binary ids
+#     '''
+#     prob_matrix = F.log_softmax(logits.view(-1, 3), dim=1)
+#     '''this step *1.0 is very important, otherwise bug'''
+#     new_prob_matrix = prob_matrix*1.0
+#     '''change the entail prob to p or 1-p'''
+#     changed_places = torch.nonzero(label_ids.view(-1), as_tuple=False)
+#     new_prob_matrix[changed_places, 0] = - prob_matrix[changed_places, 0]
+#
+#     # loss = F.nll_loss(new_prob_matrix, torch.zeros_like(label_ids).to(device).view(-1), reduction='none')
+#     loss = F.nll_loss(new_prob_matrix, torch.zeros_like(label_ids).to(device).view(-1))
+#     return loss
 
 def main():
     parser = argparse.ArgumentParser()
@@ -610,8 +627,8 @@ def main():
     target_kshot_entail_dataloader = examples_to_features(target_kshot_entail_examples, target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
     target_kshot_nonentail_dataloader = examples_to_features(target_kshot_nonentail_examples, target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
     target_dev_examples = target_kshot_entail_examples[:500]+target_kshot_nonentail_examples[:500]
-    target_dev_dataloader = examples_to_features(target_dev_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='random')
-    target_test_dataloader = examples_to_features(target_test_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='random')
+    target_dev_dataloader = examples_to_features(target_dev_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
+    target_test_dataloader = examples_to_features(target_test_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
 
 
     '''

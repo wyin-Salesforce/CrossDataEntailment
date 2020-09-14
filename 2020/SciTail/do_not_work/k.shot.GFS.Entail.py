@@ -752,7 +752,7 @@ def main():
             optimizer.zero_grad()
             global_step += 1
             iter_co+=1
-            if iter_co %5==0:
+            if iter_co %1==0:
                 # if iter_co % len(source_remain_ex_dataloader)==0:
                 '''
                 start evaluate on dev set after this epoch
@@ -888,7 +888,7 @@ if __name__ == "__main__":
     main()
 
 '''
-CUDA_VISIBLE_DEVICES=7 python -u k.shot.GFS.Entail.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10 --target_train_batch_size 2
+CUDA_VISIBLE_DEVICES=7 python -u k.shot.GFS.Entail.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10 --target_train_batch_size 6
 
 a,b,a*b,a-b; drop0.1; batch 5, max 3000 iter
 [85.02, 85.29, 84.22, 85.39, 85.22]

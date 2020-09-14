@@ -273,6 +273,7 @@ class PrototypeNet(nn.Module):
         self.score_proj_weight = nn.Linear(6, 3)
 
         self.score_proj_pretrain = nn.Linear(3, 3)
+        self.score_proj_model = nn.Linear(3, 3)
         self.score_proj_weight_pretrain = nn.Linear(6, 3)
 
     def forward(self, rep_classes,rep_query_batch, logits_from_pretrain):
@@ -305,8 +306,8 @@ class PrototypeNet(nn.Module):
 
         '''integrate pretrain logits'''
         score_from_pretrain = torch.sigmoid(self.score_proj_pretrain(logits_from_pretrain))
-        score_from_model = torch.sigmoid(self.score_proj_pretrain(score_matrix))
-        weight_4_highway_pretrain = torch.sigmoid(self.score_proj_weight_pretrain(torch.cat([logits_from_pretrain, score_matrix], dim=1)))
+        score_from_model = torch.sigmoid(self.score_proj_model(score_matrix))
+        weight_4_highway_pretrain = torch.sigmoid(self.score_proj_weight_pretrain(torch.cat([score_from_pretrain, score_from_model], dim=1)))
         score_matrix_with_pretrain = weight_4_highway_pretrain*(score_from_pretrain)+(1.0-weight_4_highway_pretrain)*score_from_model
         return score_matrix_with_pretrain
 
@@ -911,7 +912,7 @@ if __name__ == "__main__":
     main()
 
 '''
-CUDA_VISIBLE_DEVICES=7 python -u k.shot.GFS.Entail.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-4 --max_seq_length 128 --seed 42 --kshot 10 --target_train_batch_size 6
+CUDA_VISIBLE_DEVICES=7 python -u k.shot.GFS.Entail.v2.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-4 --max_seq_length 128 --seed 42 --kshot 10 --target_train_batch_size 6
 
 1e-4
 84.94@70

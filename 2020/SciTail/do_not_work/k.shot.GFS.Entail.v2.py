@@ -467,15 +467,15 @@ def loss_by_logits_and_2way_labels(logits, label_ids, device):
     '''this step *1.0 is very important, otherwise bug'''
     new_prob_matrix = prob_matrix*1.0
     '''change the entail prob to p or 1-p'''
-    print('new_prob_matrix before:', new_prob_matrix)
+    # print('new_prob_matrix before:', new_prob_matrix)
     changed_rows = torch.nonzero(label_ids.view(-1), as_tuple=False)
     new_prob_matrix[changed_rows] = 1.0 - prob_matrix[changed_rows]
-    print('new_prob_matrix after:', new_prob_matrix)
+    # print('new_prob_matrix after:', new_prob_matrix)
     log_new_prob_matrix = torch.log(F.softmax(new_prob_matrix))
-    print('new_prob_matrix after log:', log_new_prob_matrix)
+    # print('new_prob_matrix after log:', log_new_prob_matrix)
     loss = F.nll_loss(log_new_prob_matrix, torch.zeros_like(label_ids).to(device).view(-1))
-    loss_list = F.nll_loss(log_new_prob_matrix, torch.zeros_like(label_ids).to(device).view(-1), reduction='none')
-    print('loss_list:', loss_list)
+    # loss_list = F.nll_loss(log_new_prob_matrix, torch.zeros_like(label_ids).to(device).view(-1), reduction='none')
+    # print('loss_list:', loss_list)
     # print('loss:', loss)
     return loss
 
@@ -786,7 +786,7 @@ def main():
             target_loss_list = loss_by_logits_and_2way_labels(target_batch_logits, target_label_ids_batch.view(-1), device)
 
             loss = target_loss_list#source_loss_list+target_loss_list#torch.mean(torch.cat([source_loss_list, target_loss_list]))
-            # print('iter_co: ',iter_co, ' loss:', loss)
+            print('iter_co: ',iter_co, ' loss:', loss)
             if n_gpu > 1:
                 loss = loss.mean() # mean() to average on multi-gpu.
             if args.gradient_accumulation_steps > 1:

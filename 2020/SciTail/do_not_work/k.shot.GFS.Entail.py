@@ -297,7 +297,6 @@ class PrototypeNet(nn.Module):
         weight_4_highway = torch.sigmoid(self.score_proj_weight(score_matrix_to_fold))
         score_matrix = weight_4_highway*(score_from_source)+(1.0-weight_4_highway)*score_from_target
 
-
         return score_matrix
 
 

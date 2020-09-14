@@ -268,6 +268,7 @@ class PrototypeNet(nn.Module):
         self.HiddenLayer_4 = nn.Linear(2*hidden_size, hidden_size)
         self.HiddenLayer_5 = nn.Linear(hidden_size, 1)
         self.dropout = nn.Dropout(0.1)
+        self.bias = Parameter(torch.Tensor(3))
 
     def forward(self, rep_classes,rep_query_batch):
         '''
@@ -294,6 +295,7 @@ class PrototypeNet(nn.Module):
 
         score_matrix_to_fold = all_scores.view(-1, class_size) #(batch_size, class_size*2)
         score_matrix = score_matrix_to_fold[:, -3:]#score_matrix_to_fold[:,:3]+score_matrix_to_fold[:, -3:]#(batch_size, class_size)
+        score_matrix=score_matrix+self.bias.view(-1,3)
         return score_matrix
 
 
@@ -656,6 +658,7 @@ def main():
     target_dev_dataloader = examples_to_features(target_dev_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
     target_test_dataloader = examples_to_features(target_test_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
 
+    ratio = len(target_kshot_nonentail_examples)/len(target_kshot_entail_examples)
 
     '''
     retrieve rep for support examples in MNLI
@@ -765,7 +768,7 @@ def main():
             '''forward to model'''
             target_batch_size = args.target_train_batch_size #10*3
             target_batch_size_entail = target_batch_size#random.randrange(5)+1
-            target_batch_size_neural = target_batch_size#random.randrange(5)+1
+            target_batch_size_neural = int(target_batch_size*ratio)#random.randrange(5)+1
 
             target_selected_entail_ids = torch.randperm(all_kshot_entail_reps.shape[0])[:target_batch_size_entail]
             target_selected_neural_ids = torch.randperm(all_kshot_neural_reps.shape[0])[:target_batch_size_neural]

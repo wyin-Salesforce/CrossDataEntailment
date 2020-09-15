@@ -796,7 +796,7 @@ def main():
             loss_accu+=loss
             if iter_co %1==0:
                 # if iter_co % len(source_remain_ex_dataloader)==0:
-                print('iter_co:', iter_co, 'loss:', loss_accu/iter_co)
+                # print('iter_co:', iter_co, 'loss:', loss_accu/iter_co)
                 '''
                 start evaluate on dev set after this epoch
                 '''

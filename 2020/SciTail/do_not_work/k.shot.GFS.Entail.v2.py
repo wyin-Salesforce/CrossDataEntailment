@@ -326,7 +326,6 @@ class PrototypeNet(nn.Module):
 
 
 
-
 def get_SciTail_as_train_k_shot(filename, k_shot):
     '''
     classes: entails, neutral

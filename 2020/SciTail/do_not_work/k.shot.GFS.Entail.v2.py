@@ -305,10 +305,17 @@ class PrototypeNet(nn.Module):
         # return score_matrix
 
         '''integrate pretrain logits'''
+
         score_from_pretrain = torch.sigmoid(self.score_proj_pretrain(logits_from_pretrain))
+        print('logits_from_pretrain:', logits_from_pretrain)
+        print('score_from_pretrain:', score_from_pretrain)
         score_from_model = torch.sigmoid(self.score_proj_model(score_matrix))
+        print('score_matrix:', score_matrix)
+        print('score_from_model:', score_from_model)
         weight_4_highway_pretrain = torch.sigmoid(self.score_proj_weight_pretrain(torch.cat([score_from_pretrain, score_from_model], dim=1)))
         score_matrix_with_pretrain = weight_4_highway_pretrain*(score_from_pretrain)+(1.0-weight_4_highway_pretrain)*score_from_model
+        print('weight_4_highway_pretrain:', weight_4_highway_pretrain)
+        print('score_matrix_with_pretrain:', score_matrix_with_pretrain)
         return score_matrix_with_pretrain
 
 

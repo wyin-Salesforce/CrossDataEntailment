@@ -293,10 +293,15 @@ class PrototypeNet(nn.Module):
         # score_matrix = score_matrix_to_fold[:,:3]+score_matrix_to_fold[:, -3:]#(batch_size, class_size)
 
         score_from_source = torch.sigmoid(self.score_proj(score_matrix_to_fold[:,:3]))
+        print('score_matrix_to_fold[:,:3]:', score_matrix_to_fold[:,:3])
+        print('score_from_source:', score_from_source)
         score_from_target = torch.sigmoid(self.score_proj(score_matrix_to_fold[:, -3:]))
+        print('score_matrix_to_fold[:, -3:]:', score_matrix_to_fold[:, -3:])
+        print('score_from_target:', score_from_target)
         weight_4_highway = torch.sigmoid(self.score_proj_weight(score_matrix_to_fold))
+        print('weight_4_highway:', weight_4_highway)
         score_matrix = weight_4_highway*(score_from_source)+(1.0-weight_4_highway)*score_from_target
-
+        print('score_matrix:', score_matrix)
 
         return score_matrix
 
@@ -635,8 +640,8 @@ def main():
 
     target_kshot_entail_dataloader = examples_to_features(target_kshot_entail_examples, target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
     target_kshot_nonentail_dataloader = examples_to_features(target_kshot_nonentail_examples, target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
-    target_dev_dataloader = examples_to_features(target_dev_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='random')
-    target_test_dataloader = examples_to_features(target_test_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='random')
+    target_dev_dataloader = examples_to_features(target_dev_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
+    target_test_dataloader = examples_to_features(target_test_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
 
     '''starting to train'''
     iter_co = 0

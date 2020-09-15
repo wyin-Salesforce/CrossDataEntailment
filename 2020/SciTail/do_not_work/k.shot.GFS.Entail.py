@@ -686,7 +686,8 @@ def main():
         with torch.no_grad():
             last_hidden_entail, _ = roberta_model(input_ids, input_mask)
         kshot_entail_reps.append(last_hidden_entail)
-    kshot_entail_rep = torch.mean(torch.cat(kshot_entail_reps, dim=0), dim=0, keepdim=True)
+    all_kshot_entail_reps = torch.cat(kshot_entail_reps, dim=0)
+    kshot_entail_rep = torch.mean(all_kshot_entail_reps, dim=0, keepdim=True)
     kshot_nonentail_reps = []
     for nonentail_batch in target_kshot_nonentail_dataloader:
         nonentail_batch = tuple(t.to(device) for t in nonentail_batch)
@@ -695,7 +696,8 @@ def main():
         with torch.no_grad():
             last_hidden_nonentail, _ = roberta_model(input_ids, input_mask)
         kshot_nonentail_reps.append(last_hidden_nonentail)
-    kshot_nonentail_rep = torch.mean(torch.cat(kshot_nonentail_reps, dim=0), dim=0, keepdim=True)
+    all_kshot_neural_reps = torch.cat(kshot_nonentail_reps, dim=0)
+    kshot_nonentail_rep = torch.mean(all_kshot_neural_reps, dim=0, keepdim=True)
     target_class_prototype_reps = torch.cat([kshot_entail_rep, kshot_nonentail_rep, kshot_nonentail_rep], dim=0) #(3, hidden)
 
     class_prototype_reps = torch.cat([source_class_prototype_reps, target_class_prototype_reps], dim=0) #(6, hidden)

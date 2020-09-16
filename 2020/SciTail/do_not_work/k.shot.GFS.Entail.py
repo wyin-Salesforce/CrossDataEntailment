@@ -269,8 +269,8 @@ class PrototypeNet(nn.Module):
         self.HiddenLayer_5 = nn.Linear(hidden_size, 1)
         self.dropout = nn.Dropout(0.1)
 
-        self.score_proj = nn.Linear(3, 3)
-        self.score_proj_weight = nn.Linear(6, 3)
+        self.score_proj = nn.Linear(3, 3, bias=False)
+        self.score_proj_weight = nn.Linear(6, 3, bias=False)
 
     def forward(self, rep_classes,rep_query_batch):
         '''
@@ -287,15 +287,15 @@ class PrototypeNet(nn.Module):
         output_2 = self.dropout(torch.tanh(self.HiddenLayer_2(output_1))) +output_1
         output_3 = self.dropout(torch.tanh(self.HiddenLayer_3(output_2)))
         output_4 = self.dropout(torch.tanh(self.HiddenLayer_4(output_3)))
-        all_scores = torch.tanh(self.HiddenLayer_5(output_4))
+        all_scores = torch.sigmoid(self.HiddenLayer_5(output_4))
 
         score_matrix_to_fold = all_scores.view(-1, class_size) #(batch_size, class_size*2)
         # score_matrix = score_matrix_to_fold[:,:3]+score_matrix_to_fold[:, -3:]#(batch_size, class_size)
 
-        score_from_source = torch.tanh(self.score_proj(score_matrix_to_fold[:,:3]))
+        score_from_source = torch.sigmoid(self.score_proj(score_matrix_to_fold[:,:3]))
         # print('score_matrix_to_fold[:,:3]:', score_matrix_to_fold[:,:3])
         # print('score_from_source:', score_from_source)
-        score_from_target = torch.tanh(self.score_proj(score_matrix_to_fold[:, -3:]))
+        score_from_target = torch.sigmoid(self.score_proj(score_matrix_to_fold[:, -3:]))
         # print('score_matrix_to_fold[:, -3:]:', score_matrix_to_fold[:, -3:])
         # print('score_from_target:', score_from_target)
         weight_4_highway = torch.sigmoid(self.score_proj_weight(score_matrix_to_fold))

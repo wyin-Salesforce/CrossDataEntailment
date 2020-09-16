@@ -269,8 +269,8 @@ class PrototypeNet(nn.Module):
         self.HiddenLayer_5 = nn.Linear(hidden_size, 1)
         self.dropout = nn.Dropout(0.1)
 
-        self.score_proj = nn.Linear(3, 3)
-        self.target_proj = nn.Linear(3, 3)
+        self.score_proj = nn.Linear(3*5, 3)
+        # self.target_proj = nn.Linear(3, 3)
         self.score_proj_weight = nn.Linear(6, 3)
 
     def forward(self, rep_classes,rep_query_batch):
@@ -292,11 +292,13 @@ class PrototypeNet(nn.Module):
 
         score_matrix_to_fold = all_scores.view(-1, class_size) #(batch_size, class_size*2)
         # score_matrix = score_matrix_to_fold[:,:3]+score_matrix_to_fold[:, -3:]#(batch_size, class_size)
-
-        score_from_source = torch.sigmoid(self.score_proj(score_matrix_to_fold[:,:3]))
+        source_score_repeat = torch.cat([score_matrix_to_fold[:,:3],score_matrix_to_fold[:,:3],score_matrix_to_fold[:,:3],score_matrix_to_fold[:,:3],score_matrix_to_fold[:,:3]],dim=1)
+        score_from_source = torch.sigmoid(self.score_proj(source_score_repeat))
         # print('score_matrix_to_fold[:,:3]:', score_matrix_to_fold[:,:3])
         # print('score_from_source:', score_from_source)
-        score_from_target = torch.sigmoid(self.target_proj(score_matrix_to_fold[:, -3:]))
+
+        target_score_repeat = torch.cat([score_matrix_to_fold[:, -3:],score_matrix_to_fold[:, -3:],score_matrix_to_fold[:, -3:],score_matrix_to_fold[:, -3:],score_matrix_to_fold[:, -3:]],dim=1)
+        score_from_target = torch.sigmoid(self.score_proj(target_score_repeat))
         # print('score_matrix_to_fold[:, -3:]:', score_matrix_to_fold[:, -3:])
         # print('score_from_target:', score_from_target)
         weight_4_highway = torch.sigmoid(self.score_proj_weight(score_matrix_to_fold))
@@ -842,6 +844,8 @@ CUDA_VISIBLE_DEVICES=7 python -u k.shot.GFS.Entail.py --do_lower_case --num_trai
 CUDA_VISIBLE_DEVICES=6 python -u k.shot.GFS.Entail.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-4 --max_seq_length 128 --seed 16 --kshot 10 --target_train_batch_size 6
 CUDA_VISIBLE_DEVICES=5 python -u k.shot.GFS.Entail.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-4 --max_seq_length 128 --seed 32 --kshot 10 --target_train_batch_size 6
 CUDA_VISIBLE_DEVICES=4 python -u k.shot.GFS.Entail.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-4 --max_seq_length 128 --seed 64 --kshot 10 --target_train_batch_size 6
+CUDA_VISIBLE_DEVICES=3 python -u k.shot.GFS.Entail.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-4 --max_seq_length 128 --seed 128 --kshot 10 --target_train_batch_size 6
+
 1e-4
 84.94@70
 5e-5

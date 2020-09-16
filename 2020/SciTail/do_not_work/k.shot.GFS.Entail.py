@@ -269,9 +269,9 @@ class PrototypeNet(nn.Module):
         self.HiddenLayer_5 = nn.Linear(hidden_size, 1)
         self.dropout = nn.Dropout(0.1)
 
-        self.score_proj_1 = nn.Linear(6, 128)
-        self.score_proj_2 = nn.Linear(128, 3)
-        # self.score_proj_weight = nn.Linear(6, 3)
+        self.score_proj = nn.Linear(3, 3)
+        # self.target_proj = nn.Linear(3, 3)
+        self.score_proj_weight = nn.Linear(6, 3)
 
     def forward(self, rep_classes,rep_query_batch):
         '''
@@ -294,19 +294,16 @@ class PrototypeNet(nn.Module):
         score_matrix_to_fold = all_scores.view(-1, class_size) #(batch_size, class_size*2)
         # score_matrix = score_matrix_to_fold[:,:3]+score_matrix_to_fold[:, -3:]#(batch_size, class_size)
 
-        # score_from_source = torch.sigmoid(self.score_proj(score_matrix_to_fold))
-        # # print('score_matrix_to_fold[:,:3]:', score_matrix_to_fold[:,:3])
-        # # print('score_from_source:', score_from_source)
-        # score_from_target = torch.sigmoid(self.target_proj(score_matrix_to_fold))
-        # # print('score_matrix_to_fold[:, -3:]:', score_matrix_to_fold[:, -3:])
-        # # print('score_from_target:', score_from_target)
-        # weight_4_highway = torch.sigmoid(self.score_proj_weight(score_matrix_to_fold))
-        # # print('weight_4_highway:', weight_4_highway)
-        # score_matrix = weight_4_highway*(score_from_source)+(1.0-weight_4_highway)*score_from_target
+        score_from_source = torch.sigmoid(self.score_proj(score_matrix_to_fold[:,:3]))
+        # print('score_matrix_to_fold[:,:3]:', score_matrix_to_fold[:,:3])
+        # print('score_from_source:', score_from_source)
+        score_from_target = torch.sigmoid(self.score_proj(score_matrix_to_fold[:, -3:]))
+        # print('score_matrix_to_fold[:, -3:]:', score_matrix_to_fold[:, -3:])
+        # print('score_from_target:', score_from_target)
+        weight_4_highway = torch.sigmoid(self.score_proj_weight(score_matrix_to_fold))
+        # print('weight_4_highway:', weight_4_highway)
+        score_matrix = weight_4_highway*(score_from_source)+(1.0-weight_4_highway)*score_from_target
         # print('score_matrix:', score_matrix)
-
-        score_proj_1 = torch.sigmoid(self.score_proj_1(score_matrix_to_fold))
-        score_matrix = torch.sigmoid(self.score_proj_2(score_proj_1))
 
         return score_matrix
 
@@ -601,6 +598,12 @@ def main():
     target_kshot_entail_examples, target_kshot_nonentail_examples = get_SciTail_as_train_k_shot(scitail_path+'scitail_1.0_train.tsv', args.kshot) #train_pu_half_v1.txt
     target_dev_examples, target_test_examples = get_SciTail_dev_and_test(scitail_path+'scitail_1.0_dev.tsv', scitail_path+'scitail_1.0_test.tsv')
 
+    args.seed=42
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    if n_gpu > 0:
+        torch.cuda.manual_seed_all(args.seed)
 
     source_kshot_size = 10# if args.kshot>10 else 10 if max(10, args.kshot)
     source_kshot_entail, source_kshot_neural, source_kshot_contra, source_remaining_examples = get_MNLI_train('/export/home/Dataset/glue_data/MNLI/train.tsv', source_kshot_size)

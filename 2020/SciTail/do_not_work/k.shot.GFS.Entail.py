@@ -736,6 +736,7 @@ def main():
             '''source side loss'''
             # loss_fct = CrossEntropyLoss(reduction='none')
             loss_fct = CrossEntropyLoss()
+            print('source_label_ids_batch:', source_label_ids_batch)
             source_loss_list = loss_fct(batch_logits[:source_last_hidden_batch.shape[0]].view(-1, source_num_labels), source_label_ids_batch.view(-1))
             '''target side loss'''
             target_label_ids_batch = torch.tensor([0]*selected_target_entail_rep.shape[0]+[1]*selected_target_neural_rep.shape[0], dtype=torch.long)

@@ -269,9 +269,9 @@ class PrototypeNet(nn.Module):
         self.HiddenLayer_5 = nn.Linear(hidden_size, 1)
         self.dropout = nn.Dropout(0.1)
 
-        self.score_proj = nn.Linear(6, 3)
-        self.target_proj = nn.Linear(6, 3)
-        self.score_proj_weight = nn.Linear(6, 3)
+        self.score_proj_1 = nn.Linear(6, 128)
+        self.score_proj_2 = nn.Linear(128, 3)
+        # self.score_proj_weight = nn.Linear(6, 3)
 
     def forward(self, rep_classes,rep_query_batch):
         '''
@@ -289,21 +289,24 @@ class PrototypeNet(nn.Module):
         output_3 = self.dropout(torch.tanh(self.HiddenLayer_3(output_2)))
         output_4 = self.dropout(torch.tanh(self.HiddenLayer_4(output_3)))
         # all_scores = torch.sigmoid(self.HiddenLayer_5(output_4))
-        all_scores = torch.sigmoid(self.HiddenLayer_5(output_4))
+        all_scores = torch.tanh(self.HiddenLayer_5(output_4))
 
         score_matrix_to_fold = all_scores.view(-1, class_size) #(batch_size, class_size*2)
         # score_matrix = score_matrix_to_fold[:,:3]+score_matrix_to_fold[:, -3:]#(batch_size, class_size)
 
-        score_from_source = torch.sigmoid(self.score_proj(score_matrix_to_fold))
-        # print('score_matrix_to_fold[:,:3]:', score_matrix_to_fold[:,:3])
-        # print('score_from_source:', score_from_source)
-        score_from_target = torch.sigmoid(self.target_proj(score_matrix_to_fold))
-        # print('score_matrix_to_fold[:, -3:]:', score_matrix_to_fold[:, -3:])
-        # print('score_from_target:', score_from_target)
-        weight_4_highway = torch.sigmoid(self.score_proj_weight(score_matrix_to_fold))
-        # print('weight_4_highway:', weight_4_highway)
-        score_matrix = weight_4_highway*(score_from_source)+(1.0-weight_4_highway)*score_from_target
+        # score_from_source = torch.sigmoid(self.score_proj(score_matrix_to_fold))
+        # # print('score_matrix_to_fold[:,:3]:', score_matrix_to_fold[:,:3])
+        # # print('score_from_source:', score_from_source)
+        # score_from_target = torch.sigmoid(self.target_proj(score_matrix_to_fold))
+        # # print('score_matrix_to_fold[:, -3:]:', score_matrix_to_fold[:, -3:])
+        # # print('score_from_target:', score_from_target)
+        # weight_4_highway = torch.sigmoid(self.score_proj_weight(score_matrix_to_fold))
+        # # print('weight_4_highway:', weight_4_highway)
+        # score_matrix = weight_4_highway*(score_from_source)+(1.0-weight_4_highway)*score_from_target
         # print('score_matrix:', score_matrix)
+
+        score_proj_1 = torch.tanh(self.score_proj_1(score_matrix_to_fold))
+        score_matrix = torch.tanh(self.score_proj_2(score_proj_1))
 
         return score_matrix
 

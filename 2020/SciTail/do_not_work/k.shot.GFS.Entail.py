@@ -269,8 +269,8 @@ class PrototypeNet(nn.Module):
         self.HiddenLayer_5 = nn.Linear(hidden_size, 1)
         self.dropout = nn.Dropout(0.1)
 
-        self.score_proj = nn.Linear(3, 3)
-        # self.target_proj = nn.Linear(3, 3)
+        self.score_proj = nn.Linear(6, 3)
+        self.target_proj = nn.Linear(6, 3)
         self.score_proj_weight = nn.Linear(6, 3)
 
     def forward(self, rep_classes,rep_query_batch):
@@ -294,10 +294,10 @@ class PrototypeNet(nn.Module):
         score_matrix_to_fold = all_scores.view(-1, class_size) #(batch_size, class_size*2)
         # score_matrix = score_matrix_to_fold[:,:3]+score_matrix_to_fold[:, -3:]#(batch_size, class_size)
 
-        score_from_source = torch.sigmoid(self.score_proj(score_matrix_to_fold[:,:3]))
+        score_from_source = torch.sigmoid(self.score_proj(score_matrix_to_fold))
         # print('score_matrix_to_fold[:,:3]:', score_matrix_to_fold[:,:3])
         # print('score_from_source:', score_from_source)
-        score_from_target = torch.sigmoid(self.score_proj(score_matrix_to_fold[:, -3:]))
+        score_from_target = torch.sigmoid(self.target_proj(score_matrix_to_fold))
         # print('score_matrix_to_fold[:, -3:]:', score_matrix_to_fold[:, -3:])
         # print('score_from_target:', score_from_target)
         weight_4_highway = torch.sigmoid(self.score_proj_weight(score_matrix_to_fold))
@@ -736,7 +736,6 @@ def main():
             '''source side loss'''
             # loss_fct = CrossEntropyLoss(reduction='none')
             loss_fct = CrossEntropyLoss()
-            print('source_label_ids_batch:', source_label_ids_batch)
             source_loss_list = loss_fct(batch_logits[:source_last_hidden_batch.shape[0]].view(-1, source_num_labels), source_label_ids_batch.view(-1))
             '''target side loss'''
             target_label_ids_batch = torch.tensor([0]*selected_target_entail_rep.shape[0]+[1]*selected_target_neural_rep.shape[0], dtype=torch.long)

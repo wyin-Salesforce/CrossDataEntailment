@@ -269,8 +269,9 @@ class PrototypeNet(nn.Module):
         self.HiddenLayer_5 = nn.Linear(hidden_size, 1)
         self.dropout = nn.Dropout(0.1)
 
-        self.score_proj = nn.Linear(3, 3, bias=False)
-        self.score_proj_weight = nn.Linear(6, 3, bias=False)
+        self.score_proj = nn.Linear(3, 3)
+        self.target_proj = nn.Linear(3, 3)
+        self.score_proj_weight = nn.Linear(6, 3)
 
     def forward(self, rep_classes,rep_query_batch):
         '''
@@ -295,7 +296,7 @@ class PrototypeNet(nn.Module):
         score_from_source = torch.sigmoid(self.score_proj(score_matrix_to_fold[:,:3]))
         # print('score_matrix_to_fold[:,:3]:', score_matrix_to_fold[:,:3])
         # print('score_from_source:', score_from_source)
-        score_from_target = torch.sigmoid(self.score_proj(score_matrix_to_fold[:, -3:]))
+        score_from_target = torch.sigmoid(self.target_proj(score_matrix_to_fold[:, -3:]))
         # print('score_matrix_to_fold[:, -3:]:', score_matrix_to_fold[:, -3:])
         # print('score_from_target:', score_from_target)
         weight_4_highway = torch.sigmoid(self.score_proj_weight(score_matrix_to_fold))

@@ -308,10 +308,11 @@ class PrototypeNet(nn.Module):
         return score_matrix
 
 
-def get_SciTail_as_train_k_shot(filename, k_shot):
+def get_SciTail_as_train_k_shot(filename, k_shot, seed):
     '''
     classes: entails, neutral
     '''
+    random.seed(seed)
     examples_entail=[]
     examples_non_entail=[]
     readfile = codecs.open(filename, 'r', 'utf-8')
@@ -586,24 +587,24 @@ def main():
 
     args.train_batch_size = args.train_batch_size // args.gradient_accumulation_steps
 
-    random.seed(args.seed)
-    np.random.seed(args.seed)
-    torch.manual_seed(args.seed)
-    if n_gpu > 0:
-        torch.cuda.manual_seed_all(args.seed)
-
+    # random.seed(args.seed)
+    # np.random.seed(args.seed)
+    # torch.manual_seed(args.seed)
+    # if n_gpu > 0:
+    #     torch.cuda.manual_seed_all(args.seed)
+    #
 
 
     scitail_path = '/export/home/Dataset/SciTailV1/tsv_format/'
-    target_kshot_entail_examples, target_kshot_nonentail_examples = get_SciTail_as_train_k_shot(scitail_path+'scitail_1.0_train.tsv', args.kshot) #train_pu_half_v1.txt
+    target_kshot_entail_examples, target_kshot_nonentail_examples = get_SciTail_as_train_k_shot(scitail_path+'scitail_1.0_train.tsv', args.kshot, args.seed) #train_pu_half_v1.txt
     target_dev_examples, target_test_examples = get_SciTail_dev_and_test(scitail_path+'scitail_1.0_dev.tsv', scitail_path+'scitail_1.0_test.tsv')
 
-    args.seed=42
-    random.seed(args.seed)
-    np.random.seed(args.seed)
-    torch.manual_seed(args.seed)
+    system_seed=42
+    random.seed(system_seed)
+    np.random.seed(system_seed)
+    torch.manual_seed(system_seed)
     if n_gpu > 0:
-        torch.cuda.manual_seed_all(args.seed)
+        torch.cuda.manual_seed_all(system_seed)
 
     source_kshot_size = 10# if args.kshot>10 else 10 if max(10, args.kshot)
     source_kshot_entail, source_kshot_neural, source_kshot_contra, source_remaining_examples = get_MNLI_train('/export/home/Dataset/glue_data/MNLI/train.tsv', source_kshot_size)

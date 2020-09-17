@@ -743,7 +743,7 @@ def main():
             target_batch_logits = batch_logits[-target_last_hidden_batch.shape[0]:]
             target_loss_list = loss_by_logits_and_2way_labels(target_batch_logits, target_label_ids_batch.view(-1), device)
 
-            ratio=0.9
+            ratio=0.8
             loss = ratio*source_loss_list+target_loss_list#torch.mean(torch.cat([source_loss_list, target_loss_list]))
             if n_gpu > 1:
                 loss = loss.mean() # mean() to average on multi-gpu.

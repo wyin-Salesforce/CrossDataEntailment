@@ -307,14 +307,14 @@ class PrototypeNet(nn.Module):
         '''integrate pretrain logits'''
 
         score_from_pretrain_sigmoid = torch.sigmoid(logits_from_pretrain)
-        score_from_pretrain = self.score_proj_pretrain(score_from_pretrain_sigmoid)
-        # print('logits_from_pretrain:', logits_from_pretrain)
-        # print('score_from_pretrain:', score_from_pretrain)
-        score_from_model = self.score_proj_model(score_matrix)
-        # print('score_matrix:', score_matrix)
-        # print('score_from_model:', score_from_model)  #0-id最大
-        weight_4_highway_pretrain = torch.sigmoid(self.score_proj_weight_pretrain(torch.cat([score_from_pretrain_sigmoid, score_from_model], dim=1)))
-        score_matrix_with_pretrain = weight_4_highway_pretrain*(score_from_pretrain)+(1.0-weight_4_highway_pretrain)*score_from_model
+        # score_from_pretrain = self.score_proj_pretrain(score_from_pretrain_sigmoid)
+        # # print('logits_from_pretrain:', logits_from_pretrain)
+        # # print('score_from_pretrain:', score_from_pretrain)
+        # score_from_model = self.score_proj_model(score_matrix)
+        # # print('score_matrix:', score_matrix)
+        # # print('score_from_model:', score_from_model)  #0-id最大
+        # weight_4_highway_pretrain = torch.sigmoid(self.score_proj_weight_pretrain(torch.cat([score_from_pretrain_sigmoid, score_from_model], dim=1)))
+        # score_matrix_with_pretrain = weight_4_highway_pretrain*(score_from_pretrain)+(1.0-weight_4_highway_pretrain)*score_from_model
         # print('weight_4_highway_pretrain:', weight_4_highway_pretrain)
         # print('score_matrix_with_pretrain:', score_matrix_with_pretrain)
 
@@ -323,6 +323,9 @@ class PrototypeNet(nn.Module):
         # score_from_pretrain_sigmoid = torch.sigmoid(logits_from_pretrain)
         # weight_4_highway_pretrain = torch.sigmoid(self.score_proj_weight_pretrain(torch.cat([score_from_pretrain_sigmoid, score_matrix], dim=1)))
         # score_matrix_with_pretrain = weight_4_highway_pretrain*(score_from_pretrain_sigmoid)+(1.0-weight_4_highway_pretrain)*score_matrix
+
+        score_matrix_with_pretrain = score_matrix  + 0.2*score_from_pretrain_sigmoid
+
         return score_matrix_with_pretrain
 
 

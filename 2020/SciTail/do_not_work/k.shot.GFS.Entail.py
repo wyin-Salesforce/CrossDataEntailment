@@ -264,9 +264,9 @@ class PrototypeNet(nn.Module):
         super(PrototypeNet, self).__init__()
         self.HiddenLayer_1 = nn.Linear(4*hidden_size, 4*hidden_size)
         self.HiddenLayer_2 = nn.Linear(4*hidden_size, 4*hidden_size)
-        self.HiddenLayer_3 = nn.Linear(4*hidden_size, 4*hidden_size)
-        self.HiddenLayer_4 = nn.Linear(4*hidden_size, hidden_size)
-        self.HiddenLayer_5 = nn.Linear(hidden_size, 1)
+        self.HiddenLayer_3 = nn.Linear(4*hidden_size, 8*hidden_size)
+        self.HiddenLayer_4 = nn.Linear(8*hidden_size, 4*hidden_size)
+        self.HiddenLayer_5 = nn.Linear(4*hidden_size, 1)
         self.dropout = nn.Dropout(0.1)
 
         self.score_proj = nn.Linear(3, 3)
@@ -286,7 +286,7 @@ class PrototypeNet(nn.Module):
 
         output_1 = self.dropout(torch.tanh(self.HiddenLayer_1(combined_rep))) +combined_rep
         output_2 = self.dropout(torch.tanh(self.HiddenLayer_2(output_1))) +output_1
-        output_3 = self.dropout(torch.tanh(self.HiddenLayer_3(output_2))) + output_2
+        output_3 = self.dropout(torch.tanh(self.HiddenLayer_3(output_2)))
         output_4 = self.dropout(torch.tanh(self.HiddenLayer_4(output_3)))
         # all_scores = torch.sigmoid(self.HiddenLayer_5(output_4))
         all_scores = torch.sigmoid(self.HiddenLayer_5(output_4))

@@ -831,7 +831,7 @@ def main():
 
                         final_test_performance = test_acc
                         print('\niter', iter_co, '\ttest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
-            if iter_co == 1000:#3000:
+            if iter_co == 500:#3000:
                 break
     print('final_test_performance:', final_test_performance)
 

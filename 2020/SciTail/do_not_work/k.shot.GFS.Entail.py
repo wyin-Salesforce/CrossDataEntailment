@@ -259,14 +259,24 @@ class RobertaClassificationHead(nn.Module):
         return last_hidden, x
 
 
+def sim_matrix(a, b, eps=1e-8):
+    """
+    added eps for numerical stability
+    """
+    a_n, b_n = a.norm(dim=1)[:, None], b.norm(dim=1)[:, None]
+    a_norm = a / torch.max(a_n, eps * torch.ones_like(a_n))
+    b_norm = b / torch.max(b_n, eps * torch.ones_like(b_n))
+    sim_mt = torch.sum(a_norm*b_norm, dim=1, keepdim=True) #(batch, 1)
+    return sim_mt
+
 class PrototypeNet(nn.Module):
     def __init__(self, hidden_size):
         super(PrototypeNet, self).__init__()
-        self.HiddenLayer_1 = nn.Linear(4*hidden_size, 4*hidden_size)
-        self.HiddenLayer_2 = nn.Linear(4*hidden_size, 4*hidden_size)
-        self.HiddenLayer_3 = nn.Linear(4*hidden_size, 8*hidden_size)
-        self.HiddenLayer_4 = nn.Linear(8*hidden_size, 4*hidden_size)
-        self.HiddenLayer_5 = nn.Linear(4*hidden_size, 1)
+        self.HiddenLayer_1 = nn.Linear(4*hidden_size+1, 4*hidden_size+1)
+        self.HiddenLayer_2 = nn.Linear(4*hidden_size+1, 4*hidden_size+1)
+        self.HiddenLayer_3 = nn.Linear(4*hidden_size+1, 2*hidden_size)
+        self.HiddenLayer_4 = nn.Linear(2*hidden_size, hidden_size)
+        self.HiddenLayer_5 = nn.Linear(hidden_size, 1)
         self.dropout = nn.Dropout(0.1)
 
         self.score_proj = nn.Linear(3, 3)
@@ -282,7 +292,7 @@ class PrototypeNet(nn.Module):
         batch_size = rep_query_batch.shape[0]
         repeat_rep_classes = rep_classes.repeat(batch_size, 1)
         repeat_rep_query = torch.repeat_interleave(rep_query_batch, repeats=class_size, dim=0)
-        combined_rep = torch.cat([repeat_rep_classes, repeat_rep_query, repeat_rep_classes*repeat_rep_query, repeat_rep_classes-repeat_rep_query], dim=1) #(#class*batch, 3*hidden)
+        combined_rep = torch.cat([repeat_rep_classes, repeat_rep_query, repeat_rep_classes*repeat_rep_query, repeat_rep_classes-repeat_rep_query, sim_matrix(repeat_rep_classes, repeat_rep_query)], dim=1) #(#class*batch, 3*hidden)
 
         output_1 = self.dropout(torch.tanh(self.HiddenLayer_1(combined_rep))) +combined_rep
         output_2 = self.dropout(torch.tanh(self.HiddenLayer_2(output_1))) +output_1
@@ -831,8 +841,8 @@ def main():
 
                         final_test_performance = test_acc
                         print('\niter', iter_co, '\ttest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
-            if iter_co == 500:#3000:
-                break
+            # if iter_co == 500:#3000:
+            #     break
     print('final_test_performance:', final_test_performance)
 
 

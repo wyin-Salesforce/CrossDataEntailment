@@ -267,7 +267,7 @@ class PrototypeNet(nn.Module):
         self.HiddenLayer_3 = nn.Linear(4*hidden_size, 2*hidden_size)
         self.HiddenLayer_4 = nn.Linear(2*hidden_size, hidden_size)
         self.HiddenLayer_5 = nn.Linear(hidden_size, 1)
-        self.dropout = nn.Dropout(0.2)
+        self.dropout = nn.Dropout(0.1)
 
         self.score_proj = nn.Linear(3, 3)
         # self.target_proj = nn.Linear(3, 3)
@@ -284,8 +284,8 @@ class PrototypeNet(nn.Module):
         repeat_rep_query = torch.repeat_interleave(rep_query_batch, repeats=class_size, dim=0)
         combined_rep = torch.cat([repeat_rep_classes, repeat_rep_query, repeat_rep_classes*repeat_rep_query, repeat_rep_classes-repeat_rep_query], dim=1) #(#class*batch, 3*hidden)
 
-        output_1 = self.dropout(torch.tanh(self.HiddenLayer_1(combined_rep))) +combined_rep
-        output_2 = self.dropout(torch.tanh(self.HiddenLayer_2(output_1))) +output_1
+        output_1 = self.dropout(torch.tanh(self.HiddenLayer_1(combined_rep)))# +combined_rep
+        output_2 = self.dropout(torch.tanh(self.HiddenLayer_2(output_1))) #+output_1
         output_3 = self.dropout(torch.tanh(self.HiddenLayer_3(output_2)))
         output_4 = self.dropout(torch.tanh(self.HiddenLayer_4(output_3)))
         # all_scores = torch.sigmoid(self.HiddenLayer_5(output_4))

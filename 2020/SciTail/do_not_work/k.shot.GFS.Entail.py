@@ -262,9 +262,9 @@ class RobertaClassificationHead(nn.Module):
 class PrototypeNet(nn.Module):
     def __init__(self, hidden_size):
         super(PrototypeNet, self).__init__()
-        self.HiddenLayer_1 = nn.Linear(4*hidden_size, 4*hidden_size)
-        self.HiddenLayer_2 = nn.Linear(4*hidden_size, 4*hidden_size)
-        self.HiddenLayer_3 = nn.Linear(4*hidden_size, 2*hidden_size)
+        self.HiddenLayer_1 = nn.Linear(5*hidden_size, 5*hidden_size)
+        self.HiddenLayer_2 = nn.Linear(5*hidden_size, 5*hidden_size)
+        self.HiddenLayer_3 = nn.Linear(5*hidden_size, 2*hidden_size)
         self.HiddenLayer_4 = nn.Linear(2*hidden_size, hidden_size)
         self.HiddenLayer_5 = nn.Linear(hidden_size, 1)
         self.dropout = nn.Dropout(0.1)
@@ -282,7 +282,7 @@ class PrototypeNet(nn.Module):
         batch_size = rep_query_batch.shape[0]
         repeat_rep_classes = rep_classes.repeat(batch_size, 1)
         repeat_rep_query = torch.repeat_interleave(rep_query_batch, repeats=class_size, dim=0)
-        combined_rep = torch.cat([repeat_rep_classes, repeat_rep_query, repeat_rep_classes*repeat_rep_query, repeat_rep_classes-repeat_rep_query], dim=1) #(#class*batch, 3*hidden)
+        combined_rep = torch.cat([repeat_rep_classes, repeat_rep_query, repeat_rep_classes*repeat_rep_query, repeat_rep_classes+repeat_rep_query, repeat_rep_classes-repeat_rep_query], dim=1) #(#class*batch, 3*hidden)
 
         output_1 = self.dropout(torch.tanh(self.HiddenLayer_1(combined_rep))) +combined_rep
         output_2 = self.dropout(torch.tanh(self.HiddenLayer_2(output_1))) +output_1
@@ -586,13 +586,6 @@ def main():
                             args.gradient_accumulation_steps))
 
     args.train_batch_size = args.train_batch_size // args.gradient_accumulation_steps
-
-    # random.seed(args.seed)
-    # np.random.seed(args.seed)
-    # torch.manual_seed(args.seed)
-    # if n_gpu > 0:
-    #     torch.cuda.manual_seed_all(args.seed)
-    #
 
 
     scitail_path = '/export/home/Dataset/SciTailV1/tsv_format/'

@@ -259,20 +259,10 @@ class RobertaClassificationHead(nn.Module):
         return last_hidden, x
 
 
-def sim_matrix(a, b, eps=1e-8):
-    """
-    added eps for numerical stability
-    """
-    a_n, b_n = a.norm(dim=1)[:, None], b.norm(dim=1)[:, None]
-    a_norm = a / torch.max(a_n, eps * torch.ones_like(a_n))
-    b_norm = b / torch.max(b_n, eps * torch.ones_like(b_n))
-    sim_mt = torch.sum(a_norm*b_norm, dim=1, keepdim=True) #(batch, 1)
-    return sim_mt
-
 class PrototypeNet(nn.Module):
     def __init__(self, hidden_size):
         super(PrototypeNet, self).__init__()
-        self.HiddenLayer_1 = nn.Linear(4*hidden_size+1, 4*hidden_size)
+        self.HiddenLayer_1 = nn.Linear(4*hidden_size, 4*hidden_size)
         self.HiddenLayer_2 = nn.Linear(4*hidden_size, 4*hidden_size)
         self.HiddenLayer_3 = nn.Linear(4*hidden_size, 2*hidden_size)
         self.HiddenLayer_4 = nn.Linear(2*hidden_size, hidden_size)
@@ -292,10 +282,10 @@ class PrototypeNet(nn.Module):
         batch_size = rep_query_batch.shape[0]
         repeat_rep_classes = rep_classes.repeat(batch_size, 1)
         repeat_rep_query = torch.repeat_interleave(rep_query_batch, repeats=class_size, dim=0)
-        combined_rep = torch.cat([repeat_rep_classes, repeat_rep_query, repeat_rep_classes*repeat_rep_query, repeat_rep_classes-repeat_rep_query, sim_matrix(repeat_rep_classes, repeat_rep_query)], dim=1) #(#class*batch, 3*hidden)
+        combined_rep = torch.tanh(torch.cat([repeat_rep_classes, repeat_rep_query, repeat_rep_classes*repeat_rep_query, repeat_rep_classes-repeat_rep_query], dim=1)) #(#class*batch, 3*hidden)
 
-        output_1 = self.dropout(torch.tanh(self.HiddenLayer_1(combined_rep)))# +combined_rep
-        output_2 = self.dropout(torch.tanh(self.HiddenLayer_2(output_1)))# +output_1
+        output_1 = self.dropout(torch.tanh(self.HiddenLayer_1(combined_rep))) +combined_rep
+        output_2 = self.dropout(torch.tanh(self.HiddenLayer_2(output_1))) +output_1
         output_3 = self.dropout(torch.tanh(self.HiddenLayer_3(output_2)))
         output_4 = self.dropout(torch.tanh(self.HiddenLayer_4(output_3)))
         # all_scores = torch.sigmoid(self.HiddenLayer_5(output_4))
@@ -753,7 +743,8 @@ def main():
             target_batch_logits = batch_logits[-target_last_hidden_batch.shape[0]:]
             target_loss_list = loss_by_logits_and_2way_labels(target_batch_logits, target_label_ids_batch.view(-1), device)
 
-            loss = source_loss_list+target_loss_list#torch.mean(torch.cat([source_loss_list, target_loss_list]))
+            ratio=0.9
+            loss = ratio*source_loss_list+target_loss_list#torch.mean(torch.cat([source_loss_list, target_loss_list]))
             if n_gpu > 1:
                 loss = loss.mean() # mean() to average on multi-gpu.
             if args.gradient_accumulation_steps > 1:

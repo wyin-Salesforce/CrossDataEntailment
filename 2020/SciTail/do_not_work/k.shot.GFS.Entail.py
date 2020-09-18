@@ -250,11 +250,11 @@ class RobertaClassificationHead(nn.Module):
         self.out_proj = nn.Linear(bert_hidden_dim, num_labels)
 
     def forward(self, features):
-        x = features#[:, 0, :]  # take <s> token (equiv. to [CLS])
-        x = self.dropout(x)
-        x = self.dense(x)
-        last_hidden = torch.tanh(x)
+        last_hidden = features#[:, 0, :]  # take <s> token (equiv. to [CLS])
         x = self.dropout(last_hidden)
+        x = self.dense(x)
+        x = torch.tanh(x)
+        x = self.dropout(x)
         x = self.out_proj(x)
         return last_hidden, x
 
@@ -708,10 +708,10 @@ def main():
 
     '''starting to train'''
     iter_co = 0
+    tr_loss = 0
     final_test_performance = 0.0
-    loss_accu = 0.0
     for _ in trange(int(args.num_train_epochs), desc="Epoch"):
-        tr_loss = 0
+
         nb_tr_examples, nb_tr_steps = 0, 0
         for step, batch in enumerate(tqdm(source_remain_ex_dataloader, desc="Iteration")):
             protonet.train()
@@ -744,26 +744,28 @@ def main():
             target_batch_logits = batch_logits[-target_last_hidden_batch.shape[0]:]
             target_loss_list = loss_by_logits_and_2way_labels(target_batch_logits, target_label_ids_batch.view(-1), device)
 
-
             loss = source_loss_list+target_loss_list#torch.mean(torch.cat([source_loss_list, target_loss_list]))
-            loss_accu+=loss
             if n_gpu > 1:
                 loss = loss.mean() # mean() to average on multi-gpu.
             if args.gradient_accumulation_steps > 1:
                 loss = loss / args.gradient_accumulation_steps
 
+            optimizer.zero_grad()
             loss.backward()
+            optimizer.step()
 
             tr_loss += loss.item()
             nb_tr_examples += input_ids.size(0)
             nb_tr_steps += 1
 
-            optimizer.step()
-            optimizer.zero_grad()
+
+
             global_step += 1
             iter_co+=1
-            print('iter_co:', iter_co, ' mean loss:', loss_accu/iter_co)
-            if iter_co > 100 and iter_co %1==0:
+
+            if iter_co %5==0:
+                print('iter_co:', iter_co, ' mean loss', tr_loss/iter_co)
+            if iter_co %1==0:
                 # if iter_co % len(source_remain_ex_dataloader)==0:
                 '''
                 start evaluate on dev set after this epoch

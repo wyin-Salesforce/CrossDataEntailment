@@ -233,9 +233,9 @@ class RobertaForSequenceClassification(nn.Module):
 
     def forward(self, input_ids, input_mask):
         outputs_single = self.roberta_single(input_ids, input_mask, None)
-        hidden_states_single = outputs_single[1]#torch.tanh(self.hidden_layer_2(torch.tanh(self.hidden_layer_1(outputs_single[1])))) #(batch, hidden)
-
-        last_hidden, score_single = self.single_hidden2tag(hidden_states_single) #(batch, tag_set)
+        hidden_states_CLS = outputs_single[1]#torch.tanh(self.hidden_layer_2(torch.tanh(self.hidden_layer_1(outputs_single[1])))) #(batch, hidden)
+        hidden_states_single = torch.mean(outputs_single[0], dim=1)
+        last_hidden, score_single = self.single_hidden2tag(hidden_states_CLS, hidden_states_single) #(batch, tag_set)
         return last_hidden, score_single
 
 
@@ -249,14 +249,14 @@ class RobertaClassificationHead(nn.Module):
         self.dropout = nn.Dropout(0.1)
         self.out_proj = nn.Linear(bert_hidden_dim, num_labels)
 
-    def forward(self, features):
-        last_hidden = features#[:, 0, :]  # take <s> token (equiv. to [CLS])
-        x = self.dropout(last_hidden)
+    def forward(self, features, features_mean_pooling):
+        x = features#[:, 0, :]  # take <s> token (equiv. to [CLS])
+        x = self.dropout(x)
         x = self.dense(x)
-        last_hidden_2 = torch.tanh(x)
-        x = self.dropout(last_hidden_2)
+        last_hidden_CLS = torch.tanh(x)
+        x = self.dropout(last_hidden_CLS)
         x = self.out_proj(x)
-        return torch.cat([last_hidden,last_hidden_2],dim=1), x
+        return torch.cat([features_mean_pooling,last_hidden_CLS],dim=1), x
 
 
 class PrototypeNet(nn.Module):

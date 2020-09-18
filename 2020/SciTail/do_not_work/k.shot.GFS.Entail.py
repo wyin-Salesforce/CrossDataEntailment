@@ -253,15 +253,18 @@ class RobertaClassificationHead(nn.Module):
         last_hidden = features#[:, 0, :]  # take <s> token (equiv. to [CLS])
         x = self.dropout(last_hidden)
         x = self.dense(x)
-        x = torch.tanh(x)
-        x = self.dropout(x)
+        last_hidden_2 = torch.tanh(x)
+        x = self.dropout(last_hidden_2)
         x = self.out_proj(x)
-        return last_hidden, x
+        return torch.cat([last_hidden,last_hidden_2]), x
 
 
 class PrototypeNet(nn.Module):
     def __init__(self, hidden_size):
         super(PrototypeNet, self).__init__()
+
+        self.HiddenLayer_0 = nn.Linear(2hidden_size, hidden_size)
+
         self.HiddenLayer_1 = nn.Linear(4*hidden_size, 4*hidden_size)
         self.HiddenLayer_2 = nn.Linear(4*hidden_size, 4*hidden_size)
         self.HiddenLayer_3 = nn.Linear(4*hidden_size, 2*hidden_size)
@@ -273,11 +276,15 @@ class PrototypeNet(nn.Module):
         # self.target_proj = nn.Linear(3, 3)
         self.score_proj_weight = nn.Linear(6, 3)
 
-    def forward(self, rep_classes,rep_query_batch):
+    def forward(self, rep_classes_input,rep_query_batch_input):
         '''
         rep_classes: (#class*2, hidden_size), 3 comes from MNLI, 3 comes from target
         rep_query_batch: (batch_size, hidden_size)
         '''
+
+        rep_classes = torch.tanh(self.HiddenLayer_0(rep_classes_input))
+        rep_query_batch = torch.tanh(self.HiddenLayer_0(rep_query_batch_input))
+
         class_size = rep_classes.shape[0]
         batch_size = rep_query_batch.shape[0]
         repeat_rep_classes = rep_classes.repeat(batch_size, 1)

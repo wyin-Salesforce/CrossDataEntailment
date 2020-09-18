@@ -263,7 +263,7 @@ class PrototypeNet(nn.Module):
     def __init__(self, hidden_size):
         super(PrototypeNet, self).__init__()
 
-        self.HiddenLayer_0 = nn.Linear(2hidden_size, hidden_size)
+        self.HiddenLayer_0 = nn.Linear(2*hidden_size, hidden_size)
 
         self.HiddenLayer_1 = nn.Linear(4*hidden_size, 4*hidden_size)
         self.HiddenLayer_2 = nn.Linear(4*hidden_size, 4*hidden_size)

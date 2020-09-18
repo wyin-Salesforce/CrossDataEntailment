@@ -256,7 +256,7 @@ class RobertaClassificationHead(nn.Module):
         last_hidden_2 = torch.tanh(x)
         x = self.dropout(last_hidden_2)
         x = self.out_proj(x)
-        return torch.cat([last_hidden,last_hidden_2]), x
+        return torch.cat([last_hidden,last_hidden_2],dim=1), x
 
 
 class PrototypeNet(nn.Module):

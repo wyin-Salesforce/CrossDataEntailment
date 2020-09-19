@@ -764,7 +764,7 @@ def main():
             iter_co+=1
 
             if iter_co %5==0:
-            print('iter_co:', iter_co, ' mean loss', tr_loss/iter_co)
+                print('iter_co:', iter_co, ' mean loss', tr_loss/iter_co)
             if iter_co %1==0:
                 # if iter_co % len(source_remain_ex_dataloader)==0:
                 '''

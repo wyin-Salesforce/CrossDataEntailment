@@ -284,8 +284,8 @@ class PrototypeNet(nn.Module):
         repeat_rep_query = torch.repeat_interleave(rep_query_batch, repeats=class_size, dim=0)
         combined_rep = torch.cat([repeat_rep_classes, repeat_rep_query, repeat_rep_classes*repeat_rep_query, repeat_rep_classes-repeat_rep_query], dim=1) #(#class*batch, 3*hidden)
 
-        output_1 = 0.5*(self.dropout(torch.tanh(self.HiddenLayer_1(combined_rep))) +combined_rep)
-        output_2 = 0.5*(self.dropout(torch.tanh(self.HiddenLayer_2(output_1))) +output_1)
+        output_1 = self.dropout(torch.tanh(self.HiddenLayer_1(combined_rep))) +combined_rep
+        output_2 = self.dropout(torch.tanh(self.HiddenLayer_2(output_1))) +output_1
         output_3 = self.dropout(torch.tanh(self.HiddenLayer_3(output_2)))
         output_4 = self.dropout(torch.tanh(self.HiddenLayer_4(output_3)))
         # all_scores = torch.sigmoid(self.HiddenLayer_5(output_4))
@@ -857,9 +857,13 @@ CUDA_VISIBLE_DEVICES=5 python -u k.shot.GFS.Entail.py --do_lower_case --num_trai
 CUDA_VISIBLE_DEVICES=4 python -u k.shot.GFS.Entail.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-4 --max_seq_length 128 --seed 64 --kshot 10 --target_train_batch_size 6
 CUDA_VISIBLE_DEVICES=3 python -u k.shot.GFS.Entail.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-4 --max_seq_length 128 --seed 128 --kshot 10 --target_train_batch_size 6
 
-1e-4
-84.94@70
-5e-5
-84.43@256
+
+
+<1000:
+84.80
+82.20
+83.20
+81.13
+84.99
 
 '''

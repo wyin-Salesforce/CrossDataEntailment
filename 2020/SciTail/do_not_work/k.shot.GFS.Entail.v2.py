@@ -270,9 +270,9 @@ class PrototypeNet(nn.Module):
         # roberta_model.eval()
 
         self.HiddenLayer_1 = nn.Linear(4*hidden_size, hidden_size)
-        self.HiddenLayer_2 = nn.Linear(hidden_size, hidden_size)
-        self.HiddenLayer_3 = nn.Linear(hidden_size, hidden_size)
-        self.HiddenLayer_4 = nn.Linear(hidden_size, hidden_size)
+        # self.HiddenLayer_2 = nn.Linear(hidden_size, hidden_size)
+        # self.HiddenLayer_3 = nn.Linear(hidden_size, hidden_size)
+        # self.HiddenLayer_4 = nn.Linear(hidden_size, hidden_size)
         self.HiddenLayer_5 = nn.Linear(hidden_size, 1)
         self.dropout = nn.Dropout(0.1)
 
@@ -291,10 +291,10 @@ class PrototypeNet(nn.Module):
         combined_rep = torch.cat([repeat_rep_classes, repeat_rep_query, repeat_rep_classes*repeat_rep_query, repeat_rep_classes-repeat_rep_query], dim=1) #(#class*batch, 3*hidden)
 
         output_1 = self.dropout(torch.tanh(self.HiddenLayer_1(combined_rep)))# +combined_rep
-        output_2 = self.dropout(torch.tanh(self.HiddenLayer_2(output_1))) +output_1
-        output_3 = self.dropout(torch.tanh(self.HiddenLayer_3(output_2)))
-        output_4 = self.dropout(torch.tanh(self.HiddenLayer_4(output_3)))
-        all_scores = torch.sigmoid(self.HiddenLayer_5(output_4))
+        # output_2 = self.dropout(torch.tanh(self.HiddenLayer_2(output_1))) +output_1
+        # output_3 = self.dropout(torch.tanh(self.HiddenLayer_3(output_2)))
+        # output_4 = self.dropout(torch.tanh(self.HiddenLayer_4(output_3)))
+        all_scores = torch.sigmoid(self.HiddenLayer_5(output_1))
 
         score_matrix_to_fold = all_scores.view(-1, class_size) #(batch_size, class_size*2)
         # score_matrix = score_matrix_to_fold[:,:3]+score_matrix_to_fold[:, -3:]#(batch_size, class_size)

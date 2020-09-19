@@ -269,11 +269,11 @@ class PrototypeNet(nn.Module):
         # roberta_model.to(device)
         # roberta_model.eval()
 
-        self.HiddenLayer_1 = nn.Linear(4*hidden_size, hidden_size)
+        self.HiddenLayer_1 = nn.Linear(4*hidden_size, 20)
         # self.HiddenLayer_2 = nn.Linear(hidden_size, hidden_size)
         # self.HiddenLayer_3 = nn.Linear(hidden_size, hidden_size)
         # self.HiddenLayer_4 = nn.Linear(hidden_size, hidden_size)
-        self.HiddenLayer_5 = nn.Linear(hidden_size, 1)
+        self.HiddenLayer_5 = nn.Linear(20, 1)
         self.dropout = nn.Dropout(0.1)
 
         self.score_proj = nn.Linear(3, 3)
@@ -765,6 +765,7 @@ def main():
             global_step += 1
             iter_co+=1
             if iter_co %1==0:
+                print('evaluating.....')
                 # if iter_co % len(source_remain_ex_dataloader)==0:
                 '''
                 start evaluate on dev set after this epoch

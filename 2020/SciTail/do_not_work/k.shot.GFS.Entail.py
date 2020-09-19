@@ -284,8 +284,8 @@ class PrototypeNet(nn.Module):
         repeat_rep_query = torch.repeat_interleave(rep_query_batch, repeats=class_size, dim=0)
         combined_rep = torch.cat([repeat_rep_classes, repeat_rep_query, repeat_rep_classes*repeat_rep_query, repeat_rep_classes-repeat_rep_query], dim=1) #(#class*batch, 3*hidden)
 
-        output_1 = self.dropout(torch.tanh(self.HiddenLayer_1(combined_rep))) +combined_rep
-        output_2 = self.dropout(torch.tanh(self.HiddenLayer_2(output_1))) +output_1
+        output_1 = 0.5*(self.dropout(torch.tanh(self.HiddenLayer_1(combined_rep))) +combined_rep)
+        output_2 = 0.5*(self.dropout(torch.tanh(self.HiddenLayer_2(output_1))) +output_1)
         output_3 = self.dropout(torch.tanh(self.HiddenLayer_3(output_2)))
         output_4 = self.dropout(torch.tanh(self.HiddenLayer_4(output_3)))
         # all_scores = torch.sigmoid(self.HiddenLayer_5(output_4))
@@ -767,9 +767,9 @@ def main():
             global_step += 1
             iter_co+=1
 
-            if iter_co %5==0:
-                print('iter_co:', iter_co, ' mean loss', tr_loss/iter_co)
-                print('source_loss_list:', source_loss/iter_co, ' target_loss_list: ', target_loss/iter_co)
+            # if iter_co %5==0:
+            #     print('iter_co:', iter_co, ' mean loss', tr_loss/iter_co)
+            #     print('source_loss_list:', source_loss/iter_co, ' target_loss_list: ', target_loss/iter_co)
             if iter_co %1==0:
                 # if iter_co % len(source_remain_ex_dataloader)==0:
                 '''

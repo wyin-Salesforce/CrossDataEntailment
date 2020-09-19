@@ -233,9 +233,9 @@ class RobertaForSequenceClassification(nn.Module):
 
     def forward(self, input_ids, input_mask):
         outputs_single = self.roberta_single(input_ids, input_mask, None)
-        hidden_states_CLS = outputs_single[1]#torch.tanh(self.hidden_layer_2(torch.tanh(self.hidden_layer_1(outputs_single[1])))) #(batch, hidden)
-        hidden_states_single = torch.max(outputs_single[0], dim=1)[0]
-        last_hidden, score_single = self.single_hidden2tag(hidden_states_CLS, hidden_states_single) #(batch, tag_set)
+        hidden_states_single = outputs_single[1]#torch.tanh(self.hidden_layer_2(torch.tanh(self.hidden_layer_1(outputs_single[1])))) #(batch, hidden)
+
+        last_hidden, score_single = self.single_hidden2tag(hidden_states_single) #(batch, tag_set)
         return last_hidden, score_single
 
 
@@ -249,22 +249,19 @@ class RobertaClassificationHead(nn.Module):
         self.dropout = nn.Dropout(0.1)
         self.out_proj = nn.Linear(bert_hidden_dim, num_labels)
 
-    def forward(self, features, features_mean_pooling):
+    def forward(self, features):
         x = features#[:, 0, :]  # take <s> token (equiv. to [CLS])
         x = self.dropout(x)
         x = self.dense(x)
-        last_hidden_CLS = torch.tanh(x)
-        x = self.dropout(last_hidden_CLS)
+        last_hidden = torch.tanh(x)
+        x = self.dropout(last_hidden)
         x = self.out_proj(x)
-        return torch.cat([features_mean_pooling,last_hidden_CLS],dim=1), x
+        return last_hidden, x
 
 
 class PrototypeNet(nn.Module):
     def __init__(self, hidden_size):
         super(PrototypeNet, self).__init__()
-
-        self.HiddenLayer_0 = nn.Linear(2*hidden_size, hidden_size)
-
         self.HiddenLayer_1 = nn.Linear(4*hidden_size, 4*hidden_size)
         self.HiddenLayer_2 = nn.Linear(4*hidden_size, 4*hidden_size)
         self.HiddenLayer_3 = nn.Linear(4*hidden_size, 2*hidden_size)
@@ -276,15 +273,11 @@ class PrototypeNet(nn.Module):
         # self.target_proj = nn.Linear(3, 3)
         self.score_proj_weight = nn.Linear(6, 3)
 
-    def forward(self, rep_classes_input,rep_query_batch_input):
+    def forward(self, rep_classes,rep_query_batch):
         '''
         rep_classes: (#class*2, hidden_size), 3 comes from MNLI, 3 comes from target
         rep_query_batch: (batch_size, hidden_size)
         '''
-
-        rep_classes = torch.tanh(self.HiddenLayer_0(rep_classes_input))
-        rep_query_batch = torch.tanh(self.HiddenLayer_0(rep_query_batch_input))
-
         class_size = rep_classes.shape[0]
         batch_size = rep_query_batch.shape[0]
         repeat_rep_classes = rep_classes.repeat(batch_size, 1)
@@ -771,7 +764,7 @@ def main():
             iter_co+=1
 
             if iter_co %5==0:
-                print('iter_co:', iter_co, ' mean loss', tr_loss/iter_co)
+            print('iter_co:', iter_co, ' mean loss', tr_loss/iter_co)
             if iter_co %1==0:
                 # if iter_co % len(source_remain_ex_dataloader)==0:
                 '''

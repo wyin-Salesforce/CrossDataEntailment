@@ -234,7 +234,7 @@ class RobertaForSequenceClassification(nn.Module):
     def forward(self, input_ids, input_mask):
         outputs_single = self.roberta_single(input_ids, input_mask, None)
         hidden_states_CLS = outputs_single[1]#torch.tanh(self.hidden_layer_2(torch.tanh(self.hidden_layer_1(outputs_single[1])))) #(batch, hidden)
-        hidden_states_single = torch.mean(outputs_single[0], dim=1)
+        hidden_states_single = torch.max(outputs_single[0], dim=1)[0]
         last_hidden, score_single = self.single_hidden2tag(hidden_states_CLS, hidden_states_single) #(batch, tag_set)
         return last_hidden, score_single
 

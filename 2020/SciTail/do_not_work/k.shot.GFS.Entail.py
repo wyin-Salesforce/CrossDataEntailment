@@ -709,6 +709,8 @@ def main():
     '''starting to train'''
     iter_co = 0
     tr_loss = 0
+    source_loss = 0
+    target_loss = 0
     final_test_performance = 0.0
     for _ in trange(int(args.num_train_epochs), desc="Epoch"):
 
@@ -745,6 +747,8 @@ def main():
             target_loss_list = loss_by_logits_and_2way_labels(target_batch_logits, target_label_ids_batch.view(-1), device)
 
             loss = source_loss_list+target_loss_list#torch.mean(torch.cat([source_loss_list, target_loss_list]))
+            source_loss+=source_loss_list
+            target_loss+=target_loss_list
             if n_gpu > 1:
                 loss = loss.mean() # mean() to average on multi-gpu.
             if args.gradient_accumulation_steps > 1:
@@ -765,7 +769,7 @@ def main():
 
             if iter_co %5==0:
                 print('iter_co:', iter_co, ' mean loss', tr_loss/iter_co)
-                print('source_loss_list:', source_loss_list, ' target_loss_list: ', target_loss_list)
+                print('source_loss_list:', source_loss/iter_co, ' target_loss_list: ', target_loss/iter_co)
             if iter_co %1==0:
                 # if iter_co % len(source_remain_ex_dataloader)==0:
                 '''

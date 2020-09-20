@@ -663,6 +663,7 @@ def main():
             '''
             retrieve rep for support examples in MNLI
             '''
+            print('retrieve rep for support examples in MNLI')
             kshot_entail_reps = []
             for entail_batch in source_kshot_entail_dataloader:
                 input_ids, input_mask, _, _ = entail_batch
@@ -687,6 +688,7 @@ def main():
             '''
             retrieve rep for support examples in target
             '''
+            print('retrieve rep for support examples in target')
             kshot_entail_reps = []
             for entail_batch in target_kshot_entail_dataloader:
                 input_ids, input_mask, _, _ = entail_batch
@@ -736,15 +738,10 @@ def main():
             if args.gradient_accumulation_steps > 1:
                 loss = loss / args.gradient_accumulation_steps
 
-            loss.backward()
-
-            tr_loss += loss.item()
-            nb_tr_examples += input_ids.size(0)
-            nb_tr_steps += 1
-
-            optimizer.step()
             optimizer.zero_grad()
-            global_step += 1
+            loss.backward()
+            optimizer.step()
+
             iter_co+=1
             if iter_co %1==0:
                 # if iter_co % len(source_remain_ex_dataloader)==0:
@@ -806,7 +803,8 @@ def main():
                         input_ids = input_ids.to(device)
                         input_mask = input_mask.to(device)
                         gold_label_ids+=list(label_ids.numpy())
-                        last_hidden_target_batch, logits_from_source = protonet.roberta_model(input_ids, input_mask)
+                        with torch.no_grad():
+                            last_hidden_target_batch, logits_from_source = protonet.roberta_model(input_ids, input_mask)
 
                         with torch.no_grad():
                             logits = protonet(class_prototype_reps, last_hidden_target_batch)

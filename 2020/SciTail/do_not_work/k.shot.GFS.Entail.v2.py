@@ -269,11 +269,11 @@ class PrototypeNet(nn.Module):
         # roberta_model.to(device)
         # roberta_model.eval()
 
-        self.HiddenLayer_1 = nn.Linear(4*hidden_size, 20)
-        # self.HiddenLayer_2 = nn.Linear(hidden_size, hidden_size)
-        # self.HiddenLayer_3 = nn.Linear(hidden_size, hidden_size)
-        # self.HiddenLayer_4 = nn.Linear(hidden_size, hidden_size)
-        self.HiddenLayer_5 = nn.Linear(20, 1)
+        self.HiddenLayer_1 = nn.Linear(4*hidden_size, 4*hidden_size)
+        self.HiddenLayer_2 = nn.Linear(4*hidden_size, 4*hidden_size)
+        self.HiddenLayer_3 = nn.Linear(4*hidden_size, 2*hidden_size)
+        self.HiddenLayer_4 = nn.Linear(2*hidden_size, hidden_size)
+        self.HiddenLayer_5 = nn.Linear(hidden_size, 1)
         self.dropout = nn.Dropout(0.1)
 
         self.score_proj = nn.Linear(3, 3)
@@ -290,11 +290,11 @@ class PrototypeNet(nn.Module):
         repeat_rep_query = torch.repeat_interleave(rep_query_batch, repeats=class_size, dim=0)
         combined_rep = torch.cat([repeat_rep_classes, repeat_rep_query, repeat_rep_classes*repeat_rep_query, repeat_rep_classes-repeat_rep_query], dim=1) #(#class*batch, 3*hidden)
 
-        output_1 = self.dropout(torch.tanh(self.HiddenLayer_1(combined_rep)))# +combined_rep
-        # output_2 = self.dropout(torch.tanh(self.HiddenLayer_2(output_1))) +output_1
-        # output_3 = self.dropout(torch.tanh(self.HiddenLayer_3(output_2)))
-        # output_4 = self.dropout(torch.tanh(self.HiddenLayer_4(output_3)))
-        all_scores = torch.sigmoid(self.HiddenLayer_5(output_1))
+        output_1 = self.dropout(torch.tanh(self.HiddenLayer_1(combined_rep))) +combined_rep
+        output_2 = self.dropout(torch.tanh(self.HiddenLayer_2(output_1))) +output_1
+        output_3 = self.dropout(torch.tanh(self.HiddenLayer_3(output_2)))
+        output_4 = self.dropout(torch.tanh(self.HiddenLayer_4(output_3)))
+        all_scores = torch.sigmoid(self.HiddenLayer_5(output_4))
 
         score_matrix_to_fold = all_scores.view(-1, class_size) #(batch_size, class_size*2)
         # score_matrix = score_matrix_to_fold[:,:3]+score_matrix_to_fold[:, -3:]#(batch_size, class_size)
@@ -604,7 +604,7 @@ def main():
     if n_gpu > 0:
         torch.cuda.manual_seed_all(system_seed)
 
-    source_kshot_size = 2# if args.kshot>10 else 10 if max(10, args.kshot)
+    source_kshot_size = 10# if args.kshot>10 else 10 if max(10, args.kshot)
     source_kshot_entail, source_kshot_neural, source_kshot_contra, source_remaining_examples = get_MNLI_train('/export/home/Dataset/glue_data/MNLI/train.tsv', source_kshot_size)
     source_examples = source_kshot_entail+ source_kshot_neural+ source_kshot_contra+ source_remaining_examples
     target_label_list = ["entails", "neutral"]
@@ -658,40 +658,40 @@ def main():
         nb_tr_examples, nb_tr_steps = 0, 0
         for step, batch in enumerate(tqdm(source_remain_ex_dataloader, desc="Iteration")):
             protonet.train()
-            batch = tuple(t.to(device) for t in batch)
-            input_ids, input_mask, segment_ids, source_label_ids_batch = batch
+            # batch = tuple(t.to(device) for t in batch)
+            input_ids, input_mask, _, source_label_ids_batch = batch
 
             # roberta_model.eval()
             # with torch.no_grad():
-            source_last_hidden_batch, _ = protonet.roberta_model(input_ids, input_mask)
+            source_last_hidden_batch, _ = protonet.roberta_model(input_ids.to(device), input_mask.to(device))
             '''
             retrieve rep for support examples in MNLI
             '''
             kshot_entail_reps = []
             for entail_batch in source_kshot_entail_dataloader:
-                entail_batch = tuple(t.to(device) for t in entail_batch)
-                input_ids, input_mask, segment_ids, label_ids = entail_batch
+                # entail_batch = tuple(t.to(device) for t in entail_batch)
+                input_ids, input_mask, _, _ = entail_batch
                 # roberta_model.eval()
                 # with torch.no_grad():
-                last_hidden_entail, _ = protonet.roberta_model(input_ids, input_mask)
+                last_hidden_entail, _ = protonet.roberta_model(input_ids.to(device), input_mask.to(device))
                 kshot_entail_reps.append(last_hidden_entail)
             kshot_entail_rep = torch.mean(torch.cat(kshot_entail_reps, dim=0), dim=0, keepdim=True)
             kshot_neural_reps = []
             for neural_batch in source_kshot_neural_dataloader:
-                neural_batch = tuple(t.to(device) for t in neural_batch)
-                input_ids, input_mask, segment_ids, label_ids = neural_batch
+                # neural_batch = tuple(t.to(device) for t in neural_batch)
+                input_ids, input_mask, _, _ = neural_batch
                 # roberta_model.eval()
                 # with torch.no_grad():
-                last_hidden_neural, _ = protonet.roberta_model(input_ids, input_mask)
+                last_hidden_neural, _ = protonet.roberta_model(input_ids.to(device), input_mask.to(device))
                 kshot_neural_reps.append(last_hidden_neural)
             kshot_neural_rep = torch.mean(torch.cat(kshot_neural_reps, dim=0), dim=0, keepdim=True)
             kshot_contra_reps = []
             for contra_batch in source_kshot_contra_dataloader:
-                contra_batch = tuple(t.to(device) for t in contra_batch)
-                input_ids, input_mask, segment_ids, label_ids = contra_batch
+                # contra_batch = tuple(t.to(device) for t in contra_batch)
+                input_ids, input_mask, _, _ = contra_batch
                 # roberta_model.eval()
                 # with torch.no_grad():
-                last_hidden_contra, _ = protonet.roberta_model(input_ids, input_mask)
+                last_hidden_contra, _ = protonet.roberta_model(input_ids.to(device), input_mask.to(device))
                 kshot_contra_reps.append(last_hidden_contra)
             kshot_contra_rep = torch.mean(torch.cat(kshot_contra_reps, dim=0), dim=0, keepdim=True)
 
@@ -702,21 +702,21 @@ def main():
             '''
             kshot_entail_reps = []
             for entail_batch in target_kshot_entail_dataloader:
-                entail_batch = tuple(t.to(device) for t in entail_batch)
-                input_ids, input_mask, segment_ids, label_ids = entail_batch
+                # entail_batch = tuple(t.to(device) for t in entail_batch)
+                input_ids, input_mask, _, _ = entail_batch
                 # roberta_model.eval()
                 # with torch.no_grad():
-                last_hidden_entail, _ = protonet.roberta_model(input_ids, input_mask)
+                last_hidden_entail, _ = protonet.roberta_model(input_ids.to(device), input_mask.to(device))
                 kshot_entail_reps.append(last_hidden_entail)
             all_kshot_entail_reps = torch.cat(kshot_entail_reps, dim=0)
             kshot_entail_rep = torch.mean(all_kshot_entail_reps, dim=0, keepdim=True)
             kshot_neural_reps = []
             for neural_batch in target_kshot_nonentail_dataloader:
-                neural_batch = tuple(t.to(device) for t in neural_batch)
-                input_ids, input_mask, segment_ids, label_ids = neural_batch
+                # neural_batch = tuple(t.to(device) for t in neural_batch)
+                input_ids, input_mask, _, _ = neural_batch
                 # roberta_model.eval()
                 # with torch.no_grad():
-                last_hidden_neural, _ = protonet.roberta_model(input_ids, input_mask)
+                last_hidden_neural, _ = protonet.roberta_model(input_ids.to(device), input_mask.to(device))
                 kshot_neural_reps.append(last_hidden_neural)
             all_kshot_neural_reps = torch.cat(kshot_neural_reps, dim=0)
             kshot_neural_rep = torch.mean(all_kshot_neural_reps, dim=0, keepdim=True)
@@ -765,7 +765,6 @@ def main():
             global_step += 1
             iter_co+=1
             if iter_co %1==0:
-                print('evaluating.....')
                 # if iter_co % len(source_remain_ex_dataloader)==0:
                 '''
                 start evaluate on dev set after this epoch
@@ -776,29 +775,29 @@ def main():
                 '''
                 kshot_entail_reps = []
                 for entail_batch in source_kshot_entail_dataloader:
-                    entail_batch = tuple(t.to(device) for t in entail_batch)
-                    input_ids, input_mask, segment_ids, label_ids = entail_batch
+                    # entail_batch = tuple(t.to(device) for t in entail_batch)
+                    input_ids, input_mask, _, _ = entail_batch
                     # roberta_model.eval()
                     # with torch.no_grad():
-                    last_hidden_entail, _ = protonet.roberta_model(input_ids, input_mask)
+                    last_hidden_entail, _ = protonet.roberta_model(input_ids.to(device), input_mask.to(device))
                     kshot_entail_reps.append(last_hidden_entail)
                 kshot_entail_rep = torch.mean(torch.cat(kshot_entail_reps, dim=0), dim=0, keepdim=True)
                 kshot_neural_reps = []
                 for neural_batch in source_kshot_neural_dataloader:
-                    neural_batch = tuple(t.to(device) for t in neural_batch)
-                    input_ids, input_mask, segment_ids, label_ids = neural_batch
+                    # neural_batch = tuple(t.to(device) for t in neural_batch)
+                    input_ids, input_mask, _, _ = neural_batch
                     # roberta_model.eval()
                     # with torch.no_grad():
-                    last_hidden_neural, _ = protonet.roberta_model(input_ids, input_mask)
+                    last_hidden_neural, _ = protonet.roberta_model(input_ids.to(device), input_mask.to(device))
                     kshot_neural_reps.append(last_hidden_neural)
                 kshot_neural_rep = torch.mean(torch.cat(kshot_neural_reps, dim=0), dim=0, keepdim=True)
                 kshot_contra_reps = []
                 for contra_batch in source_kshot_contra_dataloader:
-                    contra_batch = tuple(t.to(device) for t in contra_batch)
-                    input_ids, input_mask, segment_ids, label_ids = contra_batch
+                    # contra_batch = tuple(t.to(device) for t in contra_batch)
+                    input_ids, input_mask, _, _ = contra_batch
                     # roberta_model.eval()
                     # with torch.no_grad():
-                    last_hidden_contra, _ = protonet.roberta_model(input_ids, input_mask)
+                    last_hidden_contra, _ = protonet.roberta_model(input_ids.to(device), input_mask.to(device))
                     kshot_contra_reps.append(last_hidden_contra)
                 kshot_contra_rep = torch.mean(torch.cat(kshot_contra_reps, dim=0), dim=0, keepdim=True)
 
@@ -807,20 +806,20 @@ def main():
                 '''first get representations for support examples in target'''
                 kshot_entail_reps = []
                 for entail_batch in target_kshot_entail_dataloader:
-                    entail_batch = tuple(t.to(device) for t in entail_batch)
-                    input_ids, input_mask, segment_ids, label_ids = entail_batch
+                    # entail_batch = tuple(t.to(device) for t in entail_batch)
+                    input_ids, input_mask, _, _ = entail_batch
                     # roberta_model.eval()
                     # with torch.no_grad():
-                    last_hidden_entail, _ = protonet.roberta_model(input_ids, input_mask)
+                    last_hidden_entail, _ = protonet.roberta_model(input_ids.to(device), input_mask.to(device))
                     kshot_entail_reps.append(last_hidden_entail)
                 kshot_entail_rep = torch.mean(torch.cat(kshot_entail_reps, dim=0), dim=0, keepdim=True)
                 kshot_nonentail_reps = []
                 for nonentail_batch in target_kshot_nonentail_dataloader:
-                    nonentail_batch = tuple(t.to(device) for t in nonentail_batch)
-                    input_ids, input_mask, segment_ids, label_ids = nonentail_batch
+                    # nonentail_batch = tuple(t.to(device) for t in nonentail_batch)
+                    input_ids, input_mask, _, _ = nonentail_batch
                     # roberta_model.eval()
                     # with torch.no_grad():
-                    last_hidden_nonentail, _ = protonet.roberta_model(input_ids, input_mask)
+                    last_hidden_nonentail, _ = protonet.roberta_model(input_ids.to(device), input_mask.to(device))
                     kshot_nonentail_reps.append(last_hidden_nonentail)
                 kshot_nonentail_rep = torch.mean(torch.cat(kshot_nonentail_reps, dim=0), dim=0, keepdim=True)
                 target_class_prototype_reps = torch.cat([kshot_entail_rep, kshot_nonentail_rep, kshot_nonentail_rep], dim=0) #(3, hidden)
@@ -838,9 +837,9 @@ def main():
                     for input_ids, input_mask, segment_ids, label_ids in dev_or_test_dataloader:
                         input_ids = input_ids.to(device)
                         input_mask = input_mask.to(device)
-                        segment_ids = segment_ids.to(device)
-                        label_ids = label_ids.to(device)
-                        gold_label_ids+=list(label_ids.detach().cpu().numpy())
+                        # segment_ids = segment_ids.to(device)
+                        # label_ids = label_ids.to(device)
+                        gold_label_ids+=list(label_ids.numpy())
                         # roberta_model.eval()
                         # with torch.no_grad():
                         last_hidden_target_batch, logits_from_source = protonet.roberta_model(input_ids, input_mask)

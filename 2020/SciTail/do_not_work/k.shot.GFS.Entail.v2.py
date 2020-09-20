@@ -692,6 +692,7 @@ def main():
             kshot_entail_reps = []
             for entail_batch in target_kshot_entail_dataloader:
                 input_ids, input_mask, _, _ = entail_batch
+                print('haha')
                 last_hidden_entail, _ = protonet.roberta_model(input_ids.to(device), input_mask.to(device))
                 kshot_entail_reps.append(last_hidden_entail)
             all_kshot_entail_reps = torch.cat(kshot_entail_reps, dim=0)

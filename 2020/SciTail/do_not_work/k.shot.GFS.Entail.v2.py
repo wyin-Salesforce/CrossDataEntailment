@@ -769,6 +769,7 @@ def main():
                 '''
                 start evaluate on dev set after this epoch
                 '''
+                print('evaluating....')
                 protonet.eval()
                 '''
                 retrieve rep for support examples in MNLI

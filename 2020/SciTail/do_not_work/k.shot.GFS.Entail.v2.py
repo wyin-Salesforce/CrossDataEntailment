@@ -638,7 +638,7 @@ def main():
     max_test_acc = 0.0
     max_dev_acc = 0.0
 
-    retrieve_batch_size = 2
+    retrieve_batch_size = 1
 
     source_kshot_entail_dataloader = examples_to_features(source_kshot_entail, source_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
     source_kshot_neural_dataloader = examples_to_features(source_kshot_neural, source_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')

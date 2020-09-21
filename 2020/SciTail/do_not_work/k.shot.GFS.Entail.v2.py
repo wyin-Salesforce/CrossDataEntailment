@@ -624,9 +624,9 @@ def main():
             name.startswith('roberta_single.encoder.layer.2') or
             name.startswith('roberta_single.encoder.layer.3') or
             name.startswith('roberta_single.encoder.layer.4') or
-            name.startswith('roberta_single.encoder.layer.5') or
-            name.startswith('roberta_single.encoder.layer.6') or
-            name.startswith('roberta_single.encoder.layer.7') 
+            name.startswith('roberta_single.encoder.layer.5') 
+            # name.startswith('roberta_single.encoder.layer.6') or
+            # name.startswith('roberta_single.encoder.layer.7')
             # name.startswith('roberta_single.encoder.layer.8') or
             # name.startswith('roberta_single.encoder.layer.9') or
             # name.startswith('roberta_single.encoder.layer.10') or

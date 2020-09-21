@@ -614,9 +614,7 @@ def main():
     tokenizer = RobertaTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
     roberta_model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_pretrained/_acc_0.9040886899918633.pt'), strict=False)
 
-    # updated_roberta_params = []
     for name, param in roberta_model.named_parameters():
-        # name, param = name_param_pair
         if (
             name.startswith('roberta_single.embeddings') or
             name.startswith('roberta_single.encoder.layer.0') or
@@ -644,8 +642,6 @@ def main():
             # name.startswith('roberta_single.encoder.layer.22')
             ):
             param.requires_grad = False
-        # else:
-        #     updated_roberta_params.append(name_param_pair)
 
     roberta_model.to(device)
     # roberta_model.eval()
@@ -798,6 +794,9 @@ def main():
 
             optimizer.zero_grad()
             loss.backward()
+            # print(roberta_model.roberta_single.encoder.layer.11.weight.grad)
+            print(roberta_model.roberta_single.encoder.layer.11.attention.output.dense.weight.grad)
+            print(roberta_model.roberta_single.encoder.layer.9.attention.output.dense.weight.grad)
             optimizer.step()
 
             tr_loss += loss.item()

@@ -642,11 +642,12 @@ def main():
             name.startswith('roberta_single.encoder.layer.15') or
             name.startswith('roberta_single.encoder.layer.16') or
             name.startswith('roberta_single.encoder.layer.17') or
-            name.startswith('roberta_single.encoder.layer.18') or
-            name.startswith('roberta_single.encoder.layer.19') or
-            name.startswith('roberta_single.encoder.layer.20') or
-            name.startswith('roberta_single.encoder.layer.21') or
-            name.startswith('roberta_single.encoder.layer.22')):
+            # name.startswith('roberta_single.encoder.layer.18') or
+            # name.startswith('roberta_single.encoder.layer.19') or
+            # name.startswith('roberta_single.encoder.layer.20') or
+            # name.startswith('roberta_single.encoder.layer.21') or
+            # name.startswith('roberta_single.encoder.layer.22')
+            ):
             param.requires_grad = False
         else:
             updated_roberta_params.append(name_param_pair)
@@ -655,7 +656,7 @@ def main():
     protonet = PrototypeNet(bert_hidden_dim)
     protonet.to(device)
 
-    param_optimizer = list(protonet.named_parameters()) + updated_roberta_params
+    param_optimizer = list(protonet.named_parameters()) + list(roberta_model.named_parameters())
     no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
     optimizer_grouped_parameters = [
         {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},

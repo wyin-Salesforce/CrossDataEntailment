@@ -614,38 +614,38 @@ def main():
     tokenizer = RobertaTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
     roberta_model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_pretrained/_acc_0.9040886899918633.pt'), strict=False)
 
-    # updated_roberta_params = []
-    # for name_param_pair in roberta_model.named_parameters():
-    #     name, param = name_param_pair
-    #     if (name.startswith('roberta_single') or
-    #         name.startswith('roberta_single.embeddings') or
-    #         name.startswith('roberta_single.encoder.layer.0') or
-    #         name.startswith('roberta_single.encoder.layer.1') or
-    #         name.startswith('roberta_single.encoder.layer.2') or
-    #         name.startswith('roberta_single.encoder.layer.3') or
-    #         name.startswith('roberta_single.encoder.layer.4') or
-    #         name.startswith('roberta_single.encoder.layer.5') or
-    #         name.startswith('roberta_single.encoder.layer.6') or
-    #         name.startswith('roberta_single.encoder.layer.7') or
-    #         name.startswith('roberta_single.encoder.layer.8') or
-    #         name.startswith('roberta_single.encoder.layer.9') or
-    #         name.startswith('roberta_single.encoder.layer.10') or
-    #         name.startswith('roberta_single.encoder.layer.11') or
-    #         name.startswith('roberta_single.encoder.layer.12') or
-    #         name.startswith('roberta_single.encoder.layer.13') or
-    #         name.startswith('roberta_single.encoder.layer.14') or
-    #         name.startswith('roberta_single.encoder.layer.15') or
-    #         name.startswith('roberta_single.encoder.layer.16') or
-    #         name.startswith('roberta_single.encoder.layer.17')
-    #         # name.startswith('roberta_single.encoder.layer.18') or
-    #         # name.startswith('roberta_single.encoder.layer.19') or
-    #         # name.startswith('roberta_single.encoder.layer.20') or
-    #         # name.startswith('roberta_single.encoder.layer.21') or
-    #         # name.startswith('roberta_single.encoder.layer.22')
-    #         ):
-    #         param.requires_grad = False
-    #     else:
-    #         updated_roberta_params.append(name_param_pair)
+    updated_roberta_params = []
+    for name_param_pair in roberta_model.named_parameters():
+        name, param = name_param_pair
+        if (
+            name.startswith('roberta_single.embeddings') or
+            name.startswith('roberta_single.encoder.layer.0') or
+            name.startswith('roberta_single.encoder.layer.1') or
+            name.startswith('roberta_single.encoder.layer.2') or
+            name.startswith('roberta_single.encoder.layer.3') or
+            name.startswith('roberta_single.encoder.layer.4') or
+            name.startswith('roberta_single.encoder.layer.5') or
+            name.startswith('roberta_single.encoder.layer.6') or
+            name.startswith('roberta_single.encoder.layer.7') or
+            name.startswith('roberta_single.encoder.layer.8') or
+            name.startswith('roberta_single.encoder.layer.9') or
+            name.startswith('roberta_single.encoder.layer.10') or
+            name.startswith('roberta_single.encoder.layer.11') or
+            name.startswith('roberta_single.encoder.layer.12') or
+            name.startswith('roberta_single.encoder.layer.13') or
+            name.startswith('roberta_single.encoder.layer.14') or
+            name.startswith('roberta_single.encoder.layer.15') or
+            name.startswith('roberta_single.encoder.layer.16') or
+            name.startswith('roberta_single.encoder.layer.17')
+            # name.startswith('roberta_single.encoder.layer.18') or
+            # name.startswith('roberta_single.encoder.layer.19') or
+            # name.startswith('roberta_single.encoder.layer.20') or
+            # name.startswith('roberta_single.encoder.layer.21') or
+            # name.startswith('roberta_single.encoder.layer.22')
+            ):
+            param.requires_grad = False
+        else:
+            updated_roberta_params.append(name_param_pair)
 
     roberta_model.to(device)
     # roberta_model.eval()

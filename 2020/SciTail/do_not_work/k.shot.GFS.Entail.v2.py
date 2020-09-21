@@ -618,7 +618,7 @@ def main():
     each bert layer 16 variables
     '''
     param_size = 0
-    update_top_layer_size = 1
+    update_top_layer_size = 12
     for name, param in roberta_model.named_parameters():
         if param_size < (5+16*(24-update_top_layer_size)):
             param.requires_grad = False
@@ -769,9 +769,6 @@ def main():
 
             optimizer.zero_grad()
             loss.backward()
-            # print(roberta_model.roberta_single.encoder.layer.11.weight.grad)
-            print('layer 11:', roberta_model.roberta_single.encoder.layer[11].attention.output.dense.weight.grad)
-            print('layer 9:', roberta_model.roberta_single.encoder.layer[9].attention.output.dense.weight.grad)
             optimizer.step()
 
             tr_loss += loss.item()

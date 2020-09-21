@@ -614,34 +614,27 @@ def main():
     tokenizer = RobertaTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
     roberta_model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_pretrained/_acc_0.9040886899918633.pt'), strict=False)
 
+
+    freeze_layers = set(['0','1','2','3','4','5','6','7','8','9','10',
+                        '11','12','13','14','15','16','17','18'])
+    weight_names = set(['attention', 'intermediate', 'output'])
+    name_starts = []
+    for layer_name in freeze_layers:
+        for weight_name in weight_names:
+            name_starts.append('roberta_single.encoder.layer.'+layer_name+weight_name)
+    name_starts.append('roberta_single.embeddings')
+    '''
+    embedding layer 5 variables
+    each bert layer 16 variables
+    '''
+    param_size = 0
+    update_top_layer_size = 1
     for name, param in roberta_model.named_parameters():
-        if (
-            name.startswith('roberta_single.embeddings') or
-            name.startswith('roberta_single.encoder.layer.0') or
-            name.startswith('roberta_single.encoder.layer.1') or
-            name.startswith('roberta_single.encoder.layer.2') or
-            name.startswith('roberta_single.encoder.layer.3') or
-            name.startswith('roberta_single.encoder.layer.4') or
-            name.startswith('roberta_single.encoder.layer.5') or
-            name.startswith('roberta_single.encoder.layer.6') or
-            name.startswith('roberta_single.encoder.layer.7') or
-            name.startswith('roberta_single.encoder.layer.8') or
-            name.startswith('roberta_single.encoder.layer.9') or
-            name.startswith('roberta_single.encoder.layer.10')
-            # name.startswith('roberta_single.encoder.layer.11') or
-            # name.startswith('roberta_single.encoder.layer.12') or
-            # name.startswith('roberta_single.encoder.layer.13') or
-            # name.startswith('roberta_single.encoder.layer.14') or
-            # name.startswith('roberta_single.encoder.layer.15') or
-            # name.startswith('roberta_single.encoder.layer.16') or
-            # name.startswith('roberta_single.encoder.layer.17')
-            # name.startswith('roberta_single.encoder.layer.18') or
-            # name.startswith('roberta_single.encoder.layer.19') or
-            # name.startswith('roberta_single.encoder.layer.20') or
-            # name.startswith('roberta_single.encoder.layer.21') or
-            # name.startswith('roberta_single.encoder.layer.22')
-            ):
+        if param_size < (5+16*(24-update_top_layer_size)):
             param.requires_grad = False
+        param_size+=1
+
+
 
     roberta_model.to(device)
     # roberta_model.eval()

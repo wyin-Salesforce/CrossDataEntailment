@@ -643,16 +643,16 @@ def main():
             name.startswith('roberta_model.roberta_single.encoder.layer.10') or
             name.startswith('roberta_model.roberta_single.encoder.layer.11') or
             name.startswith('roberta_model.roberta_single.encoder.layer.12') or
-            name.startswith('roberta_model.roberta_single.encoder.layer.13') or
-            name.startswith('roberta_model.roberta_single.encoder.layer.14') or
-            name.startswith('roberta_model.roberta_single.encoder.layer.15') or
-            name.startswith('roberta_model.roberta_single.encoder.layer.16') or
-            name.startswith('roberta_model.roberta_single.encoder.layer.17') or
-            name.startswith('roberta_model.roberta_single.encoder.layer.18') or
-            name.startswith('roberta_model.roberta_single.encoder.layer.19') or
-            name.startswith('roberta_model.roberta_single.encoder.layer.20') or
-            name.startswith('roberta_model.roberta_single.encoder.layer.21') or
-            name.startswith('roberta_model.roberta_single.encoder.layer.22')
+            name.startswith('roberta_model.roberta_single.encoder.layer.13') 
+            # name.startswith('roberta_model.roberta_single.encoder.layer.14') or
+            # name.startswith('roberta_model.roberta_single.encoder.layer.15') or
+            # name.startswith('roberta_model.roberta_single.encoder.layer.16') or
+            # name.startswith('roberta_model.roberta_single.encoder.layer.17') or
+            # name.startswith('roberta_model.roberta_single.encoder.layer.18') or
+            # name.startswith('roberta_model.roberta_single.encoder.layer.19') or
+            # name.startswith('roberta_model.roberta_single.encoder.layer.20') or
+            # name.startswith('roberta_model.roberta_single.encoder.layer.21') or
+            # name.startswith('roberta_model.roberta_single.encoder.layer.22')
             ):
             param.requires_grad = False
         # else:

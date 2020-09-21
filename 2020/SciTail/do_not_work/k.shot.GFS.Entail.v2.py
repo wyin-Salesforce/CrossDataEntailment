@@ -618,7 +618,7 @@ def main():
     for name, param in roberta_model.named_parameters():
         # name, param = name_param_pair
         if (
-            name.startswith('roberta_single.embeddings') or
+            name.startswith('roberta_single.embeddings') 
             # name.startswith('roberta_single.encoder.layer.0') or
             # name.startswith('roberta_single.encoder.layer.1') or
             # name.startswith('roberta_single.encoder.layer.2') or

@@ -613,16 +613,6 @@ def main():
     roberta_model = RobertaForSequenceClassification(3)
     tokenizer = RobertaTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
     roberta_model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_pretrained/_acc_0.9040886899918633.pt'), strict=False)
-
-
-    freeze_layers = set(['0','1','2','3','4','5','6','7','8','9','10',
-                        '11','12','13','14','15','16','17','18'])
-    weight_names = set(['attention', 'intermediate', 'output'])
-    name_starts = []
-    for layer_name in freeze_layers:
-        for weight_name in weight_names:
-            name_starts.append('roberta_single.encoder.layer.'+layer_name+weight_name)
-    name_starts.append('roberta_single.embeddings')
     '''
     embedding layer 5 variables
     each bert layer 16 variables
@@ -633,32 +623,13 @@ def main():
         if param_size < (5+16*(24-update_top_layer_size)):
             param.requires_grad = False
         param_size+=1
-
-
-
     roberta_model.to(device)
-    # roberta_model.eval()
-    # print(list(roberta_model.named_parameters()))
-    # exit(0)
-
-
 
 
 
     protonet = PrototypeNet(bert_hidden_dim)
     protonet.to(device)
 
-    for name, param in protonet.named_parameters():
-        print(name)
-        print(param)
-        print(param.requires_grad)
-
-    for name, param in roberta_model.named_parameters():
-        print(name)
-        # print(param)
-        print(param.requires_grad)
-
-    exit(0)
     param_optimizer = list(protonet.named_parameters()) + list(roberta_model.named_parameters())
     no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
     optimizer_grouped_parameters = [

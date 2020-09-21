@@ -259,16 +259,6 @@ class RobertaClassificationHead(nn.Module):
         return last_hidden, x
 
 
-class Model(nn.Module):
-    def __init__(self, hidden_size):
-        super(Model, self).__init__()
-        self.roberta_model = RobertaForSequenceClassification(3)
-        # tokenizer = RobertaTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
-        self.roberta_model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_pretrained/_acc_0.9040886899918633.pt'), strict=False)
-
-        self.protonet = PrototypeNet(hidden_size)
-        # protonet.to(device)
-
 class PrototypeNet(nn.Module):
     def __init__(self, hidden_size):
         super(PrototypeNet, self).__init__()
@@ -618,47 +608,46 @@ def main():
     target_num_labels = len(target_label_list)
     print('training size:', len(source_examples), 'dev size:', len(target_dev_examples), 'test size:', len(target_test_examples))
 
-    model = Model(bert_hidden_dim)
-    model.to(device)
 
-    # roberta_model = RobertaForSequenceClassification(3)
+
+    roberta_model = RobertaForSequenceClassification(3)
     tokenizer = RobertaTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
-    # roberta_model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_pretrained/_acc_0.9040886899918633.pt'), strict=False)
+    roberta_model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_pretrained/_acc_0.9040886899918633.pt'), strict=False)
 
     # updated_roberta_params = []
-    for name, param in model.named_parameters():
+    for name, param in roberta_model.named_parameters():
         # name, param = name_param_pair
         if (
-            name.startswith('roberta_model.roberta_single.embeddings') or
-            name.startswith('roberta_model.roberta_single.encoder.layer.0') or
-            name.startswith('roberta_model.roberta_single.encoder.layer.1') or
-            name.startswith('roberta_model.roberta_single.encoder.layer.2') or
-            name.startswith('roberta_model.roberta_single.encoder.layer.3') or
-            name.startswith('roberta_model.roberta_single.encoder.layer.4') or
-            name.startswith('roberta_model.roberta_single.encoder.layer.5') or
-            name.startswith('roberta_model.roberta_single.encoder.layer.6') or
-            name.startswith('roberta_model.roberta_single.encoder.layer.7') or
-            name.startswith('roberta_model.roberta_single.encoder.layer.8') or
-            name.startswith('roberta_model.roberta_single.encoder.layer.9') or
-            name.startswith('roberta_model.roberta_single.encoder.layer.10') or
-            name.startswith('roberta_model.roberta_single.encoder.layer.11') or
-            name.startswith('roberta_model.roberta_single.encoder.layer.12') or
-            name.startswith('roberta_model.roberta_single.encoder.layer.13') 
-            # name.startswith('roberta_model.roberta_single.encoder.layer.14') or
-            # name.startswith('roberta_model.roberta_single.encoder.layer.15') or
-            # name.startswith('roberta_model.roberta_single.encoder.layer.16') or
-            # name.startswith('roberta_model.roberta_single.encoder.layer.17') or
-            # name.startswith('roberta_model.roberta_single.encoder.layer.18') or
-            # name.startswith('roberta_model.roberta_single.encoder.layer.19') or
-            # name.startswith('roberta_model.roberta_single.encoder.layer.20') or
-            # name.startswith('roberta_model.roberta_single.encoder.layer.21') or
-            # name.startswith('roberta_model.roberta_single.encoder.layer.22')
+            name.startswith('roberta_single.embeddings') or
+            name.startswith('roberta_single.encoder.layer.0') or
+            name.startswith('roberta_single.encoder.layer.1') or
+            name.startswith('roberta_single.encoder.layer.2') or
+            name.startswith('roberta_single.encoder.layer.3') or
+            name.startswith('roberta_single.encoder.layer.4') or
+            name.startswith('roberta_single.encoder.layer.5') or
+            name.startswith('roberta_single.encoder.layer.6') or
+            name.startswith('roberta_single.encoder.layer.7') or
+            name.startswith('roberta_single.encoder.layer.8') or
+            name.startswith('roberta_single.encoder.layer.9') or
+            name.startswith('roberta_single.encoder.layer.10')
+            # name.startswith('roberta_single.encoder.layer.11') or
+            # name.startswith('roberta_single.encoder.layer.12') or
+            # name.startswith('roberta_single.encoder.layer.13') or
+            # name.startswith('roberta_single.encoder.layer.14') or
+            # name.startswith('roberta_single.encoder.layer.15') or
+            # name.startswith('roberta_single.encoder.layer.16') or
+            # name.startswith('roberta_single.encoder.layer.17')
+            # name.startswith('roberta_single.encoder.layer.18') or
+            # name.startswith('roberta_single.encoder.layer.19') or
+            # name.startswith('roberta_single.encoder.layer.20') or
+            # name.startswith('roberta_single.encoder.layer.21') or
+            # name.startswith('roberta_single.encoder.layer.22')
             ):
             param.requires_grad = False
         # else:
         #     updated_roberta_params.append(name_param_pair)
 
-    # roberta_model.to(device)
+    roberta_model.to(device)
     # roberta_model.eval()
     # print(list(roberta_model.named_parameters()))
     # exit(0)
@@ -667,9 +656,10 @@ def main():
 
 
 
+    protonet = PrototypeNet(bert_hidden_dim)
+    protonet.to(device)
 
-
-    param_optimizer = list(model.named_parameters())# + list(roberta_model.named_parameters())
+    param_optimizer = list(protonet.named_parameters()) + list(roberta_model.named_parameters())
     no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
     optimizer_grouped_parameters = [
         {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
@@ -709,13 +699,13 @@ def main():
 
         nb_tr_examples, nb_tr_steps = 0, 0
         for step, batch in enumerate(tqdm(source_remain_ex_dataloader, desc="Iteration")):
-            model.train()
+            protonet.train()
             batch = tuple(t.to(device) for t in batch)
             input_ids, input_mask, segment_ids, source_label_ids_batch = batch
 
-            # roberta_model.train()
+            roberta_model.train()
             # with torch.no_grad():
-            source_last_hidden_batch, _ = model.roberta_model(input_ids, input_mask)
+            source_last_hidden_batch, _ = roberta_model(input_ids, input_mask)
 
             '''
             retrieve rep for support examples in MNLI
@@ -724,27 +714,27 @@ def main():
             for entail_batch in source_kshot_entail_dataloader:
                 entail_batch = tuple(t.to(device) for t in entail_batch)
                 input_ids, input_mask, segment_ids, label_ids = entail_batch
-                # roberta_model.train()
+                roberta_model.train()
                 # with torch.no_grad():
-                last_hidden_entail, _ = model.roberta_model(input_ids, input_mask)
+                last_hidden_entail, _ = roberta_model(input_ids, input_mask)
                 kshot_entail_reps.append(last_hidden_entail)
             kshot_entail_rep = torch.mean(torch.cat(kshot_entail_reps, dim=0), dim=0, keepdim=True)
             kshot_neural_reps = []
             for neural_batch in source_kshot_neural_dataloader:
                 neural_batch = tuple(t.to(device) for t in neural_batch)
                 input_ids, input_mask, segment_ids, label_ids = neural_batch
-                # roberta_model.train()
+                roberta_model.train()
                 # with torch.no_grad():
-                last_hidden_neural, _ = model.roberta_model(input_ids, input_mask)
+                last_hidden_neural, _ = roberta_model(input_ids, input_mask)
                 kshot_neural_reps.append(last_hidden_neural)
             kshot_neural_rep = torch.mean(torch.cat(kshot_neural_reps, dim=0), dim=0, keepdim=True)
             kshot_contra_reps = []
             for contra_batch in source_kshot_contra_dataloader:
                 contra_batch = tuple(t.to(device) for t in contra_batch)
                 input_ids, input_mask, segment_ids, label_ids = contra_batch
-                # roberta_model.train()
+                roberta_model.train()
                 # with torch.no_grad():
-                last_hidden_contra, _ = model.roberta_model(input_ids, input_mask)
+                last_hidden_contra, _ = roberta_model(input_ids, input_mask)
                 kshot_contra_reps.append(last_hidden_contra)
             kshot_contra_rep = torch.mean(torch.cat(kshot_contra_reps, dim=0), dim=0, keepdim=True)
 
@@ -755,9 +745,9 @@ def main():
             for entail_batch in target_kshot_entail_dataloader:
                 entail_batch = tuple(t.to(device) for t in entail_batch)
                 input_ids, input_mask, segment_ids, label_ids = entail_batch
-                # roberta_model.train()
+                roberta_model.train()
                 # with torch.no_grad():
-                last_hidden_entail, _ = model.roberta_model(input_ids, input_mask)
+                last_hidden_entail, _ = roberta_model(input_ids, input_mask)
                 kshot_entail_reps.append(last_hidden_entail)
             all_kshot_entail_reps = torch.cat(kshot_entail_reps, dim=0)
             kshot_entail_rep = torch.mean(all_kshot_entail_reps, dim=0, keepdim=True)
@@ -765,9 +755,9 @@ def main():
             for nonentail_batch in target_kshot_nonentail_dataloader:
                 nonentail_batch = tuple(t.to(device) for t in nonentail_batch)
                 input_ids, input_mask, segment_ids, label_ids = nonentail_batch
-                # roberta_model.train()
+                roberta_model.train()
                 # with torch.no_grad():
-                last_hidden_nonentail, _ = model.roberta_model(input_ids, input_mask)
+                last_hidden_nonentail, _ = roberta_model(input_ids, input_mask)
                 kshot_nonentail_reps.append(last_hidden_nonentail)
             all_kshot_neural_reps = torch.cat(kshot_nonentail_reps, dim=0)
             kshot_nonentail_rep = torch.mean(all_kshot_neural_reps, dim=0, keepdim=True)
@@ -787,7 +777,7 @@ def main():
             target_last_hidden_batch = torch.cat([selected_target_entail_rep, selected_target_neural_rep])
 
             last_hidden_batch = torch.cat([source_last_hidden_batch, target_last_hidden_batch], dim=0) #(train_batch_size+10*2)
-            batch_logits = model.protonet(class_prototype_reps, last_hidden_batch)
+            batch_logits = protonet(class_prototype_reps, last_hidden_batch)
 
             '''source side loss'''
             # loss_fct = CrossEntropyLoss(reduction='none')
@@ -835,27 +825,27 @@ def main():
                 for entail_batch in source_kshot_entail_dataloader:
                     entail_batch = tuple(t.to(device) for t in entail_batch)
                     input_ids, input_mask, segment_ids, label_ids = entail_batch
-                    model.eval()
+                    roberta_model.eval()
                     with torch.no_grad():
-                        last_hidden_entail, _ = model.roberta_model(input_ids, input_mask)
+                        last_hidden_entail, _ = roberta_model(input_ids, input_mask)
                     kshot_entail_reps.append(last_hidden_entail)
                 kshot_entail_rep = torch.mean(torch.cat(kshot_entail_reps, dim=0), dim=0, keepdim=True)
                 kshot_neural_reps = []
                 for neural_batch in source_kshot_neural_dataloader:
                     neural_batch = tuple(t.to(device) for t in neural_batch)
                     input_ids, input_mask, segment_ids, label_ids = neural_batch
-                    model.eval()
+                    roberta_model.eval()
                     with torch.no_grad():
-                        last_hidden_neural, _ = model.roberta_model(input_ids, input_mask)
+                        last_hidden_neural, _ = roberta_model(input_ids, input_mask)
                     kshot_neural_reps.append(last_hidden_neural)
                 kshot_neural_rep = torch.mean(torch.cat(kshot_neural_reps, dim=0), dim=0, keepdim=True)
                 kshot_contra_reps = []
                 for contra_batch in source_kshot_contra_dataloader:
                     contra_batch = tuple(t.to(device) for t in contra_batch)
                     input_ids, input_mask, segment_ids, label_ids = contra_batch
-                    model.eval()
+                    roberta_model.eval()
                     with torch.no_grad():
-                        last_hidden_contra, _ = model.roberta_model(input_ids, input_mask)
+                        last_hidden_contra, _ = roberta_model(input_ids, input_mask)
                     kshot_contra_reps.append(last_hidden_contra)
                 kshot_contra_rep = torch.mean(torch.cat(kshot_contra_reps, dim=0), dim=0, keepdim=True)
 
@@ -866,9 +856,9 @@ def main():
                 for entail_batch in target_kshot_entail_dataloader:
                     entail_batch = tuple(t.to(device) for t in entail_batch)
                     input_ids, input_mask, segment_ids, label_ids = entail_batch
-                    model.eval()
+                    roberta_model.eval()
                     with torch.no_grad():
-                        last_hidden_entail, _ = model.roberta_model(input_ids, input_mask)
+                        last_hidden_entail, _ = roberta_model(input_ids, input_mask)
                     kshot_entail_reps.append(last_hidden_entail)
                 all_kshot_entail_reps = torch.cat(kshot_entail_reps, dim=0)
                 kshot_entail_rep = torch.mean(all_kshot_entail_reps, dim=0, keepdim=True)
@@ -876,9 +866,9 @@ def main():
                 for nonentail_batch in target_kshot_nonentail_dataloader:
                     nonentail_batch = tuple(t.to(device) for t in nonentail_batch)
                     input_ids, input_mask, segment_ids, label_ids = nonentail_batch
-                    model.eval()
+                    roberta_model.eval()
                     with torch.no_grad():
-                        last_hidden_nonentail, _ = model.roberta_model(input_ids, input_mask)
+                        last_hidden_nonentail, _ = roberta_model(input_ids, input_mask)
                     kshot_nonentail_reps.append(last_hidden_nonentail)
                 all_kshot_neural_reps = torch.cat(kshot_nonentail_reps, dim=0)
                 kshot_nonentail_rep = torch.mean(all_kshot_neural_reps, dim=0, keepdim=True)
@@ -887,7 +877,7 @@ def main():
                 class_prototype_reps = torch.cat([source_class_prototype_reps, target_class_prototype_reps], dim=0) #(6, hidden)
 
 
-                model.eval()
+                protonet.eval()
 
                 for idd, dev_or_test_dataloader in enumerate([target_dev_dataloader, target_test_dataloader]):
 
@@ -903,12 +893,12 @@ def main():
                         segment_ids = segment_ids.to(device)
                         label_ids = label_ids.to(device)
                         gold_label_ids+=list(label_ids.detach().cpu().numpy())
-                        model.eval()
+                        roberta_model.eval()
                         with torch.no_grad():
-                            last_hidden_target_batch, logits_from_source = model.roberta_model(input_ids, input_mask)
+                            last_hidden_target_batch, logits_from_source = roberta_model(input_ids, input_mask)
 
                         with torch.no_grad():
-                            logits = model.protonet(class_prototype_reps, last_hidden_target_batch)
+                            logits = protonet(class_prototype_reps, last_hidden_target_batch)
 
                         '''combine with logits from source domain'''
                         # print('logits:', logits)

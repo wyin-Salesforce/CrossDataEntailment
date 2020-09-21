@@ -655,6 +655,17 @@ def main():
     protonet = PrototypeNet(bert_hidden_dim)
     protonet.to(device)
 
+    for name, param in protonet.named_parameters():
+        print(name)
+        print(param)
+        print(param.requires_grad)
+
+    for name, param in roberta_model.named_parameters():
+        print(name)
+        # print(param)
+        print(param.requires_grad)
+
+    exit(0)
     param_optimizer = list(protonet.named_parameters()) + list(roberta_model.named_parameters())
     no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
     optimizer_grouped_parameters = [

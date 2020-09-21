@@ -795,8 +795,8 @@ def main():
             optimizer.zero_grad()
             loss.backward()
             # print(roberta_model.roberta_single.encoder.layer.11.weight.grad)
-            print(roberta_model.roberta_single.encoder.layer.11.attention.output.dense.weight.grad)
-            print(roberta_model.roberta_single.encoder.layer.9.attention.output.dense.weight.grad)
+            print(roberta_model.roberta_single.encoder.layer[11].attention.output.dense.weight.grad)
+            print(roberta_model.roberta_single.encoder.layer[9].attention.output.dense.weight.grad)
             optimizer.step()
 
             tr_loss += loss.item()

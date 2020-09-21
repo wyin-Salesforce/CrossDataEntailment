@@ -592,18 +592,16 @@ def main():
     args.train_batch_size = args.train_batch_size // args.gradient_accumulation_steps
 
 
-    system_seed=args.seed#42
+    scitail_path = '/export/home/Dataset/SciTailV1/tsv_format/'
+    target_kshot_entail_examples, target_kshot_nonentail_examples = get_SciTail_as_train_k_shot(scitail_path+'scitail_1.0_train.tsv', args.kshot, args.seed) #train_pu_half_v1.txt
+    target_dev_examples, target_test_examples = get_SciTail_dev_and_test(scitail_path+'scitail_1.0_dev.tsv', scitail_path+'scitail_1.0_test.tsv')
+
+    system_seed=42
     random.seed(system_seed)
     np.random.seed(system_seed)
     torch.manual_seed(system_seed)
     if n_gpu > 0:
         torch.cuda.manual_seed_all(system_seed)
-
-    scitail_path = '/export/home/Dataset/SciTailV1/tsv_format/'
-    target_kshot_entail_examples, target_kshot_nonentail_examples = get_SciTail_as_train_k_shot(scitail_path+'scitail_1.0_train.tsv', args.kshot, args.seed) #train_pu_half_v1.txt
-    target_dev_examples, target_test_examples = get_SciTail_dev_and_test(scitail_path+'scitail_1.0_dev.tsv', scitail_path+'scitail_1.0_test.tsv')
-
-
 
     source_kshot_size = 10# if args.kshot>10 else 10 if max(10, args.kshot)
     source_kshot_entail, source_kshot_neural, source_kshot_contra, source_remaining_examples = get_MNLI_train('/export/home/Dataset/glue_data/MNLI/train.tsv', source_kshot_size)

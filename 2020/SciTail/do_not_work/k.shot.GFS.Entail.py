@@ -766,7 +766,7 @@ def main():
 
             global_step += 1
             iter_co+=1
-
+            '''print loss'''
             # if iter_co %5==0:
             #     print('iter_co:', iter_co, ' mean loss', tr_loss/iter_co)
             #     print('source_loss_list:', source_loss/iter_co, ' target_loss_list: ', target_loss/iter_co)

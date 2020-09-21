@@ -618,7 +618,7 @@ def main():
     each bert layer 16 variables
     '''
     param_size = 0
-    update_top_layer_size = 12
+    update_top_layer_size = 2
     for name, param in roberta_model.named_parameters():
         if param_size < (5+16*(24-update_top_layer_size)):
             param.requires_grad = False

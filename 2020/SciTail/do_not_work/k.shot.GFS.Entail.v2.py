@@ -935,6 +935,4 @@ CUDA_VISIBLE_DEVICES=4 python -u k.shot.GFS.Entail.py --do_lower_case --num_trai
 CUDA_VISIBLE_DEVICES=3 python -u k.shot.GFS.Entail.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-4 --max_seq_length 128 --seed 128 --kshot 10 --target_train_batch_size 6
 
 
-
-
 '''

@@ -928,11 +928,11 @@ if __name__ == "__main__":
     main()
 
 '''
-CUDA_VISIBLE_DEVICES=7 python -u k.shot.GFS.Entail.v2.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-4 --max_seq_length 128 --seed 42 --kshot 10 --target_train_batch_size 6 --update_BERT_top_layers 6
-CUDA_VISIBLE_DEVICES=6 python -u k.shot.GFS.Entail.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-4 --max_seq_length 128 --seed 16 --kshot 10 --target_train_batch_size 6
-CUDA_VISIBLE_DEVICES=5 python -u k.shot.GFS.Entail.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-4 --max_seq_length 128 --seed 32 --kshot 10 --target_train_batch_size 6
-CUDA_VISIBLE_DEVICES=4 python -u k.shot.GFS.Entail.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-4 --max_seq_length 128 --seed 64 --kshot 10 --target_train_batch_size 6
-CUDA_VISIBLE_DEVICES=3 python -u k.shot.GFS.Entail.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-4 --max_seq_length 128 --seed 128 --kshot 10 --target_train_batch_size 6
+CUDA_VISIBLE_DEVICES=7 python -u k.shot.GFS.Entail.v2.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 2e-4 --max_seq_length 128 --seed 42 --kshot 10 --target_train_batch_size 6 --update_BERT_top_layers 6
+CUDA_VISIBLE_DEVICES=6 python -u k.shot.GFS.Entail.v2.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 2e-4 --max_seq_length 128 --seed 16 --kshot 10 --target_train_batch_size 6 --update_BERT_top_layers 6
+CUDA_VISIBLE_DEVICES=5 python -u k.shot.GFS.Entail.v2.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 2e-4 --max_seq_length 128 --seed 32 --kshot 10 --target_train_batch_size 6 --update_BERT_top_layers 6
+CUDA_VISIBLE_DEVICES=4 python -u k.shot.GFS.Entail.v2.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 2e-4 --max_seq_length 128 --seed 64 --kshot 10 --target_train_batch_size 6 --update_BERT_top_layers 6
+CUDA_VISIBLE_DEVICES=3 python -u k.shot.GFS.Entail.v2.py --do_lower_case --num_train_epochs 3 --train_batch_size 32 --eval_batch_size 64 --learning_rate 2e-4 --max_seq_length 128 --seed 128 --kshot 10 --target_train_batch_size 6 --update_BERT_top_layers 6
 
 
 '''

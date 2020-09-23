@@ -633,23 +633,27 @@ def main():
 
 
                         id2scorelist = {}
-                        for idd, type, prob in zip(example_id_list, gold_label_ids, pred_prob_entail):
-                            scorelist = id2scorelist.get(idd)
+                        for example_id, type, prob in zip(example_id_list, gold_label_ids, pred_prob_entail):
+                            scorelist = id2scorelist.get(example_id)
                             if scorelist is None:
                                 scorelist=[0.0, 0.0]
                             if type==0: #A-coref
                                 scorelist[0]=prob
                             else:
                                 scorelist[1]=prob
-                            id2scorelist[idd] = scorelist
+                            id2scorelist[example_id] = scorelist
 
                         eval_output_list = []
-                        for id, two_score in id2scorelist.items():
+                        example_prefix = 'validation-' if idd==0 else 'test-'
+                        for example_id, two_score in id2scorelist.items():
                             if two_score[0] > two_score[1]:
-                                eval_output_list.append(['test-'+str(id), True, False])
+                                eval_output_list.append([example_prefix+str(example_id), True, False])
                             else:
-                                eval_output_list.append(['test-'+str(id), False, True])
-                        test_acc = run_scorer('/export/home/Dataset/gap_coreference/gap-test.tsv', eval_output_list)
+                                eval_output_list.append([example_prefix+str(example_id), False, True])
+                        if idd == 0:
+                            test_acc = run_scorer('/export/home/Dataset/gap_coreference/gap-validation.tsv', eval_output_list)
+                        else:
+                            test_acc = run_scorer('/export/home/Dataset/gap_coreference/gap-test.tsv', eval_output_list)
 
                         if idd == 0: # this is dev
                             if test_acc > max_dev_acc:

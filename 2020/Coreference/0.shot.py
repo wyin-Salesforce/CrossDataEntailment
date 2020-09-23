@@ -43,7 +43,7 @@ from transformers.optimization import AdamW
 from transformers.modeling_roberta import RobertaModel#RobertaForSequenceClassification
 
 from preprocess import load_GAP_coreference_data
-from gap_scorer import run_scorer
+from gap_scorer_modified import run_scorer
 
 
 logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
@@ -542,52 +542,41 @@ def main():
     assert len(example_id_list) == len(pred_label_ids_3way)
     # writefile = codecs.open()
 
-    result_file = 'test.output.tsv'
-    with open(result_file, 'wt') as out_file:
-        tsv_writer = csv.writer(out_file, delimiter='\t')
-        tsv_writer.writerow(['ID', 'A-coref', 'B-coref'])
-        id2scorelist = {}
+
+    for threshold in np.arange(0.99, 0.0, -0.01):
+
+
         id2labellist = {}
-        for idd, type, prob, entail_or_not in zip(example_id_list, gold_label_ids, pred_prob_entail, pred_label_ids_3way):
-            labellist = id2labellist.get(idd)
-            scorelist = id2scorelist.get(idd)
-            if labellist is None:
-                labellist=[0.0, 0.0]
+        id2scorelist = []
+        for ex_id, type, prob, entail_or_not in zip(example_id_list, gold_label_ids, pred_prob_entail, pred_label_ids_3way):
+            labellist = id2labellist.get(ex_id)
+            scorelist = id2scorelist.get(ex_id)
             if scorelist is None:
                 scorelist = [0.0, 0.0]
-            if type == 0: #A-coref
-                if entail_or_not == 0: #entail
-                    labellist[0]='TRUE'
-                else:
-                    labellist[0]='FALSE'
-                scorelist[0] = prob
-                print('prob:', prob, ' entail_or_not:', entail_or_not)
+            scorelist[type] = prob
+            if labellist is None:
+                labellist = ['', '']
+            if prob > threshold:
+                labellist[type] = True
             else:
-                if entail_or_not == 0: #entail
-                    labellist[1]='TRUE'
-                else:
-                    labellist[1]='FALSE'
-                scorelist[1] = prob
-                print('prob:', prob, ' entail_or_not:', entail_or_not)
-            id2labellist[idd] = labellist
-            id2scorelist[idd] = scorelist
-        '''solve conflict'''
-        new_id2labellist = {}
-        for example_id, labellist in id2labellist.items():
-            if labellist[0] == 'TRUE' and labellist[1] == 'TRUE':
-                scorelist = id2scorelist.get(example_id)
+                labellist[type] = False
+            id2labellist[ex_id] = labellist
+            id2scorelist[ex_id] = scorelist
+        '''remove conflict'''
+        eval_output_list = []
+        for ex_id, labellist in id2labellist.items():
+            if labellist[0] is True and labellist[1] is True:
+                scorelist = id2scorelist.get(ex_id)
                 if scorelist[0] > scorelist[1]:
-                    new_labellist = ['TRUE', 'FALSE']
+                    eval_output_list.append(['test-'+str(ex_id), True, False])
                 else:
-                    new_labellist = ['FALSE', 'TRUE']
+                    eval_output_list.append(['test-'+str(ex_id), False, True])
             else:
-                new_labellist = labellist
-            new_id2labellist[example_id] = new_labellist
+                eval_output_list.append(['test-'+str(ex_id)]+labellist)
 
-        for id, two_labels in new_id2labellist.items():
-            tsv_writer.writerow(['test-'+str(id)]+two_labels)
-    out_file.close()
-    print(run_scorer('/export/home/Dataset/gap_coreference/gap-test.tsv', result_file))
+
+        test_acc = run_scorer('/export/home/Dataset/gap_coreference/gap-test.tsv', eval_output_list)
+        print('threshold:', threshold, 'test_f1:', test_acc)
 
 
 

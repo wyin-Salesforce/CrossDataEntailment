@@ -1,6 +1,6 @@
 import csv
 import random
-def load_GAP_coreference_data(k_shot):
+def load_GAP_coreference_data(filename, k_shot):
     path = '/export/home/Dataset/gap_coreference/'
 
     def generate_hypothesis(sentence, pronoun_str, pronoun_position, entity_str, entity_position):
@@ -22,18 +22,23 @@ def load_GAP_coreference_data(k_shot):
 
 
     all_examples = []
-    with open(path+'gap-development.tsv') as tsvfile:
+    with open(path+filename) as tsvfile:
         reader = csv.DictReader(tsvfile, dialect='excel-tab')
         for row in reader:
             all_examples.append(row)
 
     '''select k examples'''
-    pronoun_set = set()
-    selected_examples = all_examples#random.sample(all_examples, k_shot)
+    if k_shot > 0:
+        selected_examples = random.sample(all_examples, k_shot)
+    else:
+        selected_examples = all_examples
+
+    print('read selected example size:', len(selected_examples))
+    selected_example_list = []
     for example in selected_examples:
+        idd = example['ID']
         premise = example['Text']
         pronoun = example['Pronoun']
-        pronoun_set.add(pronoun)
         pronoun_pos = int(example['Pronoun-offset'])
         entity_A = example['A']
         entity_A_pos = int(example['A-offset'])
@@ -45,12 +50,9 @@ def load_GAP_coreference_data(k_shot):
         entity_B_label = example['B-coref']
         hypy_B = generate_hypothesis(premise, pronoun, pronoun_pos, entity_B, entity_B_pos)
 
+        selected_example_list.append((idd, premise, hypy_A, entity_A_label, hypy_B, entity_B_label))
 
-        print('premise:', premise)
-        print('hypy_A:', hypy_A)
-        print('hypy_B:', hypy_B)
-
-    print('pronoun_set:', pronoun_set)
+    return selected_example_list
 
 if __name__ == "__main__":
     load_GAP_coreference_data(10)

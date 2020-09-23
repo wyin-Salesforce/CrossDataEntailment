@@ -114,7 +114,7 @@ class InputExample(object):
         self.text_a = text_a
         self.text_b = text_b
         self.label = label
-        self.entity_label =
+        self.entity_label = entity_label
 
 
 class InputFeatures(object):

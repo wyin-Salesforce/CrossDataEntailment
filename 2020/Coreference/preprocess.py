@@ -6,7 +6,7 @@ def load_GAP_coreference_data(k_shot):
     def generate_hypothesis(sentence, pronoun_str, pronoun_position, entity_str, entity_position):
         pronoun_len = len(pronoun_str)
         entity_len = len(entity_str)
-        print(sentence, type(pronoun_position), type(pronoun_len), type(pronoun_str))
+        # print(sentence, type(pronoun_position), type(pronoun_len), type(pronoun_str))
         assert sentence[pronoun_position: (pronoun_position+pronoun_len)] == pronoun_str
         assert sentence[entity_position: (entity_position+entity_len)] == entity_str
 
@@ -30,7 +30,7 @@ def load_GAP_coreference_data(k_shot):
     for example in selected_examples:
         premise = example['Text']
         pronoun = example['Pronoun']
-        pronoun_pos = example['Pronoun-offset']
+        pronoun_pos = int(example['Pronoun-offset'])
         entity_A = example['A']
         entity_A_pos = int(example['A-offset'])
         entity_A_label = example['A-coref']

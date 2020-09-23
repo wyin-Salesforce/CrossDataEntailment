@@ -1,6 +1,6 @@
 import csv
 import random
-def load_GAP_coreference_data(10):
+def load_GAP_coreference_data(k_shot):
     path = '/export/home/Dataset/gap_coreference/'
 
     def generate_hypothesis(sentence, pronoun_str, pronoun_position, entity_str, entity_position):
@@ -47,4 +47,4 @@ def load_GAP_coreference_data(10):
 
 
 if __name__ == "__main__":
-    load_GAP_coreference_data()
+    load_GAP_coreference_data(10)

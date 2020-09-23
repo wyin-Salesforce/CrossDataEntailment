@@ -650,6 +650,9 @@ def main():
                                 eval_output_list.append([example_prefix+str(example_id), True, False])
                             else:
                                 eval_output_list.append([example_prefix+str(example_id), False, True])
+
+                        print('eval_output_list:', eval_output_list)
+                        exit(0)
                         if idd == 0:
                             test_acc = run_scorer('/export/home/Dataset/gap_coreference/gap-validation.tsv', eval_output_list)
                         else:

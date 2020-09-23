@@ -573,8 +573,6 @@ def main():
                     eval_output_list.append(['test-'+str(ex_id), False, True])
             else:
                 eval_output_list.append(['test-'+str(ex_id)]+labellist)
-            eval_output_list.append(['test-'+str(ex_id)]+labellist)
-
 
         test_acc = run_scorer('/export/home/Dataset/gap_coreference/gap-test.tsv', eval_output_list)
         print('threshold:', threshold, 'test_f1:', test_acc)

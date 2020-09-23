@@ -565,14 +565,15 @@ def main():
         '''remove conflict'''
         eval_output_list = []
         for ex_id, labellist in id2labellist.items():
-            if labellist[0] is True and labellist[1] is True:
-                scorelist = id2scorelist.get(ex_id)
-                if scorelist[0] > scorelist[1]:
-                    eval_output_list.append(['test-'+str(ex_id), True, False])
-                else:
-                    eval_output_list.append(['test-'+str(ex_id), False, True])
-            else:
-                eval_output_list.append(['test-'+str(ex_id)]+labellist)
+            # if labellist[0] is True and labellist[1] is True:
+            #     scorelist = id2scorelist.get(ex_id)
+            #     if scorelist[0] > scorelist[1]:
+            #         eval_output_list.append(['test-'+str(ex_id), True, False])
+            #     else:
+            #         eval_output_list.append(['test-'+str(ex_id), False, True])
+            # else:
+            #     eval_output_list.append(['test-'+str(ex_id)]+labellist)
+            eval_output_list.append(['test-'+str(ex_id)]+labellist)
 
 
         test_acc = run_scorer('/export/home/Dataset/gap_coreference/gap-test.tsv', eval_output_list)

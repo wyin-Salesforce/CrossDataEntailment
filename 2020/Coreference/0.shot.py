@@ -514,7 +514,8 @@ def main():
     preds = []
     gold_label_ids = []
     example_id_list = []
-    for input_indices, input_ids, input_mask, segment_ids, label_ids in test_dataloader:
+    for _, batch in enumerate(tqdm(test_dataloader, desc="test")):
+        input_indices, input_ids, input_mask, segment_ids, label_ids = batch
         input_ids = input_ids.to(device)
         input_mask = input_mask.to(device)
         segment_ids = segment_ids.to(device)

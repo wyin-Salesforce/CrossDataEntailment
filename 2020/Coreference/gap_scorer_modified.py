@@ -150,7 +150,7 @@ def read_annotations_test(input_list):
     annotations = defaultdict(Annotation)
     for tuple in input_list:
         #tupe: ['ID', 'A-coref', 'B-coref']
-        example_id = 'test-'+str(tuple[0])
+        example_id = str(tuple[0])
         A_coref = tuple[1]
         B_coref = tuple[2]
         annotations[example_id].name_a_coref = A_coref

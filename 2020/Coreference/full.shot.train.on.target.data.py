@@ -588,7 +588,7 @@ def main():
                     '''
                     model.eval()
 
-                    for idd, dev_or_test_dataloader in enumerate([dev_dataloader, test_dataloader]):
+                    for idd, dev_or_test_dataloader in enumerate([dev_dataloader]):#, test_dataloader]):
 
 
                         if idd == 0:
@@ -671,7 +671,7 @@ def main():
 
                             final_test_performance = test_acc
                             print('\niter', iter_co, '\ttest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
-        print('final_test_performance:', final_test_performance)
+        # print('final_test_performance:', final_test_performance)
 
 
 if __name__ == "__main__":

@@ -12,8 +12,9 @@ def load_GAP_coreference_data(k_shot):
 
         pronoun_left_context = sentence[:pronoun_position]
         pronoun_right_context = sentence[pronoun_position+pronoun_len:]
-        print('pronoun_left_context:', pronoun_left_context)
-        print('pronoun_right_context:', pronoun_right_context)
+        # print('pronoun_left_context:', pronoun_left_context)
+        # print('pronoun_right_context:', pronoun_right_context)
+        if pronoun_str is in set(['her', 'his', 'His'])
         hypothesis = pronoun_left_context.strip()+' '+entity_str+' '+pronoun_right_context.strip()
 
         return hypothesis
@@ -26,10 +27,12 @@ def load_GAP_coreference_data(k_shot):
             all_examples.append(row)
 
     '''select k examples'''
+    pronoun_set = set()
     selected_examples = all_examples#random.sample(all_examples, k_shot)
     for example in selected_examples:
         premise = example['Text']
         pronoun = example['Pronoun']
+        pronoun_set.add(pronoun)
         pronoun_pos = int(example['Pronoun-offset'])
         entity_A = example['A']
         entity_A_pos = int(example['A-offset'])
@@ -46,6 +49,7 @@ def load_GAP_coreference_data(k_shot):
         print('hypy_A:', hypy_A)
         print('hypy_B:', hypy_B)
 
+    print('pronoun_set:', pronoun_set)
 
 if __name__ == "__main__":
     load_GAP_coreference_data(10)

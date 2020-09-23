@@ -539,6 +539,7 @@ def main():
 
     assert len(example_id_list) == len(pred_prob_entail)
     assert len(example_id_list) == len(gold_label_ids)
+    assert len(example_id_list) == len(pred_label_ids_3way)
     # writefile = codecs.open()
 
     result_file = 'test.output.tsv'
@@ -546,17 +547,43 @@ def main():
         tsv_writer = csv.writer(out_file, delimiter='\t')
         tsv_writer.writerow(['ID', 'A-coref', 'B-coref'])
         id2scorelist = {}
-        for idd, type, prob in zip(example_id_list, gold_label_ids, pred_prob_entail):
+        id2labellist = {}
+        for idd, type, prob, entail_or_not in zip(example_id_list, gold_label_ids, pred_prob_entail, pred_label_ids_3way):
+            labellist = id2labellist.get(idd)
             scorelist = id2scorelist.get(idd)
+            if labellist is None:
+                labellist=[0.0, 0.0]
             if scorelist is None:
-                scorelist=[0.0, 0.0]
-            if type==0: #A-coref
-                scorelist[0]='TRUE' if prob > 1/3 else 'FALSE'
+                scorelist = [0.0, 0.0]
+            if type == 0: #A-coref
+                if entail_or_not == 0: #entail
+                    labellist[0]='TRUE'
+                else:
+                    labellist[0]='FALSE'
+                scorelist[0] = prob
             else:
-                scorelist[1]='TRUE' if prob > 1/3 else 'FALSE'
+                if entail_or_not == 0: #entail
+                    labellist[1]='TRUE'
+                else:
+                    labellist[1]='FALSE'
+                scorelist[1] = prob
+            id2labellist[idd] = labellist
             id2scorelist[idd] = scorelist
-        for id, two_score in id2scorelist.items():
-            tsv_writer.writerow(['test-'+str(id)]+two_score)
+        '''solve conflict'''
+        new_id2labellist = {}
+        for example_id, labellist in id2labellist.items():
+            if labellist[0] == 'TRUE' and labellist[1] == 'TRUE':
+                scorelist = id2scorelist.get(example_id)
+                if scorelist[0] > scorelist[1]:
+                    new_labellist = ['TRUE', 'FALSE']
+                else:
+                    new_labellist = ['FALSE', 'TRUE']
+            else:
+                new_labellist = labellist
+            new_id2labellist[example_id] = new_labellist
+
+        for id, two_labels in new_id2labellist.items():
+            tsv_writer.writerow(['test-'+str(id)]+two_labels)
     out_file.close()
     print(run_scorer('/export/home/Dataset/gap_coreference/gap-test.tsv', result_file))
 

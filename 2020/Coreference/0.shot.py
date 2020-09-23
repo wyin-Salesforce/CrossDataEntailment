@@ -169,9 +169,6 @@ class RteProcessor(DataProcessor):
                 InputExample(guid=idd, text_a=premise, text_b=hypo_a, label='A-coref'))
             examples.append(
                 InputExample(guid=idd, text_a=premise, text_b=hypo_b, label='B-coref'))
-                line_co+=1
-
-
         print('loaded test size:', examples)
         return examples
 

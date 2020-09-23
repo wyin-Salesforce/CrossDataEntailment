@@ -561,12 +561,14 @@ def main():
                 else:
                     labellist[0]='FALSE'
                 scorelist[0] = prob
+                print('prob:', prob, ' entail_or_not:', entail_or_not)
             else:
                 if entail_or_not == 0: #entail
                     labellist[1]='TRUE'
                 else:
                     labellist[1]='FALSE'
                 scorelist[1] = prob
+                print('prob:', prob, ' entail_or_not:', entail_or_not)
             id2labellist[idd] = labellist
             id2scorelist[idd] = scorelist
         '''solve conflict'''

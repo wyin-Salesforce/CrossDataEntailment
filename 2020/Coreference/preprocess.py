@@ -31,12 +31,12 @@ def load_GAP_coreference_data(k_shot):
         pronoun = example['Pronoun']
         pronoun_pos = example['Pronoun-offset']
         entity_A = example['A']
-        entity_A_pos = example['A-offset']
+        entity_A_pos = int(example['A-offset'])
         entity_A_label = example['A-coref']
         hypy_A = generate_hypothesis(premise, pronoun, pronoun_pos, entity_A, entity_A_pos)
 
         entity_B = example['B']
-        entity_B_pos = example['B-offset']
+        entity_B_pos = int(example['B-offset'])
         entity_B_label = example['B-coref']
         hypy_B = generate_hypothesis(premise, pronoun, pronoun_pos, entity_B, entity_B_pos)
 

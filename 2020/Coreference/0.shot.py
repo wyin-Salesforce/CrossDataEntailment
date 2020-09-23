@@ -310,7 +310,7 @@ def convert_examples_to_features(examples, label_list, max_seq_length,
         #     logger.info("label: %s (id = %d)" % (example.label, label_id))
 
         features.append(
-                InputFeatures(id = example.guid
+                InputFeatures(id = example.guid,
                               input_ids=input_ids,
                               input_mask=input_mask,
                               segment_ids=segment_ids,

@@ -14,7 +14,8 @@ def load_GAP_coreference_data(k_shot):
         pronoun_right_context = sentence[pronoun_position+pronoun_len:]
         # print('pronoun_left_context:', pronoun_left_context)
         # print('pronoun_right_context:', pronoun_right_context)
-        # if pronoun_str in set(['her', 'his', 'His'])
+        if pronoun_str in set(['her','Her', 'his', 'His']):
+            entity_str=entity_str+"'s'"
         hypothesis = pronoun_left_context.strip()+' '+entity_str+' '+pronoun_right_context.strip()
 
         return hypothesis

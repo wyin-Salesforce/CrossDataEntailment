@@ -169,7 +169,7 @@ class RteProcessor(DataProcessor):
                 InputExample(guid=idd, text_a=premise, text_b=hypo_a, label='A-coref'))
             examples.append(
                 InputExample(guid=idd, text_a=premise, text_b=hypo_b, label='B-coref'))
-        print('loaded test size:', examples)
+        print('loaded test size:', len(examples))
         return examples
 
     def get_labels(self):

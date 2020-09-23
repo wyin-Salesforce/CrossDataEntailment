@@ -551,15 +551,12 @@ def main():
             if scorelist is None:
                 scorelist=[0.0, 0.0]
             if type==0: #A-coref
-                scorelist[0]=prob
+                scorelist[0]='TRUE' if prob > 1/3 else 'FALSE'
             else:
-                scorelist[1]=prob
+                scorelist[1]='TRUE' if prob > 1/3 else 'FALSE'
             id2scorelist[idd] = scorelist
         for id, two_score in id2scorelist.items():
-            if two_score[0] > two_score[1]:
-                tsv_writer.writerow(['test-'+str(id), 'TRUE', 'FALSE'])
-            else:
-                tsv_writer.writerow(['test-'+str(id), 'FALSE', 'TRUE'])
+            tsv_writer.writerow(['test-'+str(id)]+two_score)
     out_file.close()
     print(run_scorer('/export/home/Dataset/gap_coreference/gap-test.tsv', result_file))
 
@@ -572,7 +569,7 @@ if __name__ == "__main__":
 
 '''
 
-CUDA_VISIBLE_DEVICES=7 python -u 0.shot.py --task_name rte --do_lower_case --num_train_epochs 20 --train_batch_size 5 --eval_batch_size 128 --learning_rate 1e-6 --max_seq_length 128 --seed 42
+CUDA_VISIBLE_DEVICES=5 python -u 0.shot.py --task_name rte --do_lower_case --num_train_epochs 20 --train_batch_size 5 --eval_batch_size 128 --learning_rate 1e-6 --max_seq_length 128 --seed 42
 
 test_acc: 0.8336112037345782
 

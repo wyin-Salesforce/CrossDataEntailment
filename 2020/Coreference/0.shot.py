@@ -547,7 +547,7 @@ def main():
 
 
         id2labellist = {}
-        id2scorelist = []
+        id2scorelist = {}
         for ex_id, type, prob, entail_or_not in zip(example_id_list, gold_label_ids, pred_prob_entail, pred_label_ids_3way):
             labellist = id2labellist.get(ex_id)
             scorelist = id2scorelist.get(ex_id)

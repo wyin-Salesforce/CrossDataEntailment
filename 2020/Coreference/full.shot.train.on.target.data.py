@@ -511,6 +511,9 @@ def main():
 
     train_examples = processor.get_GAP_coreference('gap-development.tsv', args.kshot) #train_pu_half_v1.txt
     dev_examples = processor.get_GAP_coreference('gap-validation.tsv', 0)
+    print(dev_examples[0].text_b)
+    print(dev_examples[1].text_b)
+    exit(0)
     test_examples = processor.get_GAP_coreference('gap-test.tsv', 0)
     label_list = ["entailment", "not_entailment"]
     entity_label_list = ["A-coref", "B-coref"]

@@ -646,6 +646,7 @@ def main():
                         eval_output_list = []
                         example_prefix = 'validation-' if idd==0 else 'test-'
                         for example_id, two_score in id2scorelist.items():
+                            print('two_score:', two_score)
                             if two_score[0] > two_score[1]:
                                 eval_output_list.append([example_prefix+str(example_id), True, False])
                             else:
@@ -678,8 +679,8 @@ if __name__ == "__main__":
     main()
 
 '''
-mixup:
-CUDA_VISIBLE_DEVICES=7 python -u full.shot.train.on.target.data.py --task_name rte --do_train --do_lower_case --num_train_epochs 20 --train_batch_size 5 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10
+
+CUDA_VISIBLE_DEVICES=7 python -u full.shot.train.on.target.data.py --task_name rte --do_train --do_lower_case --num_train_epochs 20 --train_batch_size 16 --eval_batch_size 32 --learning_rate 1e-3 --max_seq_length 128 --seed 42 --kshot 10
 
 
 '''

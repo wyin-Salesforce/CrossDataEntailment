@@ -613,7 +613,7 @@ def main():
                         example_id_list = []
                         for _, batch in enumerate(tqdm(dev_or_test_dataloader, desc="test")):
                             input_indices, input_ids, input_mask, segment_ids, _, label_ids = batch
-                            print('input_ids:', input_ids[:2,:])
+                            # print('input_ids:', input_ids[:2,:])
                             input_ids = input_ids.to(device)
                             input_mask = input_mask.to(device)
                             segment_ids = segment_ids.to(device)

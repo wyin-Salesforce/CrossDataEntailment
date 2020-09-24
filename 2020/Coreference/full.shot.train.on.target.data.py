@@ -587,8 +587,8 @@ def main():
                 optimizer.zero_grad()
                 global_step += 1
                 iter_co+=1
-                if iter_co %100==0:
-                    print('iter_co:', iter_co, ' mean loss:', tr_loss/iter_co)
+                # if iter_co %100==0:
+                #     print('iter_co:', iter_co, ' mean loss:', tr_loss/iter_co)
                 if iter_co % len(train_dataloader)==0:
                     '''
                     start evaluate on dev set after this epoch
@@ -651,8 +651,15 @@ def main():
 
                         eval_output_list = []
                         example_prefix = 'validation-' if idd==0 else 'test-'
+
+                        # for example_id, two_score in id2scorelist.items():
+                        #     if two_score[0] > two_score[1]:
+                        #         eval_output_list.append([example_prefix+str(example_id), True, False])
+                        #     else:
+                        #         eval_output_list.append([example_prefix+str(example_id), False, True])
+
+
                         for example_id, two_score in id2scorelist.items():
-                            # print('two_score:', two_score)
                             if two_score[0] > two_score[1] and two_score[0] > 0.5:
                                 eval_output_list.append([example_prefix+str(example_id), True, False])
                             elif two_score[0] < two_score[1] and two_score[1] > 0.5:

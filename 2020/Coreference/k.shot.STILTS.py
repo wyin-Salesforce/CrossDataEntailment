@@ -552,7 +552,7 @@ def main():
 
     model = RobertaForSequenceClassification(3)
     tokenizer = RobertaTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
-    model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_pretrained/_acc_0.9040886899918633.pt'))
+    model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_pretrained/_acc_0.9040886899918633.pt'), strict=False)
     model.to(device)
 
     param_optimizer = list(model.named_parameters())

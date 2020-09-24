@@ -653,7 +653,7 @@ def main():
                         preds = preds[0]
 
                         pred_probs = softmax(preds,axis=1)
-                        # print('pred_probs:', pred_probs)
+                        print('pred_probs:', pred_probs)
                         # pred_label_ids_3way = list(np.argmax(pred_probs, axis=1))
                         pred_prob_entail = list(pred_probs[:,0])
 
@@ -675,6 +675,7 @@ def main():
 
                         threshold = args.threshold
                         for example_id, two_score in id2scorelist.items():
+                            print('two_score:', two_score)
                             '''if the bigger score > threshold, set TRUE, otherwise, set two FALSE'''
                             if two_score[0] > two_score[1] and two_score[0] > threshold:
                                 eval_output_list.append([example_prefix+str(example_id), True, False])

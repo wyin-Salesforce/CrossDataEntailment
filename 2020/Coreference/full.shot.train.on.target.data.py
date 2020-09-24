@@ -434,7 +434,7 @@ def main():
                         help="Proportion of training to perform linear learning rate warmup for. "
                              "E.g., 0.1 = 10%% of training.")
     parser.add_argument("--threshold",
-                        default=0.4,
+                        default=0.46,
                         type=float,
                         help="haha")
     parser.add_argument("--no_cuda",

@@ -433,6 +433,10 @@ def main():
                         type=float,
                         help="Proportion of training to perform linear learning rate warmup for. "
                              "E.g., 0.1 = 10%% of training.")
+    parser.add_argument("--threshold",
+                        default=0.4,
+                        type=float,
+                        help="haha")
     parser.add_argument("--no_cuda",
                         action='store_true',
                         help="Whether not to use CUDA when available")
@@ -652,7 +656,7 @@ def main():
                         eval_output_list = []
                         example_prefix = 'validation-' if idd==0 else 'test-'
 
-                        threshold = 0.4
+                        threshold = args.threshold
                         for example_id, two_score in id2scorelist.items():
                             if two_score[0] > two_score[1] and two_score[0] > threshold:
                                 eval_output_list.append([example_prefix+str(example_id), True, False])
@@ -689,7 +693,7 @@ if __name__ == "__main__":
 
 '''
 full-shot command:
-CUDA_VISIBLE_DEVICES=7 python -u full.shot.train.on.target.data.py --task_name rte --do_train --do_lower_case --num_train_epochs 20 --train_batch_size 8 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 0
+CUDA_VISIBLE_DEVICES=7 python -u full.shot.train.on.target.data.py --task_name rte --do_train --do_lower_case --num_train_epochs 20 --train_batch_size 8 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --threshold 0.4 --kshot 0
 
 
 '''

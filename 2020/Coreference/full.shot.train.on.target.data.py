@@ -655,6 +655,7 @@ def main():
 
                         threshold = args.threshold
                         for example_id, two_score in id2scorelist.items():
+                            '''if the bigger score > threshold, set TRUE, otherwise, set two FALSE'''
                             if two_score[0] > two_score[1] and two_score[0] > threshold:
                                 eval_output_list.append([example_prefix+str(example_id), True, False])
                             elif two_score[0] < two_score[1] and two_score[1] > threshold:
@@ -682,7 +683,7 @@ def main():
 
                             final_test_performance = test_acc
                             print('\niter', iter_co, '\ttest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
-        # print('final_test_performance:', final_test_performance)
+        print('final_test_performance:', final_test_performance)
 
 
 if __name__ == "__main__":
@@ -690,7 +691,7 @@ if __name__ == "__main__":
 
 '''
 full-shot command:
-CUDA_VISIBLE_DEVICES=7 python -u full.shot.train.on.target.data.py --task_name rte --do_train --do_lower_case --num_train_epochs 20 --train_batch_size 8 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --threshold 0.4 --kshot 0
+CUDA_VISIBLE_DEVICES=7 python -u full.shot.train.on.target.data.py --task_name rte --do_train --do_lower_case --num_train_epochs 5 --train_batch_size 8 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --threshold 0.46 --kshot 0
 
 
 '''

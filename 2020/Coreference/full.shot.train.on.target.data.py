@@ -564,8 +564,8 @@ def main():
 
                 logits = model(input_ids, input_mask)
                 loss_fct = CrossEntropyLoss()
-                print('train batch label:', label_ids)
-                print('train batch logits:', logits)
+                # print('train batch label:', label_ids)
+                # print('train batch logits:', logits)
                 loss = loss_fct(logits.view(-1, num_labels), label_ids.view(-1))
 
                 if n_gpu > 1:

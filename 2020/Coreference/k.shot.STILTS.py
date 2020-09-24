@@ -65,6 +65,7 @@ class RobertaForSequenceClassification(nn.Module):
         self.tagset_size = tagset_size
 
         self.roberta_single= RobertaModel.from_pretrained(pretrain_model_dir)
+        self.roberta_single.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_pretrained/_acc_0.9040886899918633.pt'), strict=False)
         self.single_hidden2tag = RobertaClassificationHead(bert_hidden_dim, tagset_size)
 
     def forward(self, input_ids, input_mask):
@@ -551,9 +552,8 @@ def main():
     if args.local_rank != -1:
         num_train_optimization_steps = num_train_optimization_steps // torch.distributed.get_world_size()
 
-    model = RobertaForSequenceClassification(3)
+    model = RobertaForSequenceClassification(2)
     tokenizer = RobertaTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
-    model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_pretrained/_acc_0.9040886899918633.pt'), strict=False)
     model.to(device)
 
     param_optimizer = list(model.named_parameters())
@@ -590,8 +590,11 @@ def main():
 
 
                 logits = model(input_ids, input_mask)
+                
+                loss_fct = CrossEntropyLoss()
+                loss = loss_fct(logits.view(-1, num_labels), label_ids.view(-1))
 
-                loss = loss_by_logits_and_2way_labels(logits, label_ids.view(-1), device)
+                # loss = loss_by_logits_and_2way_labels(logits, label_ids.view(-1), device)
 
                 if n_gpu > 1:
                     loss = loss.mean() # mean() to average on multi-gpu.

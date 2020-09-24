@@ -65,7 +65,6 @@ class RobertaForSequenceClassification(nn.Module):
         self.tagset_size = tagset_size
 
         self.roberta_single= RobertaModel.from_pretrained(pretrain_model_dir)
-        self.roberta_single.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_pretrained/_acc_0.9040886899918633.pt'), strict=False)
         self.single_hidden2tag = RobertaClassificationHead(bert_hidden_dim, tagset_size)
 
     def forward(self, input_ids, input_mask):
@@ -552,8 +551,9 @@ def main():
     if args.local_rank != -1:
         num_train_optimization_steps = num_train_optimization_steps // torch.distributed.get_world_size()
 
-    model = RobertaForSequenceClassification(2)
+    model = RobertaForSequenceClassification(3)
     tokenizer = RobertaTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
+    model.load_state_dict(torch.load('/export/home/Dataset/BERT_pretrained_mine/MNLI_pretrained/_acc_0.9040886899918633.pt'), strict=False)
     model.to(device)
 
     param_optimizer = list(model.named_parameters())
@@ -590,11 +590,8 @@ def main():
 
 
                 logits = model(input_ids, input_mask)
-                
-                loss_fct = CrossEntropyLoss()
-                loss = loss_fct(logits.view(-1, num_labels), label_ids.view(-1))
 
-                # loss = loss_by_logits_and_2way_labels(logits, label_ids.view(-1), device)
+                loss = loss_by_logits_and_2way_labels(logits, label_ids.view(-1), device)
 
                 if n_gpu > 1:
                     loss = loss.mean() # mean() to average on multi-gpu.
@@ -657,7 +654,7 @@ def main():
 
                         pred_probs = softmax(preds,axis=1)
                         # print('pred_probs:', pred_probs)
-                        # pred_label_ids_3way = list(np.argmax(pred_probs, axis=1))
+                        pred_label_ids_3way = list(np.argmax(pred_probs, axis=1))
                         pred_prob_entail = list(pred_probs[:,0])
 
                         assert len(example_id_list) == len(pred_prob_entail)
@@ -666,26 +663,40 @@ def main():
 
 
                         id2scorelist = {}
-                        for example_id, type, prob in zip(example_id_list, gold_label_ids, pred_prob_entail):
+                        id2labellist = {}
+                        for example_id, type, prob, pred_label in zip(example_id_list, gold_label_ids, pred_prob_entail, pred_label_ids_3way):
                             scorelist = id2scorelist.get(example_id)
+                            labellist = id2labellist.get(example_id)
                             if scorelist is None:
                                 scorelist=[0.0, 0.0]
+                            if labellist is None:
+                                labellist = [-1, -1]
                             scorelist[type]=prob
+                            labellist[type] = pred_label
                             id2scorelist[example_id] = scorelist
+                            id2labellist[example_id] = labellist
 
                         eval_output_list = []
                         example_prefix = 'validation-' if idd==0 else 'test-'
 
                         threshold = args.threshold
                         for example_id, two_score in id2scorelist.items():
-                            # print('two_score:', two_score)
-                            '''if the bigger score > threshold, set TRUE, otherwise, set two FALSE'''
-                            if two_score[0] > two_score[1] and two_score[0] > threshold:
-                                eval_output_list.append([example_prefix+str(example_id), True, False])
-                            elif two_score[0] < two_score[1] and two_score[1] > threshold:
-                                eval_output_list.append([example_prefix+str(example_id), False, True])
+                            labellist = id2labellist.get(example_id)
+                            if labellist[0] == 0 or labellist[1] == 0:
+                                if two_score[0] > two_score[1]:
+                                    eval_output_list.append([example_prefix+str(example_id), True, False])
+                                else:
+                                    eval_output_list.append([example_prefix+str(example_id), False, True])
                             else:
                                 eval_output_list.append([example_prefix+str(example_id), False, False])
+
+                            # '''if the bigger score > threshold, set TRUE, otherwise, set two FALSE'''
+                            # if two_score[0] > two_score[1] and two_score[0] > threshold:
+                            #     eval_output_list.append([example_prefix+str(example_id), True, False])
+                            # elif two_score[0] < two_score[1] and two_score[1] > threshold:
+                            #     eval_output_list.append([example_prefix+str(example_id), False, True])
+                            # else:
+                            #     eval_output_list.append([example_prefix+str(example_id), False, False])
 
 
                         if idd == 0:

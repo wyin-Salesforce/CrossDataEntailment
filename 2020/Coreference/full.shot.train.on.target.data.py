@@ -158,6 +158,7 @@ class RteProcessor(DataProcessor):
         '''
         examples=[]
         selected_examples = load_GAP_coreference_data(filename, k_shot)
+        two_false_size = 0
         for example in selected_examples:
             idd = int(example[0].split('-')[1])
             premise = example[1]
@@ -165,13 +166,14 @@ class RteProcessor(DataProcessor):
             hypo_a_label = 'entailment' if example[3]=='TRUE' else 'not_entailment' # 'TRUE' or 'FALSE'
             hypo_b = example[4]
             hypo_b_label = 'entailment' if example[5]=='TRUE' else 'not_entailment'
-
+            if hypo_a_label == 'entailment' and hypo_b_label == 'entailment':
+                two_false_size+=1
 
             examples.append(
                 InputExample(guid=idd, text_a=premise, text_b=hypo_a, label= hypo_a_label, entity_label='A-coref'))
             examples.append(
                 InputExample(guid=idd, text_a=premise, text_b=hypo_b, label= hypo_b_label, entity_label='B-coref'))
-        print('loaded test size:', len(examples))
+        print('loaded test size:', len(examples), 'two_false_size:', two_false_size)
         return examples
 
 
@@ -553,7 +555,6 @@ def main():
         iter_co = 0
         final_test_performance = 0.0
         for _ in trange(int(args.num_train_epochs), desc="Epoch"):
-            tr_loss = 0
             nb_tr_examples, nb_tr_steps = 0, 0
             for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
                 model.train()
@@ -581,7 +582,8 @@ def main():
                 optimizer.zero_grad()
                 global_step += 1
                 iter_co+=1
-                # if iter_co %20==0:
+                if iter_co %20==0:
+                    print('iter_co:', iter_co, ' mean loss:', tr_loss/iter_co)
                 if iter_co % len(train_dataloader)==0:
                     '''
                     start evaluate on dev set after this epoch
@@ -637,10 +639,7 @@ def main():
                             scorelist = id2scorelist.get(example_id)
                             if scorelist is None:
                                 scorelist=[0.0, 0.0]
-                            if type==0: #A-coref
-                                scorelist[0]=prob
-                            else:
-                                scorelist[1]=prob
+                            scorelist[type]=prob
                             id2scorelist[example_id] = scorelist
 
                         eval_output_list = []

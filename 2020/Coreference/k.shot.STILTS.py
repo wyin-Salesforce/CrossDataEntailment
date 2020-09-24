@@ -33,6 +33,7 @@ from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm, trange
 from scipy.stats import beta
+from torch.nn import functional as F
 from torch.nn import CrossEntropyLoss, MSELoss
 from scipy.special import softmax
 # from scipy.stats import pearsonr, spearmanr

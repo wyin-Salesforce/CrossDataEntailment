@@ -609,6 +609,7 @@ def main():
                         example_id_list = []
                         for _, batch in enumerate(tqdm(dev_or_test_dataloader, desc="test")):
                             input_indices, input_ids, input_mask, segment_ids, _, label_ids = batch
+                            print('input_ids:', input_ids)
                             input_ids = input_ids.to(device)
                             input_mask = input_mask.to(device)
                             segment_ids = segment_ids.to(device)
@@ -625,6 +626,7 @@ def main():
                                 preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
 
                         preds = preds[0]
+
                         pred_probs = softmax(preds,axis=1)
                         print('pred_probs:', pred_probs)
                         pred_label_ids_3way = list(np.argmax(pred_probs, axis=1))

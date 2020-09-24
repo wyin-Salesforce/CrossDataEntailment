@@ -596,7 +596,7 @@ def main():
                     '''
                     model.eval()
 
-                    for idd, dev_or_test_dataloader in enumerate([dev_dataloader], test_dataloader]):
+                    for idd, dev_or_test_dataloader in enumerate([dev_dataloader, test_dataloader]):
 
 
                         if idd == 0:

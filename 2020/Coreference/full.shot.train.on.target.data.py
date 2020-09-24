@@ -166,7 +166,7 @@ class RteProcessor(DataProcessor):
             hypo_a_label = 'entailment' if example[3]=='TRUE' else 'not_entailment' # 'TRUE' or 'FALSE'
             hypo_b = example[4]
             hypo_b_label = 'entailment' if example[5]=='TRUE' else 'not_entailment'
-            if hypo_a_label == 'entailment' and hypo_b_label == 'entailment':
+            if hypo_a_label == 'not_entailment' and hypo_b_label == 'not_entailment':
                 two_false_size+=1
 
             examples.append(

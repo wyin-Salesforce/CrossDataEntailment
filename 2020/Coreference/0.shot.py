@@ -567,7 +567,7 @@ def main():
         for ex_id, labellist in id2labellist.items():
             if labellist[0] is True and labellist[1] is True:
                 scorelist = id2scorelist.get(ex_id)
-                print('scorelist:', scorelist)
+                # print('scorelist:', scorelist)
                 if scorelist[0] > scorelist[1]:
                     eval_output_list.append(['test-'+str(ex_id), True, False])
                 else:
@@ -587,8 +587,8 @@ if __name__ == "__main__":
 
 '''
 
-CUDA_VISIBLE_DEVICES=5 python -u 0.shot.py --task_name rte --do_lower_case --num_train_epochs 20 --train_batch_size 5 --eval_batch_size 128 --learning_rate 1e-6 --max_seq_length 128 --seed 42
+CUDA_VISIBLE_DEVICES=5 python -u 0.shot.py --task_name rte --do_lower_case --num_train_epochs 20 --train_batch_size 5 --eval_batch_size 128 --learning_rate 1e-6 --max_seq_length 250 --seed 42
 
-test_acc: 0.8336112037345782
+
 
 '''

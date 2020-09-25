@@ -567,6 +567,7 @@ def main():
         for ex_id, labellist in id2labellist.items():
             if labellist[0] is True and labellist[1] is True:
                 scorelist = id2scorelist.get(ex_id)
+                print('scorelist:', scorelist)
                 if scorelist[0] > scorelist[1]:
                     eval_output_list.append(['test-'+str(ex_id), True, False])
                 else:

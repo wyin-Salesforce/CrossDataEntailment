@@ -464,8 +464,8 @@ def main():
     output_mode = output_modes[task_name]
 
     '''first tune threshold on validation set, then try it on test set'''
-    test_examples = processor.get_GAP_coreference_as_test('gap-validation.tsv')
-    # test_examples = processor.get_GAP_coreference_as_test('gap-test.tsv')
+    # test_examples = processor.get_GAP_coreference_as_test('gap-validation.tsv')
+    test_examples = processor.get_GAP_coreference_as_test('gap-test.tsv')
     label_list = ["A-coref", "B-coref"]
     # train_examples = get_data_hulu_fewshot('train', 5)
 
@@ -544,7 +544,7 @@ def main():
 
 
     for threshold in np.arange(0.99, 0.0, -0.01):
-
+        threshold = 0.7399999999999998 #best on dev
 
         id2labellist = {}
         id2scorelist = {}
@@ -577,9 +577,10 @@ def main():
                 eval_output_list.append([prefix+str(ex_id)]+labellist)
 
 
-        test_acc = run_scorer('/export/home/Dataset/gap_coreference/gap-validation.tsv', eval_output_list)
-        # test_acc = run_scorer('/export/home/Dataset/gap_coreference/gap-test.tsv', eval_output_list)
+        # test_acc = run_scorer('/export/home/Dataset/gap_coreference/gap-validation.tsv', eval_output_list)
+        test_acc = run_scorer('/export/home/Dataset/gap_coreference/gap-test.tsv', eval_output_list)
         print('threshold:', threshold, 'test_f1:', test_acc)
+        exit(0)
 
 
 
@@ -592,6 +593,7 @@ if __name__ == "__main__":
 
 CUDA_VISIBLE_DEVICES=5 python -u 0.shot.py --task_name rte --do_lower_case --num_train_epochs 20 --train_batch_size 5 --eval_batch_size 128 --learning_rate 1e-6 --max_seq_length 250 --seed 42
 
-
+max_len 250:
+threshold: 0.7399999999999998 test_f1: 63.373493975903614
 
 '''

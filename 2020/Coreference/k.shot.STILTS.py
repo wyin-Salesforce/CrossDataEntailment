@@ -679,7 +679,7 @@ def main():
                         eval_output_list = []
                         example_prefix = 'validation-' if idd==0 else 'test-'
 
-                        threshold = args.threshold
+                        # threshold = args.threshold
                         for example_id, two_score in id2scorelist.items():
                             labellist = id2labellist.get(example_id)
                             if labellist[0] == 0 or labellist[1] == 0:

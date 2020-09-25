@@ -564,7 +564,8 @@ def main():
             id2scorelist[ex_id] = scorelist
         '''remove conflict'''
         eval_output_list = []
-        prefix = 'validation-' #'test-'
+        # prefix = 'validation-' #'test-'
+        prefix = 'test-' #'test-'
         for ex_id, labellist in id2labellist.items():
             if labellist[0] is True and labellist[1] is True:
                 scorelist = id2scorelist.get(ex_id)

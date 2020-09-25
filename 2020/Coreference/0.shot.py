@@ -463,9 +463,9 @@ def main():
     processor = processors[task_name]()
     output_mode = output_modes[task_name]
 
-
-    # dev_examples = processor.get_RTE_as_dev('/export/home/Dataset/glue_data/RTE/dev.tsv')
-    test_examples = processor.get_GAP_coreference_as_test('gap-test.tsv')
+    '''first tune threshold on validation set, then try it on test set'''
+    test_examples = processor.get_GAP_coreference_as_test('gap-validation.tsv')
+    # test_examples = processor.get_GAP_coreference_as_test('gap-test.tsv')
     label_list = ["A-coref", "B-coref"]
     # train_examples = get_data_hulu_fewshot('train', 5)
 
@@ -575,7 +575,9 @@ def main():
             else:
                 eval_output_list.append(['test-'+str(ex_id)]+labellist)
 
-        test_acc = run_scorer('/export/home/Dataset/gap_coreference/gap-test.tsv', eval_output_list)
+
+        test_acc = run_scorer('/export/home/Dataset/gap_coreference/gap-validation.tsv', eval_output_list)
+        # test_acc = run_scorer('/export/home/Dataset/gap_coreference/gap-test.tsv', eval_output_list)
         print('threshold:', threshold, 'test_f1:', test_acc)
 
 

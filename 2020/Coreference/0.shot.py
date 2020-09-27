@@ -595,6 +595,6 @@ if __name__ == "__main__":
 CUDA_VISIBLE_DEVICES=5 python -u 0.shot.py --task_name rte --do_lower_case --num_train_epochs 20 --train_batch_size 5 --eval_batch_size 128 --learning_rate 1e-6 --max_seq_length 250 --seed 42
 
 max_len 250:
-threshold: 0.7399999999999998 test_f1: 63.373493975903614
-
+dev: threshold: 0.7399999999999998 test_f1: 63.373493975903614
+test: threshold: 0.7399999999999998 test_f1: 61.7687074829932
 '''

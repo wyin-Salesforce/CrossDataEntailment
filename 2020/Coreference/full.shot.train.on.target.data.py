@@ -726,7 +726,7 @@ if __name__ == "__main__":
 
 '''
 full-shot command:
-CUDA_VISIBLE_DEVICES=7 python -u full.shot.train.on.target.data.py --task_name rte --do_train --do_lower_case --num_train_epochs 5 --train_batch_size 8 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 0
+CUDA_VISIBLE_DEVICES=7 python -u full.shot.train.on.target.data.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 8 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 0
 
 
 '''

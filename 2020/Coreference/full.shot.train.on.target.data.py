@@ -593,8 +593,6 @@ def main():
 
                 logits = model(input_ids, input_mask)
                 loss_fct = CrossEntropyLoss()
-                # print('train batch label:', label_ids)
-                # print('train batch logits:', logits)
                 loss = loss_fct(logits.view(-1, num_labels), label_ids.view(-1))
 
                 if n_gpu > 1:
@@ -632,7 +630,6 @@ def main():
                     example_id_list = []
                     for _, batch in enumerate(tqdm(dev_dataloader, desc="dev")):
                         input_indices, input_ids, input_mask, segment_ids, _, label_ids = batch
-                        # print('input_ids:', input_ids[:2,:])
                         input_ids = input_ids.to(device)
                         input_mask = input_mask.to(device)
                         segment_ids = segment_ids.to(device)
@@ -651,7 +648,6 @@ def main():
                     preds = preds[0]
 
                     pred_probs = softmax(preds,axis=1)
-                    # print('pred_probs:', pred_probs)
                     pred_label_ids_3way = list(np.argmax(pred_probs, axis=1))
                     pred_prob_entail = list(pred_probs[:,0])
 
@@ -663,37 +659,7 @@ def main():
                     best_current_threshold = -10.0
                     for threshold in np.arange(0.99, 0.0, -0.01):
                         eval_output_list = build_GAP_output_format(example_id_list, gold_label_ids, pred_prob_entail, pred_label_ids_3way, threshold, dev_or_test='validation')
-                        # id2labellist = {}
-                        # id2scorelist = {}
-                        # for ex_id, type, prob, entail_or_not in zip(example_id_list, gold_label_ids, pred_prob_entail, pred_label_ids_3way):
-                        #     labellist = id2labellist.get(ex_id)
-                        #     scorelist = id2scorelist.get(ex_id)
-                        #     if scorelist is None:
-                        #         scorelist = [0.0, 0.0]
-                        #     scorelist[type] = prob
-                        #     if labellist is None:
-                        #         labellist = ['', '']
-                        #     labellist[type] = True if prob > threshold else False
-                        #
-                        #     id2labellist[ex_id] = labellist
-                        #     id2scorelist[ex_id] = scorelist
-                        # '''remove conflict'''
-                        # eval_output_list = []
-                        # # prefix = 'validation-' #'test-'
-                        # prefix = 'validation-' #'test-'
-                        # for ex_id, labellist in id2labellist.items():
-                        #     if labellist[0] is True and labellist[1] is True:
-                        #         scorelist = id2scorelist.get(ex_id)
-                        #         if scorelist[0] > scorelist[1]:
-                        #             eval_output_list.append([prefix+str(ex_id), True, False])
-                        #         else:
-                        #             eval_output_list.append([prefix+str(ex_id), False, True])
-                        #     else:
-                        #         eval_output_list.append([prefix+str(ex_id)]+labellist)
-
-
                         dev_acc = run_scorer('/export/home/Dataset/gap_coreference/gap-validation.tsv', eval_output_list)
-                        # test_acc = run_scorer('/export/home/Dataset/gap_coreference/gap-test.tsv', eval_output_list)
                         if dev_acc > best_current_dev_acc:
                             best_current_dev_acc = dev_acc
                             best_current_threshold = threshold
@@ -714,7 +680,6 @@ def main():
                         example_id_list = []
                         for _, batch in enumerate(tqdm(test_dataloader, desc="test")):
                             input_indices, input_ids, input_mask, segment_ids, _, label_ids = batch
-                            # print('input_ids:', input_ids[:2,:])
                             input_ids = input_ids.to(device)
                             input_mask = input_mask.to(device)
                             segment_ids = segment_ids.to(device)
@@ -740,38 +705,8 @@ def main():
                         assert len(example_id_list) == len(gold_label_ids)
                         assert len(example_id_list) == len(pred_label_ids_3way)
 
-                        best_current_dev_acc = 0.0
-                        best_current_threshold = -10.0
-                        # for threshold in np.arange(0.99, 0.0, -0.01):
                         threshold = max_dev_threshold
                         eval_output_list = build_GAP_output_format(example_id_list, gold_label_ids, pred_prob_entail, pred_label_ids_3way, threshold, dev_or_test='test')
-                        # id2labellist = {}
-                        # id2scorelist = {}
-                        # for ex_id, type, prob, entail_or_not in zip(example_id_list, gold_label_ids, pred_prob_entail, pred_label_ids_3way):
-                        #     labellist = id2labellist.get(ex_id)
-                        #     scorelist = id2scorelist.get(ex_id)
-                        #     if scorelist is None:
-                        #         scorelist = [0.0, 0.0]
-                        #     scorelist[type] = prob
-                        #     if labellist is None:
-                        #         labellist = ['', '']
-                        #     labellist[type] = True if prob > threshold else False
-                        #
-                        #     id2labellist[ex_id] = labellist
-                        #     id2scorelist[ex_id] = scorelist
-                        # '''remove conflict'''
-                        # eval_output_list = []
-                        # prefix = 'test-' #'test-'
-                        # for ex_id, labellist in id2labellist.items():
-                        #     if labellist[0] is True and labellist[1] is True:
-                        #         scorelist = id2scorelist.get(ex_id)
-                        #         if scorelist[0] > scorelist[1]:
-                        #             eval_output_list.append([prefix+str(ex_id), True, False])
-                        #         else:
-                        #             eval_output_list.append([prefix+str(ex_id), False, True])
-                        #     else:
-                        #         eval_output_list.append([prefix+str(ex_id)]+labellist)
-
 
                         test_acc = run_scorer('/export/home/Dataset/gap_coreference/gap-test.tsv', eval_output_list)
                         if test_acc > max_test_acc:

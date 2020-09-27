@@ -25,6 +25,7 @@ import random
 import sys
 import codecs
 import numpy as np
+from torch.nn import functional as F
 import torch
 import torch.nn as nn
 from collections import defaultdict

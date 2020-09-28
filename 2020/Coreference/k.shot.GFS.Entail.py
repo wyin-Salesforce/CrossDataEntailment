@@ -962,7 +962,7 @@ def main():
                     if dev_acc > best_current_dev_acc:
                         best_current_dev_acc = dev_acc
                         best_current_threshold = threshold
-                print('best_current_dev_threshold:', best_current_threshold, 'best_current_dev_acc:', best_current_dev_acc)
+                print('\t\n best_current_dev_threshold:', best_current_threshold, 'best_current_dev_acc:', best_current_dev_acc)
 
                 if best_current_dev_acc > max_dev_acc:
                     max_dev_acc = best_current_dev_acc
@@ -1015,7 +1015,7 @@ def main():
                     test_acc = run_scorer('/export/home/Dataset/gap_coreference/gap-test.tsv', eval_output_list)
                     if test_acc > max_test_acc:
                         max_test_acc = test_acc
-                    print('current_test_acc:', test_acc, ' max_test_acc:', max_test_acc)
+                    print('\t\n current_test_acc:', test_acc, ' max_test_acc:', max_test_acc)
                     final_test_performance = test_acc
             if iter_co == 500:#3000:
                 break

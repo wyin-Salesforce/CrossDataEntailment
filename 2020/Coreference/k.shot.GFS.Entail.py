@@ -927,6 +927,7 @@ def main():
                     input_indices, input_ids, input_mask, segment_ids, _, label_ids = batch
                     input_ids = input_ids.to(device)
                     input_mask = input_mask.to(device)
+                    print('input_mask:', input_mask)
                     segment_ids = segment_ids.to(device)
                     label_ids = label_ids.to(device)
                     example_ids = list(input_indices.numpy())

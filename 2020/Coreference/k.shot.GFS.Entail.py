@@ -452,7 +452,7 @@ def examples_to_features(source_examples, label_list, entity_label_list, args, t
 
     dev_all_idd = torch.tensor([f.id for f in source_features], dtype=torch.long)
     dev_all_input_ids = torch.tensor([f.input_ids for f in source_features], dtype=torch.long)
-    dev_all_input_mask = torch.tensor([f.input_mask for f in source_features], dtype=torch.long)
+    dev_all_input_mask = torch.tensor([f.input_mask for f in source_features], dtype=torch.float)
     dev_all_segment_ids = torch.tensor([f.segment_ids for f in source_features], dtype=torch.long)
     dev_all_label_ids = torch.tensor([f.label_id for f in source_features], dtype=torch.long)
     dev_all_entity_label_ids = torch.tensor([f.entity_label_id for f in source_features], dtype=torch.long)

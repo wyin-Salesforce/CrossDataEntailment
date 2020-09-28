@@ -1026,7 +1026,7 @@ if __name__ == "__main__":
     main()
 
 '''
-CUDA_VISIBLE_DEVICES=7 python -u k.shot.GFS.Entail.py --do_lower_case --num_train_epochs 3 --train_batch_size 8 --eval_batch_size 64 --learning_rate 1e-4 --max_seq_length 250 --seed 42 --kshot 10 --target_train_batch_size 6 --update_BERT_top_layers 1
+CUDA_VISIBLE_DEVICES=7 python -u k.shot.GFS.Entail.py --do_lower_case --num_train_epochs 1 --train_batch_size 10 --eval_batch_size 64 --learning_rate 1e-4 --max_seq_length 250 --seed 42 --kshot 10 --target_train_batch_size 6 --update_BERT_top_layers 5
 
 
 '''

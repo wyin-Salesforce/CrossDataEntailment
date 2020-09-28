@@ -315,7 +315,7 @@ class PrototypeNet(nn.Module):
         return score_matrix
 
 
-def get_GAP_as_train_k_shot(self, filename, k_shot):
+def get_GAP_as_train_k_shot(filename, k_shot, seed):
     '''
     selected_examples: [(idd, premise, hypy_A, entity_A_label, hypy_B, entity_B_label)]
     '''

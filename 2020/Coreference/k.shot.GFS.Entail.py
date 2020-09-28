@@ -434,7 +434,6 @@ def get_MNLI_train(filename, k_shot):
         if ex not in set(kshot_entail+kshot_neural+kshot_contra):
             remaining_examples.append(ex)
 
-
     assert len(kshot_entail)+len(kshot_neural)+len(kshot_contra)+len(remaining_examples)==len(examples_entail+examples_neural+examples_contra)
     return kshot_entail, kshot_neural, kshot_contra, remaining_examples[:1000]
 
@@ -453,7 +452,7 @@ def examples_to_features(source_examples, label_list, entity_label_list, args, t
 
     dev_all_idd = torch.tensor([f.id for f in source_features], dtype=torch.long)
     dev_all_input_ids = torch.tensor([f.input_ids for f in source_features], dtype=torch.long)
-    dev_all_input_mask = torch.tensor([f.input_mask for f in source_features], dtype=torch.float)
+    dev_all_input_mask = torch.tensor([f.input_mask for f in source_features], dtype=torch.long)
     dev_all_segment_ids = torch.tensor([f.segment_ids for f in source_features], dtype=torch.long)
     dev_all_label_ids = torch.tensor([f.label_id for f in source_features], dtype=torch.long)
     dev_all_entity_label_ids = torch.tensor([f.entity_label_id for f in source_features], dtype=torch.long)
@@ -927,15 +926,19 @@ def main():
                     input_indices, input_ids, input_mask, segment_ids, _, label_ids = batch
                     input_ids = input_ids.to(device)
                     input_mask = input_mask.to(device)
-                    print('input_mask:', input_mask)
                     segment_ids = segment_ids.to(device)
                     label_ids = label_ids.to(device)
                     example_ids = list(input_indices.numpy())
                     example_id_list+=example_ids
                     gold_label_ids+=list(label_ids.detach().cpu().numpy())
 
+                    roberta_model.eval()
                     with torch.no_grad():
-                        logits = protonet(input_ids, input_mask)
+                        last_hidden_target_batch, logits_from_source = roberta_model(input_ids, input_mask)
+
+                    with torch.no_grad():
+                        logits = protonet(class_prototype_reps, last_hidden_target_batch)
+
                     if len(preds) == 0:
                         preds.append(logits.detach().cpu().numpy())
                     else:
@@ -984,8 +987,13 @@ def main():
                         example_id_list+=example_ids
                         gold_label_ids+=list(label_ids.detach().cpu().numpy())
 
+                        roberta_model.eval()
                         with torch.no_grad():
-                            logits = protonet(input_ids, input_mask)
+                            last_hidden_target_batch, logits_from_source = roberta_model(input_ids, input_mask)
+
+                        with torch.no_grad():
+                            logits = protonet(class_prototype_reps, last_hidden_target_batch)
+
                         if len(preds) == 0:
                             preds.append(logits.detach().cpu().numpy())
                         else:

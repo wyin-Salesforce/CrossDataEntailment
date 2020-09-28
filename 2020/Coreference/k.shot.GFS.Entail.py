@@ -434,6 +434,7 @@ def get_MNLI_train(filename, k_shot):
         if ex not in set(kshot_entail+kshot_neural+kshot_contra):
             remaining_examples.append(ex)
 
+    remaining_examples = remaining_examples[:1000]
     assert len(kshot_entail)+len(kshot_neural)+len(kshot_contra)+len(remaining_examples)==len(examples_entail+examples_neural+examples_contra)
     return kshot_entail, kshot_neural, kshot_contra, remaining_examples
 

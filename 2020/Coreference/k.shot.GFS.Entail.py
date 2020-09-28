@@ -915,7 +915,7 @@ def main():
                 '''
 
                 logger.info("***** Running dev *****")
-                logger.info("  Num examples = %d", len(dev_examples))
+                logger.info("  Num examples = %d", len(target_dev_examples))
 
                 eval_loss = 0
                 nb_eval_steps = 0
@@ -965,7 +965,7 @@ def main():
 
                     '''eval on test set'''
                     logger.info("***** Running test *****")
-                    logger.info("  Num examples = %d", len(test_examples))
+                    logger.info("  Num examples = %d", len(target_test_examples))
 
                     eval_loss = 0
                     nb_eval_steps = 0

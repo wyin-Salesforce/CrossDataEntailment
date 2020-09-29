@@ -30,8 +30,8 @@ from transformers.optimization import AdamW
 from transformers.modeling_roberta import RobertaModel#RobertaForSequenceClassification
 
 
-from preprocess import load_GAP_coreference_data
-from gap_scorer_modified import run_scorer
+from load_MCTest import load_MCTest
+
 
 logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt = '%m/%d/%Y %H:%M:%S',

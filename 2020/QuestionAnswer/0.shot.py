@@ -541,6 +541,7 @@ def main():
     hit_size = 0
     for pair_id, predgoldlist in pairID_2_predgoldlist.items():
         predgoldlist.sort(key=lambda x:x[0]) #sort by prob
+        print(pair_id, predgoldlist)
         if predgoldlist[-1][1] == 0:
             hit_size+=1
     acc= hit_size/total_size

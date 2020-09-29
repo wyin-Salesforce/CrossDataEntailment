@@ -751,6 +751,7 @@ def main():
 
             '''first get representations for support examples in target'''
             kshot_entail_reps = []
+            ii=0
             for entail_batch in target_kshot_entail_dataloader:
                 # entail_batch = tuple(t.to(device) for t in entail_batch)
                 # _, input_ids, input_mask, segment_ids, label_ids = entail_batch
@@ -758,6 +759,8 @@ def main():
                 # with torch.no_grad():
                 last_hidden_entail, _ = roberta_model(entail_batch[1].to(device), entail_batch[2].to(device))
                 kshot_entail_reps.append(torch.mean(last_hidden_entail,dim=0, keepdim=True))
+                ii+=1
+                print('ii:', ii)
             all_kshot_entail_reps = torch.cat(kshot_entail_reps, dim=0)
             kshot_entail_rep = torch.mean(all_kshot_entail_reps, dim=0, keepdim=True)
             kshot_nonentail_reps = []

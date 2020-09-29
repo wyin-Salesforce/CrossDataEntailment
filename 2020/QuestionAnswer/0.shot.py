@@ -532,7 +532,7 @@ def main():
 
     pairID_2_predgoldlist = {}
     for pair_id, prob, gold_id in zip(gold_pair_ids, pred_probs, gold_label_ids):
-        predgoldlist = pairID_2_predgold.get(pair_id)
+        predgoldlist = pairID_2_predgoldlist.get(pair_id)
         if predgoldlist is None:
             predgoldlist = []
         predgoldlist.append((prob, gold_id))

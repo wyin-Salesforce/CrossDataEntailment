@@ -373,13 +373,13 @@ def get_MNLI_train(filename, k_shot):
 
             if label == 'entailment':
                 examples_entail.append(
-                    InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+                    InputExample(guid=line_co-1, text_a=text_a, text_b=text_b, label=label, entity_label='B-coref'))
             elif label == 'neutral':
                 examples_neural.append(
-                    InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+                    InputExample(guid=line_co-1, text_a=text_a, text_b=text_b, label=label, entity_label='B-coref'))
             else:
                 examples_contra.append(
-                    InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+                    InputExample(guid=line_co-1, text_a=text_a, text_b=text_b, label=label, entity_label='B-coref'))
         line_co+=1
     readfile.close()
     print('loaded  MNLI size:', len(examples_entail)+len(examples_neural)+len(examples_contra))

@@ -7,7 +7,7 @@ def load_MCTest():
     for pair in root.findall('pair'):
         premise = pair.find('t').text
         hypothesis = pair.find('h').text
-        label = pair.entailment
+        label = pair.attrib.get('entailment')
         print(premise)
         print(hypothesis)
         print('label:', label)

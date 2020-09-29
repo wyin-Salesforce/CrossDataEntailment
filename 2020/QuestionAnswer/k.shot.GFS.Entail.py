@@ -712,33 +712,40 @@ def main():
             '''
             retrieve rep for support examples in MNLI
             '''
-            kshot_entail_reps = []
+            # kshot_entail_reps = []
+            kshot_entail_reps = torch.zeros(1, bert_hidden_dim).to(device)
+            entail_batch_i = 0
             for entail_batch in source_kshot_entail_dataloader:
                 entail_batch = tuple(t.to(device) for t in entail_batch)
                 _, input_ids, input_mask, segment_ids, label_ids = entail_batch
                 roberta_model.train()
                 # with torch.no_grad():
                 last_hidden_entail, _ = roberta_model(input_ids, input_mask)
-                kshot_entail_reps.append(torch.mean(last_hidden_entail,dim=0, keepdim=True))
-            kshot_entail_rep = torch.mean(torch.cat(kshot_entail_reps, dim=0), dim=0, keepdim=True)
-            kshot_neural_reps = []
+                kshot_entail_reps+=torch.mean(last_hidden_entail,dim=0, keepdim=True)
+                entail_batch_i+=1
+            kshot_entail_rep /= entail_batch_i
+            kshot_neural_reps  = torch.zeros(1, bert_hidden_dim).to(device)
+            neural_batch_i = 0
             for neural_batch in source_kshot_neural_dataloader:
                 neural_batch = tuple(t.to(device) for t in neural_batch)
                 _, input_ids, input_mask, segment_ids, label_ids = neural_batch
                 roberta_model.train()
                 # with torch.no_grad():
                 last_hidden_neural, _ = roberta_model(input_ids, input_mask)
-                kshot_neural_reps.append(torch.mean(last_hidden_neural,dim=0, keepdim=True))
-            kshot_neural_rep = torch.mean(torch.cat(kshot_neural_reps, dim=0), dim=0, keepdim=True)
-            kshot_contra_reps = []
+                kshot_neural_reps+= torch.mean(last_hidden_neural,dim=0, keepdim=True)
+                neural_batch_i+=1
+            kshot_neural_rep /= neural_batch_i
+            kshot_contra_reps = torch.zeros(1, bert_hidden_dim).to(device)
+            contra_batch_i = 0
             for contra_batch in source_kshot_contra_dataloader:
                 contra_batch = tuple(t.to(device) for t in contra_batch)
                 _, input_ids, input_mask, segment_ids, label_ids = contra_batch
                 roberta_model.train()
                 # with torch.no_grad():
                 last_hidden_contra, _ = roberta_model(input_ids, input_mask)
-                kshot_contra_reps.append(torch.mean(last_hidden_contra,dim=0, keepdim=True))
-            kshot_contra_rep = torch.mean(torch.cat(kshot_contra_reps, dim=0), dim=0, keepdim=True)
+                kshot_contra_reps+=torch.mean(last_hidden_contra,dim=0, keepdim=True)
+                contra_batch_i+=1
+            kshot_contra_rep /= contra_batch_i
 
             source_class_prototype_reps = torch.cat([kshot_entail_rep, kshot_neural_rep, kshot_contra_rep], dim=0) #(3, hidden)
 
@@ -811,9 +818,10 @@ def main():
             global_step += 1
             iter_co+=1
             '''print loss'''
-            # if iter_co %5==0:
-            #     print('iter_co:', iter_co, ' mean loss', tr_loss/iter_co)
-            #     print('source_loss_list:', source_loss/iter_co, ' target_loss_list: ', target_loss/iter_co)
+            if iter_co %1==0:
+                print('iter_co:', iter_co, ' mean loss', tr_loss/iter_co)
+                print('source_loss_list:', source_loss/iter_co, ' target_loss_list: ', target_loss/iter_co)
+            exit(0)
             if iter_co %1==0:
                 # if iter_co % len(source_remain_ex_dataloader)==0:
                 '''

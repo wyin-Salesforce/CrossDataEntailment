@@ -42,9 +42,7 @@ from transformers.tokenization_roberta import RobertaTokenizer
 from transformers.optimization import AdamW
 from transformers.modeling_roberta import RobertaModel#RobertaForSequenceClassification
 
-# from transformers.modeling_bert import BertModel
-# from transformers.tokenization_bert import BertTokenizer
-# from bert_common_functions import store_transformers_models
+from load_MCTest import load_MCTest
 
 logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt = '%m/%d/%Y %H:%M:%S',
@@ -119,7 +117,8 @@ class InputExample(object):
 class InputFeatures(object):
     """A single set of features of data."""
 
-    def __init__(self, input_ids, input_mask, segment_ids, label_id):
+    def __init__(self, input_pair_id, input_ids, input_mask, segment_ids, label_id):
+        self.input_pair_id = input_pair_id
         self.input_ids = input_ids
         self.input_mask = input_mask
         self.segment_ids = segment_ids
@@ -148,29 +147,23 @@ class DataProcessor(object):
 class RteProcessor(DataProcessor):
     """Processor for the RTE data set (GLUE version)."""
 
-    def get_SciTail_dev_and_test(self, train_filename, dev_filename):
-        '''
-        classes: entails, neutral
-        '''
+    def get_MCTest_dev_and_test(self, train_filename, dev_filename):
         examples_per_file = []
         for filename in [train_filename, dev_filename]:
-            examples=[]
-            readfile = codecs.open(filename, 'r', 'utf-8')
-            line_co=0
-            for row in readfile:
 
-                line=row.strip().split('\t')
-                if len(line) == 3:
-                    guid = "train-"+str(line_co-1)
-                    # text_a = 'SciTail. '+line[0].strip()
-                    text_a = line[0].strip()
-                    text_b = line[1].strip()
-                    label = line[2].strip()
+            examples=[]
+            instances = load_MCTest(filename)
+            doc_id = 0
+            for premise, hypolist in instances.items():
+                for hypo_and_label in hypolist:
+                    hypo, label = hypo_and_label
+                    guid = doc_id
                     examples.append(
-                        InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+                        InputExample(guid=guid, text_a=premise, text_b=hypo, label=label))
+                doc_id +=1
 
             readfile.close()
-            print('loaded  SciTail size:', len(examples))
+            print('loaded  MCTest size:', len(examples))
             examples_per_file.append(examples)
         return examples_per_file[0], examples_per_file[1] #train, dev
 
@@ -312,7 +305,8 @@ def convert_examples_to_features(examples, label_list, max_seq_length,
         #     logger.info("label: %s (id = %d)" % (example.label, label_id))
 
         features.append(
-                InputFeatures(input_ids=input_ids,
+                InputFeatures(input_pair_id = example.guid
+                              input_ids=input_ids,
                               input_mask=input_mask,
                               segment_ids=segment_ids,
                               label_id=label_id))
@@ -464,13 +458,11 @@ def main():
     processor = processors[task_name]()
     output_mode = output_modes[task_name]
 
-    scitail_path = '/export/home/Dataset/SciTailV1/tsv_format/'
+    mctest_path = '/export/home/Dataset/MCTest/Statements/'
     # train_examples = processor.get_SciTail_as_train_k_shot(scitail_path+'scitail_1.0_train.tsv', args.kshot) #train_pu_half_v1.txt
-    _, test_examples = processor.get_SciTail_dev_and_test(scitail_path+'scitail_1.0_dev.tsv', scitail_path+'scitail_1.0_test.tsv')
+    _, test_examples = processor.get_MCTest_dev_and_test(mctest_path+'mc500.dev.statements.pairs', mctest_path+'mc500.test.statements.pairs')
 
-    # dev_examples = processor.get_RTE_as_dev('/export/home/Dataset/glue_data/RTE/dev.tsv')
-    # test_examples = processor.get_RTE_as_test('/export/home/Dataset/RTE/test_RTE_1235.txt')
-    label_list = ["entails", "neutral"]
+    label_list = ["ENTAILMENT", "UNKNOWN"]
     # train_examples = get_data_hulu_fewshot('train', 5)
 
     num_labels = len(label_list)
@@ -493,12 +485,13 @@ def main():
         pad_token=tokenizer.convert_tokens_to_ids([tokenizer.pad_token])[0],
         pad_token_segment_id=0)#4 if args.model_type in ['xlnet'] else 0,)
 
+    eval_all_pair_ids = torch.tensor([f.input_pair_id for f in test_features], dtype=torch.long)
     eval_all_input_ids = torch.tensor([f.input_ids for f in test_features], dtype=torch.long)
     eval_all_input_mask = torch.tensor([f.input_mask for f in test_features], dtype=torch.long)
     eval_all_segment_ids = torch.tensor([f.segment_ids for f in test_features], dtype=torch.long)
     eval_all_label_ids = torch.tensor([f.label_id for f in test_features], dtype=torch.long)
 
-    eval_data = TensorDataset(eval_all_input_ids, eval_all_input_mask, eval_all_segment_ids, eval_all_label_ids)
+    eval_data = TensorDataset(eval_all_pair_ids, eval_all_input_ids, eval_all_input_mask, eval_all_segment_ids, eval_all_label_ids)
     eval_sampler = SequentialSampler(eval_data)
     test_dataloader = DataLoader(eval_data, sampler=eval_sampler, batch_size=args.eval_batch_size)
 
@@ -515,11 +508,12 @@ def main():
     nb_eval_steps = 0
     preds = []
     gold_label_ids = []
-    # print('Evaluating...')
-    for input_ids, input_mask, segment_ids, label_ids in test_dataloader:
+    gold_pair_ids = []
+    for input_pair_ids, input_ids, input_mask, segment_ids, label_ids in test_dataloader:
         input_ids = input_ids.to(device)
         input_mask = input_mask.to(device)
         segment_ids = segment_ids.to(device)
+        gold_pair_ids+= list(input_pair_ids.numpy())
         label_ids = label_ids.to(device)
         gold_label_ids+=list(label_ids.detach().cpu().numpy())
 
@@ -532,24 +526,26 @@ def main():
 
     preds = preds[0]
 
-    pred_probs = softmax(preds,axis=1)
-    pred_label_ids_3way = list(np.argmax(pred_probs, axis=1))
-    pred_label_ids = []
-    for pred_id in pred_label_ids_3way:
-        if pred_id !=0:
-            pred_label_ids.append(1)
-        else:
-            pred_label_ids.append(0)
+    pred_probs = list(softmax(preds,axis=1)[:,0]) #entail prob
 
+    assert len(gold_pair_ids) == len(pred_probs)
+    assert len(gold_pair_ids) == len(gold_label_ids)
 
-    gold_label_ids = gold_label_ids
-    assert len(pred_label_ids) == len(gold_label_ids)
-    hit_co = 0
-    for k in range(len(pred_label_ids)):
-        if pred_label_ids[k] == gold_label_ids[k]:
-            hit_co +=1
-    test_acc = hit_co/len(gold_label_ids)
-    print('test_acc:', test_acc)
+    pairID_2_predgoldlist = {}
+    for pair_id, prob, gold_id in zip(gold_pair_ids, pred_probs, gold_label_ids):
+        predgoldlist = pairID_2_predgold.get(pair_id)
+        if predgoldlist is None:
+            predgoldlist = []
+        predgoldlist.append((prob, gold_id))
+        pairID_2_predgoldlist[pair_id] = predgoldlist
+    total_size = len(pairID_2_predgoldlist)
+    hit_size = 0
+    for pair_id, predgoldlist in pairID_2_predgoldlist.items():
+        predgoldlist.sort(key=lambda x:x[0]) #sort by prob
+        if predgoldlist[-1][1] == 0:
+            hit_size+=1
+    acc= hit_size/total_size
+    print('test acc:', acc)
 
 
 

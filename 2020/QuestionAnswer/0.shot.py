@@ -153,16 +153,18 @@ class RteProcessor(DataProcessor):
 
             examples=[]
             instances = load_MCTest(filename)
-            doc_id = 0
+            question_id = 0
             for premise, hypolist in instances.items():
-                for hypo_and_label in hypolist:
+                assert len(hypolist) ==  16
+                for idd, hypo_and_label in enumerate(hypolist):
+                    if idd > 0 and idd % 4 ==0:
+                        question_id+=1
                     hypo, label = hypo_and_label
-                    guid = doc_id
                     examples.append(
-                        InputExample(guid=guid, text_a=premise, text_b=hypo, label=label))
-                doc_id +=1
+                        InputExample(guid=question_id, text_a=premise, text_b=hypo, label=label))
 
-            print('loaded  MCTest size:', len(examples))
+
+            print('loaded  MCTest size:', len(examples), 'question size:', question_id)
             examples_per_file.append(examples)
         return examples_per_file[0], examples_per_file[1] #train, dev
 

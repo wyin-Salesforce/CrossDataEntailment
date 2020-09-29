@@ -723,7 +723,7 @@ def main():
                 last_hidden_entail, _ = roberta_model(input_ids, input_mask)
                 kshot_entail_reps+=torch.mean(last_hidden_entail,dim=0, keepdim=True)
                 entail_batch_i+=1
-            kshot_entail_reps /= entail_batch_i
+            kshot_entail_rep =  kshot_entail_reps/ entail_batch_i
             kshot_neural_reps  = torch.zeros(1, bert_hidden_dim).to(device)
             neural_batch_i = 0
             for neural_batch in source_kshot_neural_dataloader:
@@ -734,7 +734,7 @@ def main():
                 last_hidden_neural, _ = roberta_model(input_ids, input_mask)
                 kshot_neural_reps+= torch.mean(last_hidden_neural,dim=0, keepdim=True)
                 neural_batch_i+=1
-            kshot_neural_reps /= neural_batch_i
+            kshot_neural_rep =  kshot_neural_reps/neural_batch_i
             kshot_contra_reps = torch.zeros(1, bert_hidden_dim).to(device)
             contra_batch_i = 0
             for contra_batch in source_kshot_contra_dataloader:
@@ -745,7 +745,7 @@ def main():
                 last_hidden_contra, _ = roberta_model(input_ids, input_mask)
                 kshot_contra_reps+=torch.mean(last_hidden_contra,dim=0, keepdim=True)
                 contra_batch_i+=1
-            kshot_contra_reps /= contra_batch_i
+            kshot_contra_rep = kshot_contra_reps/ contra_batch_i
 
             source_class_prototype_reps = torch.cat([kshot_entail_rep, kshot_neural_rep, kshot_contra_rep], dim=0) #(3, hidden)
 

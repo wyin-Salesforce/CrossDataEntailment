@@ -1,5 +1,5 @@
-export SHOT=5 #1, 3, 5, 10, 0
-export BATCHSIZE=5 #2, 2, 5, 8, 8
+export SHOT=3 #1, 3, 5, 10, 0
+export BATCHSIZE=4 #2, 2, 5, 8, 8
 export EPOCHSIZE=20 #only need max 10 epochs
 export LEARNINGRATE=1e-6
 export MAXLEN=250

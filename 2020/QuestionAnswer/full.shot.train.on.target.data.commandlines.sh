@@ -1,4 +1,4 @@
-export SHOT=0 #1, 3, 5, 10, 0
+export SHOT=10 #1, 3, 5, 10, 0
 export BATCHSIZE=8 #2, 3, 5, 2, 32
 export EPOCHSIZE=20
 export LEARNINGRATE=1e-6

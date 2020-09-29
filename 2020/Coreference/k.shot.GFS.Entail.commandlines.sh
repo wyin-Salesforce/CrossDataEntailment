@@ -64,6 +64,6 @@ CUDA_VISIBLE_DEVICES=4 python -u k.shot.GFS.Entail.py \
     --eval_batch_size 64 \
     --learning_rate $LEARNINGRATE \
     --max_seq_length $MAXLEN \
-    --seed 256 \
+    --seed 128 \
     --update_BERT_top_layers $UPDATEBERTLAYERS \
     --kshot $SHOT > log.Coref.GFS.Entail.$SHOT.shot.seed.128.txt 2>&1 &

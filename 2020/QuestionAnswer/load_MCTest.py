@@ -5,7 +5,7 @@ def load_MCTest():
     tree = ET.parse(path+'mc500.train.statements.pairs')
     root = tree.getroot()
     for child in root:
-        print child
+        print(child)
         exit(0)
 
 if __name__ == "__main__":

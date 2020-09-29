@@ -41,6 +41,7 @@ from scipy.special import softmax
 from transformers.tokenization_roberta import RobertaTokenizer
 from transformers.optimization import AdamW
 from transformers.modeling_roberta import RobertaModel#RobertaForSequenceClassification
+from torch.nn import functional as F
 
 from load_MCTest import load_MCTest
 

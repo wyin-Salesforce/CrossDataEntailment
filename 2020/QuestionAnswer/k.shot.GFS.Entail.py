@@ -716,33 +716,33 @@ def main():
             kshot_entail_reps = torch.zeros(1, bert_hidden_dim).to(device)
             entail_batch_i = 0
             for entail_batch in source_kshot_entail_dataloader:
-                entail_batch = tuple(t.to(device) for t in entail_batch)
-                _, input_ids, input_mask, segment_ids, label_ids = entail_batch
+                # entail_batch = tuple(t.to(device) for t in entail_batch)
+                # _, input_ids, input_mask, segment_ids, label_ids = entail_batch
                 roberta_model.train()
                 # with torch.no_grad():
-                last_hidden_entail, _ = roberta_model(input_ids, input_mask)
+                last_hidden_entail, _ = roberta_model(entail_batch[1].to(device), entail_batch[2].to(device))
                 kshot_entail_reps+=torch.mean(last_hidden_entail,dim=0, keepdim=True)
                 entail_batch_i+=1
             kshot_entail_rep =  kshot_entail_reps/ entail_batch_i
             kshot_neural_reps  = torch.zeros(1, bert_hidden_dim).to(device)
             neural_batch_i = 0
             for neural_batch in source_kshot_neural_dataloader:
-                neural_batch = tuple(t.to(device) for t in neural_batch)
-                _, input_ids, input_mask, segment_ids, label_ids = neural_batch
+                # neural_batch = tuple(t.to(device) for t in neural_batch)
+                # _, input_ids, input_mask, segment_ids, label_ids = neural_batch
                 roberta_model.train()
                 # with torch.no_grad():
-                last_hidden_neural, _ = roberta_model(input_ids, input_mask)
+                last_hidden_neural, _ = roberta_model(neural_batch[1].to(device), neural_batch[2].to(device))
                 kshot_neural_reps+= torch.mean(last_hidden_neural,dim=0, keepdim=True)
                 neural_batch_i+=1
             kshot_neural_rep =  kshot_neural_reps/neural_batch_i
             kshot_contra_reps = torch.zeros(1, bert_hidden_dim).to(device)
             contra_batch_i = 0
             for contra_batch in source_kshot_contra_dataloader:
-                contra_batch = tuple(t.to(device) for t in contra_batch)
-                _, input_ids, input_mask, segment_ids, label_ids = contra_batch
+                # contra_batch = tuple(t.to(device) for t in contra_batch)
+                # _, input_ids, input_mask, segment_ids, label_ids = contra_batch
                 roberta_model.train()
                 # with torch.no_grad():
-                last_hidden_contra, _ = roberta_model(input_ids, input_mask)
+                last_hidden_contra, _ = roberta_model(contra_batch[1].to(device), contra_batch[2].to(device))
                 kshot_contra_reps+=torch.mean(last_hidden_contra,dim=0, keepdim=True)
                 contra_batch_i+=1
             kshot_contra_rep = kshot_contra_reps/ contra_batch_i
@@ -752,21 +752,21 @@ def main():
             '''first get representations for support examples in target'''
             kshot_entail_reps = []
             for entail_batch in target_kshot_entail_dataloader:
-                entail_batch = tuple(t.to(device) for t in entail_batch)
-                _, input_ids, input_mask, segment_ids, label_ids = entail_batch
+                # entail_batch = tuple(t.to(device) for t in entail_batch)
+                # _, input_ids, input_mask, segment_ids, label_ids = entail_batch
                 roberta_model.train()
                 # with torch.no_grad():
-                last_hidden_entail, _ = roberta_model(input_ids, input_mask)
+                last_hidden_entail, _ = roberta_model(entail_batch[1].to(device), entail_batch[2].to(device))
                 kshot_entail_reps.append(torch.mean(last_hidden_entail,dim=0, keepdim=True))
             all_kshot_entail_reps = torch.cat(kshot_entail_reps, dim=0)
             kshot_entail_rep = torch.mean(all_kshot_entail_reps, dim=0, keepdim=True)
             kshot_nonentail_reps = []
             for nonentail_batch in target_kshot_nonentail_dataloader:
-                nonentail_batch = tuple(t.to(device) for t in nonentail_batch)
-                _, input_ids, input_mask, segment_ids, label_ids = nonentail_batch
+                # nonentail_batch = tuple(t.to(device) for t in nonentail_batch)
+                # _, input_ids, input_mask, segment_ids, label_ids = nonentail_batch
                 roberta_model.train()
                 # with torch.no_grad():
-                last_hidden_nonentail, _ = roberta_model(input_ids, input_mask)
+                last_hidden_nonentail, _ = roberta_model(nonentail_batch[1].to(device), nonentail_batch[2].to(device))
                 kshot_nonentail_reps.append(torch.mean(last_hidden_nonentail,dim=0, keepdim=True))
             all_kshot_neural_reps = torch.cat(kshot_nonentail_reps, dim=0)
             kshot_nonentail_rep = torch.mean(all_kshot_neural_reps, dim=0, keepdim=True)
@@ -864,21 +864,22 @@ def main():
                 '''first get representations for support examples in target'''
                 kshot_entail_reps = []
                 for entail_batch in target_kshot_entail_dataloader:
-                    entail_batch = tuple(t.to(device) for t in entail_batch)
-                    _, input_ids, input_mask, segment_ids, label_ids = entail_batch
+                    # entail_batch = tuple(t.to(device) for t in entail_batch)
+                    # _, input_ids, input_mask, _, _ = entail_batch
+                    # input_ids = input_ids
                     roberta_model.eval()
                     with torch.no_grad():
-                        last_hidden_entail, _ = roberta_model(input_ids, input_mask)
+                        last_hidden_entail, _ = roberta_model(entail_batch[1].to(device), entail_batch[2].to(device))
                     kshot_entail_reps.append(torch.mean(last_hidden_entail,dim=0, keepdim=True))
                 all_kshot_entail_reps = torch.cat(kshot_entail_reps, dim=0)
                 kshot_entail_rep = torch.mean(all_kshot_entail_reps, dim=0, keepdim=True)
                 kshot_nonentail_reps = []
                 for nonentail_batch in target_kshot_nonentail_dataloader:
-                    nonentail_batch = tuple(t.to(device) for t in nonentail_batch)
-                    _, input_ids, input_mask, segment_ids, label_ids = nonentail_batch
+                    # nonentail_batch = tuple(t.to(device) for t in nonentail_batch)
+                    # _, input_ids, input_mask, segment_ids, label_ids = nonentail_batch
                     roberta_model.eval()
                     with torch.no_grad():
-                        last_hidden_nonentail, _ = roberta_model(input_ids, input_mask)
+                        last_hidden_nonentail, _ = roberta_model(entail_batch[1].to(device), entail_batch[2].to(device))
                     kshot_nonentail_reps.append(torch.mean(last_hidden_nonentail,dim=0, keepdim=True))
                 all_kshot_neural_reps = torch.cat(kshot_nonentail_reps, dim=0)
                 kshot_nonentail_rep = torch.mean(all_kshot_neural_reps, dim=0, keepdim=True)

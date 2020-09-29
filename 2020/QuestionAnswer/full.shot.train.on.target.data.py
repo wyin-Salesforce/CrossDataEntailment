@@ -191,7 +191,7 @@ class RteProcessor(DataProcessor):
 
 
             assert question_id * 4 == len(examples)
-            assert question_id//4 = len(instances)
+            assert question_id//4 == len(instances)
             print('loaded  MCTest size:', len(examples), 'question size:', question_id)
             examples_per_file.append(examples)
         return examples_per_file[0], examples_per_file[1] #train, dev

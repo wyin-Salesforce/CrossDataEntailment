@@ -162,7 +162,6 @@ class RteProcessor(DataProcessor):
                         InputExample(guid=guid, text_a=premise, text_b=hypo, label=label))
                 doc_id +=1
 
-            readfile.close()
             print('loaded  MCTest size:', len(examples))
             examples_per_file.append(examples)
         return examples_per_file[0], examples_per_file[1] #train, dev

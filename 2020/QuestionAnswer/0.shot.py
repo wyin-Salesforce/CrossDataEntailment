@@ -157,11 +157,12 @@ class RteProcessor(DataProcessor):
             for premise, hypolist in instances.items():
                 assert len(hypolist) ==  16
                 for idd, hypo_and_label in enumerate(hypolist):
-                    if idd > 0 and idd % 4 ==0:
+                    if idd % 4 ==0:
                         question_id+=1
                     hypo, label = hypo_and_label
                     examples.append(
                         InputExample(guid=question_id, text_a=premise, text_b=hypo, label=label))
+
 
 
             print('loaded  MCTest size:', len(examples), 'question size:', question_id)

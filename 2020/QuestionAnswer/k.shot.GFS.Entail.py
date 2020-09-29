@@ -683,8 +683,8 @@ def main():
     source_kshot_contra_dataloader = examples_to_features(source_kshot_contra, source_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
     source_remain_ex_dataloader = examples_to_features(source_remaining_examples, source_label_list, args, tokenizer, args.train_batch_size, "classification", dataloader_mode='random')
 
-    # target_kshot_entail_dataloader = examples_to_features(target_kshot_entail_examples, target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
-    # target_kshot_nonentail_dataloader = examples_to_features(target_kshot_nonentail_examples, target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
+    target_kshot_entail_dataloader = examples_to_features(target_kshot_entail_examples, target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
+    target_kshot_nonentail_dataloader = examples_to_features(target_kshot_nonentail_examples, target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
     target_dev_dataloader = examples_to_features(target_dev_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
     target_test_dataloader = examples_to_features(target_test_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
 
@@ -750,23 +750,20 @@ def main():
             source_class_prototype_reps = torch.cat([kshot_entail_rep, kshot_neural_rep, kshot_contra_rep], dim=0) #(3, hidden)
 
             '''first get representations for support examples in target'''
-            target_kshot_entail_dataloader = examples_to_features(random.sample(target_kshot_entail_examples, args.kshot), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
-            target_kshot_nonentail_dataloader = examples_to_features(random.sample(target_kshot_nonentail_examples, args.kshot), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
+            target_kshot_entail_dataloader_subset = examples_to_features(random.sample(target_kshot_entail_examples, args.kshot), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
+            target_kshot_nonentail_dataloader_subset = examples_to_features(random.sample(target_kshot_nonentail_examples, args.kshot), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
             kshot_entail_reps = []
-            ii=0
-            for entail_batch in target_kshot_entail_dataloader:
+            for entail_batch in target_kshot_entail_dataloader_subset:
                 # entail_batch = tuple(t.to(device) for t in entail_batch)
                 # _, input_ids, input_mask, segment_ids, label_ids = entail_batch
                 roberta_model.train()
                 # with torch.no_grad():
                 last_hidden_entail, _ = roberta_model(entail_batch[1].to(device), entail_batch[2].to(device))
                 kshot_entail_reps.append(torch.mean(last_hidden_entail,dim=0, keepdim=True))
-                ii+=1
-                print('ii:', ii)
             all_kshot_entail_reps = torch.cat(kshot_entail_reps, dim=0)
             kshot_entail_rep = torch.mean(all_kshot_entail_reps, dim=0, keepdim=True)
             kshot_nonentail_reps = []
-            for nonentail_batch in target_kshot_nonentail_dataloader:
+            for nonentail_batch in target_kshot_nonentail_dataloader_subset:
                 # nonentail_batch = tuple(t.to(device) for t in nonentail_batch)
                 # _, input_ids, input_mask, segment_ids, label_ids = nonentail_batch
                 roberta_model.train()
@@ -822,11 +819,11 @@ def main():
 
             global_step += 1
             iter_co+=1
-            '''print loss'''
-            if iter_co %1==0:
-                print('iter_co:', iter_co, ' mean loss', tr_loss/iter_co)
-                print('source_loss_list:', source_loss/iter_co, ' target_loss_list: ', target_loss/iter_co)
-            exit(0)
+            # '''print loss'''
+            # if iter_co %1==0:
+            #     print('iter_co:', iter_co, ' mean loss', tr_loss/iter_co)
+            #     print('source_loss_list:', source_loss/iter_co, ' target_loss_list: ', target_loss/iter_co)
+            # exit(0)
             if iter_co %1==0:
                 # if iter_co % len(source_remain_ex_dataloader)==0:
                 '''

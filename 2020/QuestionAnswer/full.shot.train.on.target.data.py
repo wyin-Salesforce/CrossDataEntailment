@@ -42,9 +42,7 @@ from transformers.tokenization_roberta import RobertaTokenizer
 from transformers.optimization import AdamW
 from transformers.modeling_roberta import RobertaModel#RobertaForSequenceClassification
 
-# from transformers.modeling_bert import BertModel
-# from transformers.tokenization_bert import BertTokenizer
-# from bert_common_functions import store_transformers_models
+from load_MCTest import load_MCTest
 
 logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt = '%m/%d/%Y %H:%M:%S',

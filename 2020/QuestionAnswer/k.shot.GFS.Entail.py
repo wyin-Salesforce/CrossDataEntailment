@@ -326,7 +326,7 @@ class PrototypeNet(nn.Module):
         return score_matrix
 
 
-def get_MCTest_train(self, train_filename, k_shot):
+def get_MCTest_train(train_filename, k_shot):
     '''
     k_shot means we select k documents with question/answers
     '''

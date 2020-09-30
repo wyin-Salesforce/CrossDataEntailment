@@ -901,9 +901,7 @@ def main():
                             preds.append(logits.detach().cpu().numpy())
                         else:
                             preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
-
                     preds = preds[0]
-
                     pred_probs = list(softmax(preds,axis=1)[:,0]) #entail prob
 
                     assert len(gold_pair_ids) == len(pred_probs)

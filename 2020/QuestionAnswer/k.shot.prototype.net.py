@@ -375,7 +375,7 @@ def get_MNLI_train(filename, k_shot):
             remaining_examples.append(ex)
 
     assert len(kshot_entail)+len(kshot_neural)+len(kshot_contra)+len(remaining_examples)==len(examples_entail+examples_neural+examples_contra)
-    return kshot_entail, kshot_neural, kshot_contra, remaining_examples
+    return kshot_entail, kshot_neural, kshot_contra, remaining_examples[:1000]
 
 
 def examples_to_features(source_examples, label_list, args, tokenizer, batch_size, output_mode, dataloader_mode='sequential'):
@@ -510,15 +510,6 @@ def main():
     if n_gpu > 0:
         torch.cuda.manual_seed_all(args.seed)
 
-
-
-    # target_kshot_entail_examples, target_kshot_nonentail_examples = get_RTE_as_train_k_shot('/export/home/Dataset/glue_data/RTE/train.tsv', args.kshot) #train_pu_half_v1.txt
-    # target_dev_examples = get_RTE_as_dev('/export/home/Dataset/glue_data/RTE/dev.tsv')
-    # target_test_examples = get_RTE_as_test('/export/home/Dataset/RTE/test_RTE_1235.txt')
-
-    # scitail_path = '/export/home/Dataset/SciTailV1/tsv_format/'
-    # target_kshot_entail_examples, target_kshot_nonentail_examples = get_SciTail_as_train_k_shot(scitail_path+'scitail_1.0_train.tsv', args.kshot) #train_pu_half_v1.txt
-    # target_dev_examples, target_test_examples = get_SciTail_dev_and_test(scitail_path+'scitail_1.0_dev.tsv', scitail_path+'scitail_1.0_test.tsv')
 
     mctest_path = '/export/home/Dataset/MCTest/Statements/'
     target_kshot_entail_examples, target_kshot_nonentail_examples = get_MCTest_train(mctest_path+'mc500.train.statements.pairs', args.kshot) #train_pu_half_v1.txt

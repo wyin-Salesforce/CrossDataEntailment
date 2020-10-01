@@ -942,7 +942,7 @@ def main():
 
 
 
-            if iter_co == 50:#3000:
+            if iter_co == 40:#3000:
                 break
     print('final_test_performance:', final_test_performance)
 

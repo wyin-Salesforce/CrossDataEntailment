@@ -335,11 +335,7 @@ def get_MCTest_train(train_filename, k_shot):
     examples_non_entail =[]
 
     instances = load_MCTest(train_filename)
-    if k_shot == 0:
-        selected_keys = list(instances.keys())
-    else:
-        selected_keys = random.sample(list(instances.keys()), k_shot)
-
+    selected_keys = list(instances.keys())
     # for premise, hypolist in instances.items():
     for premise in selected_keys:
         hypolist = instances.get(premise)
@@ -353,6 +349,8 @@ def get_MCTest_train(train_filename, k_shot):
                 examples_non_entail.append(
                     InputExample(guid=0, text_a=premise, text_b=hypo, label=label))
 
+    examples_entail = random.sample(examples_entail, k_shot)
+    examples_non_entail = random.sample(examples_non_entail, k_shot*3)
     print('loaded  MCTest doc size:', len(selected_keys), 'entail size:', len(examples_entail), 'non_entail size:', len(examples_non_entail))
     return examples_entail, examples_non_entail
 
@@ -739,8 +737,8 @@ def main():
             source_class_prototype_reps = torch.cat([kshot_entail_rep, kshot_neural_rep, kshot_contra_rep], dim=0) #(3, hidden)
 
             '''first get representations for support examples in target'''
-            target_kshot_entail_dataloader_subset = examples_to_features(random.sample(target_kshot_entail_examples, args.kshot), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
-            target_kshot_nonentail_dataloader_subset = examples_to_features(random.sample(target_kshot_nonentail_examples, args.kshot), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
+            target_kshot_entail_dataloader_subset = target_kshot_entail_dataloader#examples_to_features(random.sample(target_kshot_entail_examples, args.kshot), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
+            target_kshot_nonentail_dataloader_subset = target_kshot_nonentail_dataloader#examples_to_features(random.sample(target_kshot_nonentail_examples, args.kshot), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
             kshot_entail_reps = []
             for entail_batch in target_kshot_entail_dataloader_subset:
                 roberta_model.train()

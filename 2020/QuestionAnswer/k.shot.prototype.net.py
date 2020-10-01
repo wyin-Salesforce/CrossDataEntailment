@@ -21,13 +21,11 @@ from tqdm import tqdm, trange
 from scipy.stats import beta
 from torch.nn import CrossEntropyLoss, MSELoss
 from scipy.special import softmax
-# from scipy.stats import pearsonr, spearmanr
-# from sklearn.metrics import matthews_corrcoef, f1_score
-
 from transformers.tokenization_roberta import RobertaTokenizer
 from transformers.optimization import AdamW
 from transformers.modeling_roberta import RobertaModel#RobertaForSequenceClassification
 
+from load_MCTest import load_MCTest
 
 logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt = '%m/%d/%Y %H:%M:%S',

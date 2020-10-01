@@ -934,7 +934,7 @@ def main():
                             max_test_acc = test_acc
 
                         final_test_performance = test_acc
-                        print('\ntest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
+                        print('\t\ntest acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
 
 
 

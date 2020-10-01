@@ -895,8 +895,8 @@ def main():
 
                         with torch.no_grad():
                             logits = protonet(class_prototype_reps, last_hidden_target_batch)
-                        '''add source logits'''
-                        logits = logits_from_source#F.softmax(logits, dim=1)+F.softmax(logits_from_source, dim=1)
+                        # '''add source logits'''
+                        # logits = logits_from_source#F.softmax(logits, dim=1)+F.softmax(logits_from_source, dim=1)
                         if len(preds) == 0:
                             preds.append(logits.detach().cpu().numpy())
                         else:

@@ -152,24 +152,30 @@ class RteProcessor(DataProcessor):
         k_shot means we select k documents with question/answers
         '''
 
-        examples=[]
-        instances = load_MCTest(train_filename)
-        if k_shot == 0:
-            selected_keys = list(instances.keys())
-        else:
-            selected_keys = random.sample(list(instances.keys()), k_shot)
+        examples_entail=[]
+        examples_non_entail =[]
 
+        instances = load_MCTest(train_filename)
+        selected_keys = list(instances.keys())
         # for premise, hypolist in instances.items():
         for premise in selected_keys:
             hypolist = instances.get(premise)
             assert len(hypolist) ==  16
             for idd, hypo_and_label in enumerate(hypolist):
                 hypo, label = hypo_and_label
-                examples.append(
-                    InputExample(guid=0, text_a=premise, text_b=hypo, label=label))
+                if label == 'ENTAILMENT':
+                    examples_entail.append(
+                        InputExample(guid=0, text_a=premise, text_b=hypo, label=label))
+                else:
+                    examples_non_entail.append(
+                        InputExample(guid=0, text_a=premise, text_b=hypo, label=label))
 
-        print('loaded  MCTest doc size:', len(selected_keys), 'pair size:', len(examples))
-        return examples
+        if k_shot == 0:
+            k_shot_examples = examples_entail+examples_non_entail
+        else:
+            k_shot_examples = random.sample(examples_entail, k_shot)+ random.sample(examples_non_entail, k_shot*3)
+        print('loaded  MCTest doc size:', len(selected_keys), 'selected pair size:', len(k_shot_examples))
+        return k_shot_examples
 
     def get_MCTest_dev_and_test(self, train_filename, dev_filename):
         examples_per_file = []

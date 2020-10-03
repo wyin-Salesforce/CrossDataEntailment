@@ -224,5 +224,15 @@ def load_OOS():
     print('size:', len(dev_examples), len(test_examples))
     return dev_examples, test_examples
 
+
+def load_FewRel_dev():
+    with open('/export/home/Dataset/FewRel.1.0/val_wiki.json') as json_file:
+        dev_data = json.load(json_file)
+        print(len(dev_data,keys()), dev_data.keys())
+
+
+
+
 if __name__ == "__main__":
-    load_CLINC150()
+    # load_CLINC150()
+    load_FewRel_dev()

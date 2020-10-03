@@ -226,6 +226,16 @@ def load_OOS():
 
 
 def load_FewRel_dev():
+    '''first load relation definicatinos'''
+    relation_2_desc = {}
+    with open('/export/home/Dataset/FewRel.1.0/pid2name.json') as json_file:
+        relation_data = json.load(json_file)
+        print(len(relation_data.keys()))
+        for relation, definition in relation_data.items():
+            assert len(definition) == 2
+            print('definition:', definition)
+            relation_2_desc[relation] = definition
+
     with open('/export/home/Dataset/FewRel.1.0/val_wiki.json') as json_file:
         dev_data = json.load(json_file)
         print(len(dev_data.keys()), dev_data.keys())

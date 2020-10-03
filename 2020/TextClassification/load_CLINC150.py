@@ -46,15 +46,14 @@ for domain, intent_list in domain2intents.items():
 all_seen_intent_set = set(all_seen_intents)
 
 
-class InputFeatures(object):
-    """A single set of features of data."""
+class InputExample(object):
+    """A single training/test example for simple sequence classification."""
 
-    def __init__(self, input_pair_id, input_ids, input_mask, segment_ids, label_id):
-        self.input_pair_id = input_pair_id
-        self.input_ids = input_ids
-        self.input_mask = input_mask
-        self.segment_ids = segment_ids
-        self.label_id = label_id
+    def __init__(self, guid, text_a, text_b=None, label=None):
+        self.guid = guid
+        self.text_a = text_a
+        self.text_b = text_b
+        self.label = label
 
 def load_CLINC150_full(filename, k_shot):
 

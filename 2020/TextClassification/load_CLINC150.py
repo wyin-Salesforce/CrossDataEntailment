@@ -272,7 +272,7 @@ def load_FewRel_dev(k_shot):
         for example in example_list:
             sentence, head_ent, tail_ent = example
             '''positive hypo'''
-            hypo = head_ent+' is '+relation_desc[0]+' of '+tail_ent
+            hypo = head_ent+' is '+relation_desc[1]+' of '+tail_ent
             train_examples.append(
                 InputExample(guid=ex_id, text_a=sentence, text_b=hypo, label='entailment'))
             '''negative hypo'''
@@ -293,7 +293,7 @@ def load_FewRel_dev(k_shot):
         for example in example_list:
             sentence, head_ent, tail_ent = example
             '''positive hypo'''
-            hypo = head_ent+' is '+relation_desc[0]+' of '+tail_ent
+            hypo = head_ent+' is '+relation_desc[1]+' of '+tail_ent
             dev_examples.append(
                 InputExample(guid=ex_id, text_a=sentence, text_b=hypo, label='entailment'))
             '''negative hypo'''
@@ -314,7 +314,7 @@ def load_FewRel_dev(k_shot):
         for example in example_list:
             sentence, head_ent, tail_ent = example
             '''positive hypo'''
-            hypo = head_ent+' is '+relation_desc[0]+' of '+tail_ent
+            hypo = head_ent+' is '+relation_desc[1]+' of '+tail_ent
             test_examples.append(
                 InputExample(guid=ex_id, text_a=sentence, text_b=hypo, label='entailment'))
             '''negative hypo'''

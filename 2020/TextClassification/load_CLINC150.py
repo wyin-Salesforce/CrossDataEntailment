@@ -230,15 +230,27 @@ def load_FewRel_dev():
     relation_2_desc = {}
     with open('/export/home/Dataset/FewRel.1.0/pid2name.json') as json_file:
         relation_data = json.load(json_file)
-        print(len(relation_data.keys()))
+        # print(len(relation_data.keys()))
         for relation, definition in relation_data.items():
             assert len(definition) == 2
-            print('definition:', definition)
+            # print('definition:', definition)
             relation_2_desc[relation] = definition
 
+
+    dev_relation_2_examples = {}
     with open('/export/home/Dataset/FewRel.1.0/val_wiki.json') as json_file:
         dev_data = json.load(json_file)
-        print(len(dev_data.keys()), dev_data.keys())
+        for relation, example_list in dev_data.items():
+            assert len(example_list) == 700
+            for example in example_list:
+                sent = ' '.join(example.get('tokens'))
+                head_entity = ' '.join(example.get('h')[0])
+                tail_entity = ' '.join(example.get('t')[0])
+                print(sent)
+                print(head_entity)
+                print(tail_entity)
+                exit(0)
+
 
 
 

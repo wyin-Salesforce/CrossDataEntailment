@@ -581,7 +581,7 @@ def main():
     output_mode = output_modes[task_name]
 
     train_examples, dev_examples, test_examples = load_FewRel_data(args.kshot)
-    train_examples = train_examples[:1000]
+
 
     label_list = ["entailment", "non_entailment"]
     num_labels = len(label_list)

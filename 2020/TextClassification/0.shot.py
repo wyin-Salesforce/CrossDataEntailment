@@ -364,7 +364,7 @@ def examples_to_features(source_examples, label_list, args, tokenizer, batch_siz
 
     return dev_dataloader
 
-def evaluation(test_dataloader, input_threshold, device, flag='Test'):
+def evaluation(model, test_dataloader, input_threshold, device, flag='Test'):
     eval_loss = 0
     nb_eval_steps = 0
     preds = []
@@ -587,8 +587,8 @@ def main():
     model.to(device)
 
 
-    dev_dataloader = examples_to_features(dev_examples, label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
-    test_dataloader = examples_to_features(test_examples, label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
+    dev_dataloader = examples_to_features(model, dev_examples, label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
+    test_dataloader = examples_to_features(model, test_examples, label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
 
 
     model.eval()

@@ -364,7 +364,7 @@ def examples_to_features(source_examples, label_list, args, tokenizer, batch_siz
 
     return dev_dataloader
 
-def evaluation(model, test_dataloader, input_threshold, device, flag='Test'):
+def evaluation(model, test_dataloader, device, flag='Test'):
     eval_loss = 0
     nb_eval_steps = 0
     preds = []
@@ -403,51 +403,15 @@ def evaluation(model, test_dataloader, input_threshold, device, flag='Test'):
         predgoldlist.append((prob, gold_id))  #(0.2, 0/1)
         pairID_2_predgoldlist[pair_id] = predgoldlist
 
-    best_threshold = -1.0
-    best_sum_performance = 0.0
-    best_performance = 0.0
-    if flag == 'Test':
-        threshold_list = [input_threshold]
-    else:
-        threshold_list = np.arange(0.99, 0.0, -0.01)
-    for threshold in threshold_list:
-        # threshold = 0.7399999999999998 #best on dev
-        '''start for this threshold'''
-        in_domain_total_size = 0
-        in_domain_hit_size = 0
-        out_domain_size = 0
-        out_domain_hit_size = 0
-        for pair_id, predgoldlist in pairID_2_predgoldlist.items():
-            is_ood = True
-            for tup in predgoldlist:
-                if tup[1] == 0: #it is a in domain instance
-                    is_ood = False
-                    break
-            if is_ood:
-                '''this is a ood example'''
-                out_domain_size+=1
-                all_prob_is_below_threshold = True
-                for tup in predgoldlist:
-                    if tup[0] > threshold:
-                        all_prob_is_below_threshold=False
-                        break
-                if all_prob_is_below_threshold:
-                    out_domain_hit_size+=1
-            else:
-                '''this is a in domain example'''
-                in_domain_total_size+=1
-                predgoldlist.sort(key=lambda x:x[0]) #sort by prob
-                '''if a in_domain example's gold class get highest prob, and it is above threshold'''
-                if predgoldlist[-1][1] == 0 and predgoldlist[-1][0] > threshold: # class "entail"
-                    in_domain_hit_size+=1
-        in_acc= in_domain_hit_size/in_domain_total_size
-        out_recall = out_domain_hit_size/out_domain_size
-        sum_performance = in_acc+out_recall
-        if sum_performance> best_sum_performance:
-            best_sum_performance = sum_performance
-            best_performance = (in_acc, out_recall)
-            best_threshold = threshold
-    return     best_threshold, best_performance
+    total_size = len(pairID_2_predgoldlist)
+    hit_size = 0
+    for pair_id, predgoldlist in pairID_2_predgoldlist.items():
+        predgoldlist.sort(key=lambda x:x[0]) #sort by prob
+        assert len(predgoldlist) == 16
+        if predgoldlist[-1][1] == 0:
+            hit_size+=1
+    acc= hit_size/total_size
+    print('test acc:', acc)
 
 
 
@@ -572,9 +536,9 @@ def main():
     processor = processors[task_name]()
     output_mode = output_modes[task_name]
 
-    train_examples, dev_examples, test_examples = load_CLINC150_full('/export/home/Dataset/CLINC150/data_full.json', 0)
+    # train_examples, dev_examples, test_examples = load_CLINC150_full('/export/home/Dataset/CLINC150/data_full.json', 0)
 
-
+    train_examples, dev_examples, test_examples = load_FewRel_dev(10)
 
     label_list = ["entailment", "non_entailment"]
     num_labels = len(label_list)
@@ -592,9 +556,9 @@ def main():
 
     model.eval()
 
-    best_dev_threshold, dev_performance = evaluation(model, dev_dataloader, 0.0, device, flag='Dev')
+    best_dev_threshold, dev_performance = evaluation(model, dev_dataloader,  device, flag='Dev')
     print('\n\t\t dev:', best_dev_threshold, dev_performance)
-    best_test_threshold, test_performance = evaluation(model, test_dataloader, best_dev_threshold, device, flag='Test')
+    best_test_threshold, test_performance = evaluation(model, test_dataloader, device, flag='Test')
     print('\n\t\t test:', best_test_threshold, test_performance)
     # logger.info("***** Running test *****")
     # logger.info("  Num examples = %d", len(test_examples))

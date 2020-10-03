@@ -225,7 +225,7 @@ def load_OOS():
     return dev_examples, test_examples
 
 
-def load_FewRel_dev():
+def load_FewRel_dev(k_shot):
     '''first load relation definicatinos'''
     relation_2_desc = {}
     with open('/export/home/Dataset/FewRel.1.0/pid2name.json') as json_file:
@@ -242,14 +242,90 @@ def load_FewRel_dev():
         dev_data = json.load(json_file)
         for relation, example_list in dev_data.items():
             assert len(example_list) == 700
+            tup_list = []
             for example in example_list:
                 sent = ' '.join(example.get('tokens'))
                 head_entity = example.get('h')[0]
                 tail_entity = example.get('t')[0]
-                print(sent)
-                print(head_entity)
-                print(tail_entity)
-                exit(0)
+                tup_list.append((sent, head_entity, tail_entity))
+            dev_relation_2_examples[relation] = tup_list
+    json_file.close()
+
+    dev_4_train = {}
+    dev_4_dev = {}
+    dev_4_test = {}
+    '''300, 200, 200'''
+    for relation, ex_list in dev_relation_2_examples.items():
+        dev_4_train[relation] = ex_list[:300]
+        dev_4_dev[relation] = ex_list[300:500]
+        dev_4_test[relation] = ex_list[500:]
+
+    selected_dev_4_train = {}
+    for relation, ex_list in dev_4_train.items():
+        selected_dev_4_train[relation] = random.sample(ex_list, k_shot)
+
+    '''build train'''
+    train_examples = []
+    ex_id = 0
+    for relation, example_list in selected_dev_4_train.items():
+        relation_desc = relation_2_desc.get(relation)
+        for example in example_list:
+            sentence, head_ent, tail_ent = example
+            '''positive hypo'''
+            hypo = head_ent+' is '+relation_desc[0]+' and '+tail_ent+' is '+relation_desc[1]
+            train_examples.append(
+                InputExample(guid=ex_id, text_a=sentence, text_b=hypo, label='entailment'))
+            '''negative hypo'''
+            for relation_i in selected_dev_4_train.keys():
+                if relation_i != relation:
+                    relation_i_desc = relation_2_desc.get(relation_i)
+                    hypo_neg = head_ent+' is '+relation_i_desc[0]+' and '+tail_ent+' is '+relation_i_desc[1]
+                    train_examples.append(
+                        InputExample(guid=ex_id, text_a=sentence, text_b=hypo_neg, label='non_entailment'))
+            ex_id+=1
+
+    '''build dev'''
+    dev_examples = []
+    ex_id = 0
+    for relation, example_list in dev_4_dev.items():
+        relation_desc = relation_2_desc.get(relation)
+        for example in example_list:
+            sentence, head_ent, tail_ent = example
+            '''positive hypo'''
+            hypo = head_ent+' is '+relation_desc[0]+' and '+tail_ent+' is '+relation_desc[1]
+            dev_examples.append(
+                InputExample(guid=ex_id, text_a=sentence, text_b=hypo, label='entailment'))
+            '''negative hypo'''
+            for relation_i in dev_4_dev.keys():
+                if relation_i != relation:
+                    relation_i_desc = relation_2_desc.get(relation_i)
+                    hypo_neg = head_ent+' is '+relation_i_desc[0]+' and '+tail_ent+' is '+relation_i_desc[1]
+                    dev_examples.append(
+                        InputExample(guid=ex_id, text_a=sentence, text_b=hypo_neg, label='non_entailment'))
+            ex_id+=1
+
+    '''build test'''
+    test_examples = []
+    ex_id = 0
+    for relation, example_list in dev_4_test.items():
+        relation_desc = relation_2_desc.get(relation)
+        for example in example_list:
+            sentence, head_ent, tail_ent = example
+            '''positive hypo'''
+            hypo = head_ent+' is '+relation_desc[0]+' and '+tail_ent+' is '+relation_desc[1]
+            test_examples.append(
+                InputExample(guid=ex_id, text_a=sentence, text_b=hypo, label='entailment'))
+            '''negative hypo'''
+            for relation_i in dev_4_test.keys():
+                if relation_i != relation:
+                    relation_i_desc = relation_2_desc.get(relation_i)
+                    hypo_neg = head_ent+' is '+relation_i_desc[0]+' and '+tail_ent+' is '+relation_i_desc[1]
+                    test_examples.append(
+                        InputExample(guid=ex_id, text_a=sentence, text_b=hypo_neg, label='non_entailment'))
+            ex_id+=1
+
+
+    return train_examples, dev_examples, test_examples
 
 
 

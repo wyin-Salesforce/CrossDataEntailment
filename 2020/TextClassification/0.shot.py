@@ -42,7 +42,7 @@ from transformers.tokenization_roberta import RobertaTokenizer
 from transformers.optimization import AdamW
 from transformers.modeling_roberta import RobertaModel#RobertaForSequenceClassification
 
-from load_CLINC150 import load_CLINC150
+from load_CLINC150 import load_CLINC150_full
 
 logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt = '%m/%d/%Y %H:%M:%S',
@@ -488,7 +488,7 @@ def main():
     processor = processors[task_name]()
     output_mode = output_modes[task_name]
 
-    train_examples, dev_examples, test_examples = load_CLINC150('/export/home/Dataset/CLINC150/data_full.json', args.kshot)
+    train_examples, dev_examples, test_examples = load_CLINC150_full('/export/home/Dataset/CLINC150/data_full.json', args.kshot)
 
 
 

@@ -47,7 +47,7 @@ all_seen_intent_set = set(all_seen_intents)
 
 
 
-def load_CLINC150_seen(filename, k_shot):
+def load_CLINC150_full(filename, k_shot):
 
     readfile = codecs.open(filename, 'r', 'utf-8')
     file2dict =  json.load(readfile)

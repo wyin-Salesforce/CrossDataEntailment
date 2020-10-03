@@ -659,7 +659,7 @@ def main():
 
                     if dev_acc > max_dev_acc:
                         max_dev_acc = dev_acc
-                        print('\ndev acc:', dev_acc, ' max_dev_acc:', max_dev_acc, '\n')
+                        print('\n\t dev acc:', dev_acc, ' max_dev_acc:', max_dev_acc, '\n')
                         test_acc = evaluation(model, test_dataloader,  device, flag='Test')
                         if test_acc > max_test_acc:
                             max_test_acc = test_acc
@@ -667,7 +667,7 @@ def main():
                         final_test_performance = test_acc
                         print('\n\t test acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
                     else:
-                        print('\ndev acc:', dev_acc, ' max_dev_acc:', max_dev_acc, '\n')
+                        print('\n\t dev acc:', dev_acc, ' max_dev_acc:', max_dev_acc, '\n')
 
 
         print('final_test_performance:', final_test_performance)

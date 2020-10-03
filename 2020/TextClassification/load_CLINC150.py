@@ -1,7 +1,7 @@
 import json
 import codecs
 import random
-
+from collections import defaultdict
 domain2intents={'banking':['transfer','transactions','balance','freeze account',
 'pay bill', 'bill balance', 'bill due', 'interest rate', 'routing number',
 'minimum payment', 'order checks', 'pin change', 'report fraud', 'account blocked',

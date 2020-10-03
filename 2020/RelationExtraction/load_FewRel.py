@@ -262,7 +262,7 @@ def load_FewRel_dev(k_shot):
 
     selected_dev_4_train = {}
     for relation, ex_list in dev_4_train.items():
-        selected_dev_4_train[relation] = random.sample(ex_list, k_shot)
+        selected_dev_4_train[relation] = ex_list if k_shot == 0 else random.sample(ex_list, k_shot)
 
     '''build train'''
     train_examples = []
@@ -272,14 +272,14 @@ def load_FewRel_dev(k_shot):
         for example in example_list:
             sentence, head_ent, tail_ent = example
             '''positive hypo'''
-            hypo = head_ent+' '+relation_desc[0]+' '+tail_ent
+            hypo = head_ent+' is '+relation_desc[0]+' of '+tail_ent
             train_examples.append(
                 InputExample(guid=ex_id, text_a=sentence, text_b=hypo, label='entailment'))
             '''negative hypo'''
             for relation_i in selected_dev_4_train.keys():
                 if relation_i != relation:
                     relation_i_desc = relation_2_desc.get(relation_i)
-                    hypo_neg = head_ent+' '+relation_i_desc[0]+' '+tail_ent
+                    hypo_neg = head_ent+' is '+relation_i_desc[0]+' of '+tail_ent
                     train_examples.append(
                         InputExample(guid=ex_id, text_a=sentence, text_b=hypo_neg, label='non_entailment'))
             ex_id+=1
@@ -293,7 +293,7 @@ def load_FewRel_dev(k_shot):
         for example in example_list:
             sentence, head_ent, tail_ent = example
             '''positive hypo'''
-            hypo = head_ent+' '+relation_desc[0]+' '+tail_ent
+            hypo = head_ent+' is '+relation_desc[0]+' of '+tail_ent
             dev_examples.append(
                 InputExample(guid=ex_id, text_a=sentence, text_b=hypo, label='entailment'))
             '''negative hypo'''
@@ -301,7 +301,7 @@ def load_FewRel_dev(k_shot):
             for relation_i in dev_4_dev.keys():
                 if relation_i != relation:
                     relation_i_desc = relation_2_desc.get(relation_i)
-                    hypo_neg = head_ent+' '+relation_i_desc[0]+' '+tail_ent
+                    hypo_neg = head_ent+' is '+relation_i_desc[0]+' of '+tail_ent
                     dev_examples.append(
                         InputExample(guid=ex_id, text_a=sentence, text_b=hypo_neg, label='non_entailment'))
             ex_id+=1
@@ -314,14 +314,14 @@ def load_FewRel_dev(k_shot):
         for example in example_list:
             sentence, head_ent, tail_ent = example
             '''positive hypo'''
-            hypo = head_ent+' '+relation_desc[0]+' '+tail_ent
+            hypo = head_ent+' is '+relation_desc[0]+' of '+tail_ent
             test_examples.append(
                 InputExample(guid=ex_id, text_a=sentence, text_b=hypo, label='entailment'))
             '''negative hypo'''
             for relation_i in dev_4_test.keys():
                 if relation_i != relation:
                     relation_i_desc = relation_2_desc.get(relation_i)
-                    hypo_neg = head_ent+' '+relation_i_desc[0]+' '+tail_ent
+                    hypo_neg = head_ent+' is '+relation_i_desc[0]+' of '+tail_ent
                     test_examples.append(
                         InputExample(guid=ex_id, text_a=sentence, text_b=hypo_neg, label='non_entailment'))
             ex_id+=1

@@ -244,8 +244,8 @@ def load_FewRel_dev():
             assert len(example_list) == 700
             for example in example_list:
                 sent = ' '.join(example.get('tokens'))
-                head_entity = ' '.join(example.get('h')[0])
-                tail_entity = ' '.join(example.get('t')[0])
+                head_entity = example.get('h')[0]
+                tail_entity = example.get('t')[0]
                 print(sent)
                 print(head_entity)
                 print(tail_entity)

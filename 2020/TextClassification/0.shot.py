@@ -556,10 +556,9 @@ def main():
 
     model.eval()
 
-    best_dev_threshold, dev_performance = evaluation(model, dev_dataloader,  device, flag='Dev')
-    print('\n\t\t dev:', best_dev_threshold, dev_performance)
-    best_test_threshold, test_performance = evaluation(model, test_dataloader, device, flag='Test')
-    print('\n\t\t test:', best_test_threshold, test_performance)
+    evaluation(model, dev_dataloader,  device, flag='Dev')
+    evaluation(model, test_dataloader, device, flag='Test')
+
     # logger.info("***** Running test *****")
     # logger.info("  Num examples = %d", len(test_examples))
     # # logger.info("  Batch size = %d", args.eval_batch_size)
@@ -643,8 +642,6 @@ if __name__ == "__main__":
 
 CUDA_VISIBLE_DEVICES=6 python -u 0.shot.py --task_name rte --do_lower_case --num_train_epochs 20 --train_batch_size 5 --eval_batch_size 128 --learning_rate 1e-6 --max_seq_length 128 --seed 42
 
-15 class, 30 per class; 1000 ood
-
-30*15+1000*15 = 450+15000 = 15450
+16 class, 200 innstance
 
 '''

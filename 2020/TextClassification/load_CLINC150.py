@@ -64,7 +64,7 @@ def load_CLINC150_full(filename, k_shot):
     dev_intent2examples={}
     test_intent2examples={}
 
-    # length2size = defaultdict(int)
+    interested_intents = domain2intents.get('banking')
     for key, value in file2dict.items():
         print(key, len(value))
         if key in set(['train', 'val','test']):
@@ -73,25 +73,26 @@ def load_CLINC150_full(filename, k_shot):
                 # length2size[len(sentence.split())]+=1
                 intent = ' '.join(sub_list[1].split('_'))
                 intent = dataIntent_2_realIntent.get(intent, intent)
-
-                if key == 'train':
-                    examples = train_intent2examples.get(intent)
-                    if examples is None:
-                        examples = []
-                    examples.append(sentence)
-                    train_intent2examples[intent] = examples
-                elif key == 'val':
-                    examples = dev_intent2examples.get(intent)
-                    if examples is None:
-                        examples = []
-                    examples.append(sentence)
-                    dev_intent2examples[intent] = examples
-                else:
-                    examples = test_intent2examples.get(intent)
-                    if examples is None:
-                        examples = []
-                    examples.append(sentence)
-                    test_intent2examples[intent] = examples
+                if intent in set(interested_intents):
+                    '''this intent is in the target domain'''
+                    if key == 'train':
+                        examples = train_intent2examples.get(intent)
+                        if examples is None:
+                            examples = []
+                        examples.append(sentence)
+                        train_intent2examples[intent] = examples
+                    elif key == 'val':
+                        examples = dev_intent2examples.get(intent)
+                        if examples is None:
+                            examples = []
+                        examples.append(sentence)
+                        dev_intent2examples[intent] = examples
+                    else:
+                        examples = test_intent2examples.get(intent)
+                        if examples is None:
+                            examples = []
+                        examples.append(sentence)
+                        test_intent2examples[intent] = examples
         elif key in set(['oos_val','oos_test']):
             for sub_list in value:
                 sentence = sub_list[0].strip()
@@ -112,9 +113,9 @@ def load_CLINC150_full(filename, k_shot):
 
     # print('length2size:', length2size)
     '''confirm everything is correct'''
-    assert len(train_intent2examples.keys()) == 15*10
-    assert len(dev_intent2examples.keys()) == 15*10+1
-    assert len(test_intent2examples.keys()) == 15*10+1
+    assert len(train_intent2examples.keys()) == 15
+    assert len(dev_intent2examples.keys()) == 15+1
+    assert len(test_intent2examples.keys()) == 15+1
     for key, valuelist in train_intent2examples.items():
         assert len(valuelist) == 100
     for key, valuelist in dev_intent2examples.items():

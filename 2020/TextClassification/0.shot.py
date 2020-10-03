@@ -374,7 +374,6 @@ def evaluation(model, test_dataloader, input_threshold, device, flag='Test'):
     threshold = 0.3
     for _, batch in enumerate(tqdm(test_dataloader, desc=flag)):
         input_pair_ids, input_ids, input_mask, segment_ids, label_ids = batch
-        # for input_pair_ids, input_ids, input_mask, segment_ids, label_ids in test_dataloader:
         input_ids = input_ids.to(device)
         input_mask = input_mask.to(device)
         segment_ids = segment_ids.to(device)

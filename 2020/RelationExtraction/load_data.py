@@ -124,5 +124,4 @@ def load_FewRel_data(k_shot):
 
 
 if __name__ == "__main__":
-    # load_CLINC150()
-    
+    load_FewRel_data(10)

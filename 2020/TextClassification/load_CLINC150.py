@@ -297,7 +297,7 @@ def load_FewRel_dev(k_shot):
             dev_examples.append(
                 InputExample(guid=ex_id, text_a=sentence, text_b=hypo, label='entailment'))
             '''negative hypo'''
-            print('dev_4_dev.keys():', len(dev_4_dev.keys()))
+            # print('dev_4_dev.keys():', len(dev_4_dev.keys()))
             for relation_i in dev_4_dev.keys():
                 if relation_i != relation:
                     relation_i_desc = relation_2_desc.get(relation_i)
@@ -305,7 +305,7 @@ def load_FewRel_dev(k_shot):
                     dev_examples.append(
                         InputExample(guid=ex_id, text_a=sentence, text_b=hypo_neg, label='non_entailment'))
             ex_id+=1
-    print('dev_examples:', len(dev_examples))
+    # print('dev_examples:', len(dev_examples))
     '''build test'''
     test_examples = []
     ex_id = 0

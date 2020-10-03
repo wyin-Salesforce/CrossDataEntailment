@@ -488,7 +488,7 @@ def main():
     processor = processors[task_name]()
     output_mode = output_modes[task_name]
 
-    train_examples, dev_examples, test_examples = load_CLINC150_full('/export/home/Dataset/CLINC150/data_full.json', args.kshot)
+    train_examples, dev_examples, test_examples = load_CLINC150_full('/export/home/Dataset/CLINC150/data_full.json', 0)
 
 
 

@@ -364,6 +364,91 @@ def examples_to_features(source_examples, label_list, args, tokenizer, batch_siz
 
     return dev_dataloader
 
+def evaluation(test_dataloader, input_threshold, flag='Test'):
+    eval_loss = 0
+    nb_eval_steps = 0
+    preds = []
+    gold_label_ids = []
+    gold_pair_ids = []
+
+    threshold = 0.3
+    for _, batch in enumerate(tqdm(test_dataloader, desc=flag)):
+        input_pair_ids, input_ids, input_mask, segment_ids, label_ids = batch
+        # for input_pair_ids, input_ids, input_mask, segment_ids, label_ids in test_dataloader:
+        input_ids = input_ids.to(device)
+        input_mask = input_mask.to(device)
+        segment_ids = segment_ids.to(device)
+        gold_pair_ids+= list(input_pair_ids.numpy())
+        label_ids = label_ids.to(device)
+        gold_label_ids+=list(label_ids.detach().cpu().numpy())
+
+        with torch.no_grad():
+            logits = model(input_ids, input_mask)
+        if len(preds) == 0:
+            preds.append(logits.detach().cpu().numpy())
+        else:
+            preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
+
+    preds = preds[0]
+
+    pred_probs = list(softmax(preds,axis=1)[:,0]) #entail prob
+
+    assert len(gold_pair_ids) == len(pred_probs)
+    assert len(gold_pair_ids) == len(gold_label_ids)
+
+    pairID_2_predgoldlist = {}
+    for pair_id, prob, gold_id in zip(gold_pair_ids, pred_probs, gold_label_ids):
+        predgoldlist = pairID_2_predgoldlist.get(pair_id)
+        if predgoldlist is None:
+            predgoldlist = []
+        predgoldlist.append((prob, gold_id))  #(0.2, 0/1)
+        pairID_2_predgoldlist[pair_id] = predgoldlist
+
+    best_threshold = -1.0
+    best_sum_performance = 0.0
+    best_performance = 0.0
+    if flag == 'Test':
+        threshold_list = [input_threshold]
+    else:
+        threshold_list = np.arange(0.99, 0.0, -0.01)
+    for threshold in threshold_list:
+        # threshold = 0.7399999999999998 #best on dev
+        '''start for this threshold'''
+        in_domain_total_size = 0
+        in_domain_hit_size = 0
+        out_domain_size = 0
+        out_domain_hit_size = 0
+        for pair_id, predgoldlist in pairID_2_predgoldlist.items():
+            is_ood = True
+            for tup in predgoldlist:
+                if tup[1] == 0: #it is a in domain instance
+                    is_ood = False
+                    break
+            if is_ood:
+                '''this is a ood example'''
+                out_domain_size+=1
+                all_prob_is_below_threshold = True
+                for tup in predgoldlist:
+                    if tup[0] > threshold:
+                        all_prob_is_below_threshold=False
+                        break
+                if all_prob_is_below_threshold:
+                    out_domain_hit_size+=1
+            else:
+                '''this is a in domain example'''
+                in_domain_total_size+=1
+                predgoldlist.sort(key=lambda x:x[0]) #sort by prob
+                '''if a in_domain example's gold class get highest prob, and it is above threshold'''
+                if predgoldlist[-1][1] == 0 and predgoldlist[-1][0] > threshold: # class "entail"
+                    in_domain_hit_size+=1
+        in_acc= in_domain_hit_size/in_domain_total_size
+        out_recall = out_domain_hit_size/out_domain_size
+        sum_performance = in_acc+out_recall
+        if sum_performance> best_sum_performance:
+            best_sum_performance = sum_performance
+            best_performance = (in_acc, out_recall)
+            best_threshold = threshold
+    return     best_threshold, best_performance
 
 
 
@@ -502,85 +587,88 @@ def main():
     model.to(device)
 
 
-    # dev_dataloader = examples_to_features(dev_examples, label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
+    dev_dataloader = examples_to_features(dev_examples, label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
     test_dataloader = examples_to_features(test_examples, label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
 
 
     model.eval()
 
-
-    logger.info("***** Running test *****")
-    logger.info("  Num examples = %d", len(test_examples))
-    # logger.info("  Batch size = %d", args.eval_batch_size)
-
-    eval_loss = 0
-    nb_eval_steps = 0
-    preds = []
-    gold_label_ids = []
-    gold_pair_ids = []
-
-    threshold = 0.3
-    for _, batch in enumerate(tqdm(test_dataloader, desc="Testing")):
-        input_pair_ids, input_ids, input_mask, segment_ids, label_ids = batch
-        # for input_pair_ids, input_ids, input_mask, segment_ids, label_ids in test_dataloader:
-        input_ids = input_ids.to(device)
-        input_mask = input_mask.to(device)
-        segment_ids = segment_ids.to(device)
-        gold_pair_ids+= list(input_pair_ids.numpy())
-        label_ids = label_ids.to(device)
-        gold_label_ids+=list(label_ids.detach().cpu().numpy())
-
-        with torch.no_grad():
-            logits = model(input_ids, input_mask)
-        if len(preds) == 0:
-            preds.append(logits.detach().cpu().numpy())
-        else:
-            preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
-
-    preds = preds[0]
-
-    pred_probs = list(softmax(preds,axis=1)[:,0]) #entail prob
-
-    assert len(gold_pair_ids) == len(pred_probs)
-    assert len(gold_pair_ids) == len(gold_label_ids)
-
-    pairID_2_predgoldlist = {}
-    for pair_id, prob, gold_id in zip(gold_pair_ids, pred_probs, gold_label_ids):
-        predgoldlist = pairID_2_predgoldlist.get(pair_id)
-        if predgoldlist is None:
-            predgoldlist = []
-        predgoldlist.append((prob, gold_id))  #(0.2, 0/1)
-        pairID_2_predgoldlist[pair_id] = predgoldlist
-    in_domain_total_size = 0
-    in_domain_hit_size = 0
-    out_domain_size = 0
-    out_domain_hit_size = 0
-    for pair_id, predgoldlist in pairID_2_predgoldlist.items():
-        is_ood = True
-        for tup in predgoldlist:
-            if tup[1] == 0: #it is a in domain instance
-                is_ood = False
-                break
-        if is_ood:
-            '''this is a ood example'''
-            out_domain_size+=1
-            all_prob_is_below_threshold = True
-            for tup in predgoldlist:
-                if tup[0] > threshold:
-                    all_prob_is_below_threshold=False
-                    break
-            if all_prob_is_below_threshold:
-                out_domain_hit_size+=1
-        else:
-            '''this is a in domain example'''
-            in_domain_total_size+=1
-            predgoldlist.sort(key=lambda x:x[0]) #sort by prob
-            '''if a in_domain example's gold class get highest prob, and it is above threshold'''
-            if predgoldlist[-1][1] == 0 and predgoldlist[-1][0] > threshold: # class "entail"
-                in_domain_hit_size+=1
-        in_acc= in_domain_hit_size/in_domain_total_size
-        out_recall = out_domain_hit_size/out_domain_size
-        print('test in_acc:', in_acc, ' out_recall:', out_recall)
+    best_dev_threshold, dev_performance = evaluation(dev_dataloader, 0.0, flag='Dev')
+    best_test_threshold, test_performance = evaluation(test_dataloader, best_dev_threshold, flag='Test')
+    print('dev:', best_dev_threshold, dev_performance)
+    print('test:', best_test_threshold, test_performance)
+    # logger.info("***** Running test *****")
+    # logger.info("  Num examples = %d", len(test_examples))
+    # # logger.info("  Batch size = %d", args.eval_batch_size)
+    #
+    # eval_loss = 0
+    # nb_eval_steps = 0
+    # preds = []
+    # gold_label_ids = []
+    # gold_pair_ids = []
+    #
+    # threshold = 0.3
+    # for _, batch in enumerate(tqdm(test_dataloader, desc="Testing")):
+    #     input_pair_ids, input_ids, input_mask, segment_ids, label_ids = batch
+    #     # for input_pair_ids, input_ids, input_mask, segment_ids, label_ids in test_dataloader:
+    #     input_ids = input_ids.to(device)
+    #     input_mask = input_mask.to(device)
+    #     segment_ids = segment_ids.to(device)
+    #     gold_pair_ids+= list(input_pair_ids.numpy())
+    #     label_ids = label_ids.to(device)
+    #     gold_label_ids+=list(label_ids.detach().cpu().numpy())
+    #
+    #     with torch.no_grad():
+    #         logits = model(input_ids, input_mask)
+    #     if len(preds) == 0:
+    #         preds.append(logits.detach().cpu().numpy())
+    #     else:
+    #         preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
+    #
+    # preds = preds[0]
+    #
+    # pred_probs = list(softmax(preds,axis=1)[:,0]) #entail prob
+    #
+    # assert len(gold_pair_ids) == len(pred_probs)
+    # assert len(gold_pair_ids) == len(gold_label_ids)
+    #
+    # pairID_2_predgoldlist = {}
+    # for pair_id, prob, gold_id in zip(gold_pair_ids, pred_probs, gold_label_ids):
+    #     predgoldlist = pairID_2_predgoldlist.get(pair_id)
+    #     if predgoldlist is None:
+    #         predgoldlist = []
+    #     predgoldlist.append((prob, gold_id))  #(0.2, 0/1)
+    #     pairID_2_predgoldlist[pair_id] = predgoldlist
+    # in_domain_total_size = 0
+    # in_domain_hit_size = 0
+    # out_domain_size = 0
+    # out_domain_hit_size = 0
+    # for pair_id, predgoldlist in pairID_2_predgoldlist.items():
+    #     is_ood = True
+    #     for tup in predgoldlist:
+    #         if tup[1] == 0: #it is a in domain instance
+    #             is_ood = False
+    #             break
+    #     if is_ood:
+    #         '''this is a ood example'''
+    #         out_domain_size+=1
+    #         all_prob_is_below_threshold = True
+    #         for tup in predgoldlist:
+    #             if tup[0] > threshold:
+    #                 all_prob_is_below_threshold=False
+    #                 break
+    #         if all_prob_is_below_threshold:
+    #             out_domain_hit_size+=1
+    #     else:
+    #         '''this is a in domain example'''
+    #         in_domain_total_size+=1
+    #         predgoldlist.sort(key=lambda x:x[0]) #sort by prob
+    #         '''if a in_domain example's gold class get highest prob, and it is above threshold'''
+    #         if predgoldlist[-1][1] == 0 and predgoldlist[-1][0] > threshold: # class "entail"
+    #             in_domain_hit_size+=1
+    #     in_acc= in_domain_hit_size/in_domain_total_size
+    #     out_recall = out_domain_hit_size/out_domain_size
+    #     print('test in_acc:', in_acc, ' out_recall:', out_recall)
 
 
 
@@ -590,7 +678,7 @@ if __name__ == "__main__":
 
 '''
 
-CUDA_VISIBLE_DEVICES=7 python -u 0.shot.py --task_name rte --do_lower_case --num_train_epochs 20 --train_batch_size 5 --eval_batch_size 128 --learning_rate 1e-6 --max_seq_length 250 --seed 42
+CUDA_VISIBLE_DEVICES=6 python -u 0.shot.py --task_name rte --do_lower_case --num_train_epochs 20 --train_batch_size 5 --eval_batch_size 128 --learning_rate 1e-6 --max_seq_length 128 --seed 42
 
 max_len 250:
 0.58

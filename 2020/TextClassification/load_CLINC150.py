@@ -254,10 +254,10 @@ def load_FewRel_dev(k_shot):
     dev_4_train = {}
     dev_4_dev = {}
     dev_4_test = {}
-    '''300, 200, 200'''
+    '''400, 100, 200'''
     for relation, ex_list in dev_relation_2_examples.items():
-        dev_4_train[relation] = ex_list[:300]
-        dev_4_dev[relation] = ex_list[300:500]
+        dev_4_train[relation] = ex_list[:400]
+        dev_4_dev[relation] = ex_list[400:500]
         dev_4_test[relation] = ex_list[500:]
 
     selected_dev_4_train = {}
@@ -279,7 +279,7 @@ def load_FewRel_dev(k_shot):
             for relation_i in selected_dev_4_train.keys():
                 if relation_i != relation:
                     relation_i_desc = relation_2_desc.get(relation_i)
-                    hypo_neg = head_ent+' is '+relation_i_desc[0]+' of '+tail_ent
+                    hypo_neg = head_ent+' is '+relation_i_desc[1]+' of '+tail_ent
                     train_examples.append(
                         InputExample(guid=ex_id, text_a=sentence, text_b=hypo_neg, label='non_entailment'))
             ex_id+=1
@@ -301,7 +301,7 @@ def load_FewRel_dev(k_shot):
             for relation_i in dev_4_dev.keys():
                 if relation_i != relation:
                     relation_i_desc = relation_2_desc.get(relation_i)
-                    hypo_neg = head_ent+' is '+relation_i_desc[0]+' of '+tail_ent
+                    hypo_neg = head_ent+' is '+relation_i_desc[1]+' of '+tail_ent
                     dev_examples.append(
                         InputExample(guid=ex_id, text_a=sentence, text_b=hypo_neg, label='non_entailment'))
             ex_id+=1
@@ -321,7 +321,7 @@ def load_FewRel_dev(k_shot):
             for relation_i in dev_4_test.keys():
                 if relation_i != relation:
                     relation_i_desc = relation_2_desc.get(relation_i)
-                    hypo_neg = head_ent+' is '+relation_i_desc[0]+' of '+tail_ent
+                    hypo_neg = head_ent+' is '+relation_i_desc[1]+' of '+tail_ent
                     test_examples.append(
                         InputExample(guid=ex_id, text_a=sentence, text_b=hypo_neg, label='non_entailment'))
             ex_id+=1

@@ -580,15 +580,7 @@ def main():
     processor = processors[task_name]()
     output_mode = output_modes[task_name]
 
-    # scitail_path = '/export/home/Dataset/SciTailV1/tsv_format/'
-    # train_examples = processor.get_SciTail_as_train_k_shot(scitail_path+'scitail_1.0_train.tsv', args.kshot) #train_pu_half_v1.txt
-    # dev_examples, test_examples = processor.get_SciTail_dev_and_test(scitail_path+'scitail_1.0_dev.tsv', scitail_path+'scitail_1.0_test.tsv')
-
-    # mctest_path = '/export/home/Dataset/MCTest/Statements/'
-    # train_examples = processor.get_MCTest_train(mctest_path+'mc500.train.statements.pairs', args.kshot) #train_pu_half_v1.txt
-    # dev_examples, test_examples = processor.get_MCTest_dev_and_test(mctest_path+'mc500.dev.statements.pairs', mctest_path+'mc500.test.statements.pairs')
-
-    train_examples, dev_examples, test_examples = load_FewRel_dev(args.kshot)
+    train_examples, dev_examples, test_examples = load_FewRel_data(args.kshot)
 
 
     label_list = ["entailment", "non_entailment"]

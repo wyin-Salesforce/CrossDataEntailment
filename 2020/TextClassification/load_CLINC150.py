@@ -288,7 +288,7 @@ def load_FewRel_dev(k_shot):
     dev_examples = []
     ex_id = 0
     for relation, example_list in dev_4_dev.items():
-        assert len(example_list) == 200
+        assert len(example_list) == 100
         relation_desc = relation_2_desc.get(relation)
         for example in example_list:
             sentence, head_ent, tail_ent = example

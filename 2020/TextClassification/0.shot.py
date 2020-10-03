@@ -586,14 +586,14 @@ def main():
     model.to(device)
 
 
-    dev_dataloader = examples_to_features(model, dev_examples, label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
-    test_dataloader = examples_to_features(model, test_examples, label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
+    dev_dataloader = examples_to_features(dev_examples, label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
+    test_dataloader = examples_to_features(test_examples, label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
 
 
     model.eval()
 
-    best_dev_threshold, dev_performance = evaluation(dev_dataloader, 0.0, device, flag='Dev')
-    best_test_threshold, test_performance = evaluation(test_dataloader, best_dev_threshold, device, flag='Test')
+    best_dev_threshold, dev_performance = evaluation(model, dev_dataloader, 0.0, device, flag='Dev')
+    best_test_threshold, test_performance = evaluation(model, test_dataloader, best_dev_threshold, device, flag='Test')
     print('dev:', best_dev_threshold, dev_performance)
     print('test:', best_test_threshold, test_performance)
     # logger.info("***** Running test *****")

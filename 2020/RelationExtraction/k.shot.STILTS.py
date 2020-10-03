@@ -480,14 +480,14 @@ def evaluation(model, test_dataloader, device, flag='Test'):
         pairID_2_predgoldlist[pair_id] = predgoldlist
 
     total_size = len(pairID_2_predgoldlist)
-    if flag=='Test':
-        assert total_size == 200 * 16
-    else:
-        assert total_size == 100 * 16
+    # if flag=='Test':
+    #     assert total_size == 200 * 16
+    # else:
+    #     assert total_size == 100 * 16
     hit_size = 0
     for pair_id, predgoldlist in pairID_2_predgoldlist.items():
         predgoldlist.sort(key=lambda x:x[0]) #sort by prob
-        assert len(predgoldlist) == 16
+        # assert len(predgoldlist) == 16
         if predgoldlist[-1][1] == 0:
             hit_size+=1
     acc= hit_size/total_size

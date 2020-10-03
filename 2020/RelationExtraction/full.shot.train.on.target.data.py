@@ -655,8 +655,6 @@ def main():
                     '''
                     model.eval()
                     dev_acc = evaluation(model, dev_dataloader,  device, flag='Dev')
-
-
                     if dev_acc > max_dev_acc:
                         max_dev_acc = dev_acc
                         print('\n\t dev acc:', dev_acc, ' max_dev_acc:', max_dev_acc, '\n')

@@ -502,7 +502,7 @@ def main():
     model.to(device)
 
 
-    dev_dataloader = examples_to_features(dev_examples, label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
+    # dev_dataloader = examples_to_features(dev_examples, label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
     test_dataloader = examples_to_features(test_examples, label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
 
 
@@ -520,7 +520,9 @@ def main():
     gold_pair_ids = []
 
     threshold = 0.3
-    for input_pair_ids, input_ids, input_mask, segment_ids, label_ids in test_dataloader:
+    for _, batch in enumerate(tqdm(test_dataloader, desc="Testing")):
+        input_pair_ids, input_ids, input_mask, segment_ids, label_ids = batch
+        # for input_pair_ids, input_ids, input_mask, segment_ids, label_ids in test_dataloader:
         input_ids = input_ids.to(device)
         input_mask = input_mask.to(device)
         segment_ids = segment_ids.to(device)

@@ -375,7 +375,7 @@ def get_MNLI_train(filename, k_shot):
             remaining_examples.append(ex)
 
     assert len(kshot_entail)+len(kshot_neural)+len(kshot_contra)+len(remaining_examples)==len(examples_entail+examples_neural+examples_contra)
-    return kshot_entail, kshot_neural, kshot_contra, remaining_examples[:100000]
+    return kshot_entail, kshot_neural, kshot_contra, remaining_examples[:1000]
 
 
 def examples_to_features(source_examples, label_list, args, tokenizer, batch_size, output_mode, dataloader_mode='sequential'):

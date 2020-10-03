@@ -228,7 +228,7 @@ def load_OOS():
 def load_FewRel_dev():
     with open('/export/home/Dataset/FewRel.1.0/val_wiki.json') as json_file:
         dev_data = json.load(json_file)
-        print(len(dev_data,keys()), dev_data.keys())
+        print(len(dev_data.keys()), dev_data.keys())
 
 
 

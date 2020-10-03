@@ -28,27 +28,29 @@ def load_FewRel_data(k_shot):
 
 
     dev_relation_2_examples = {}
-    with open('/export/home/Dataset/FewRel.1.0/val_wiki.json') as json_file:
-        dev_data = json.load(json_file)
-        for relation, example_list in dev_data.items():
-            assert len(example_list) == 700
-            tup_list = []
-            for example in example_list:
-                sent = ' '.join(example.get('tokens'))
-                head_entity = example.get('h')[0]
-                tail_entity = example.get('t')[0]
-                tup_list.append((sent, head_entity, tail_entity))
-            dev_relation_2_examples[relation] = tup_list
+    filenames = ['train_wiki.json', 'val_wiki.json']
+    for filename in filenames:
+        with open('/export/home/Dataset/FewRel.1.0/'+filename) as json_file:
+            dev_data = json.load(json_file)
+            for relation, example_list in dev_data.items():
+                assert len(example_list) == 700
+                tup_list = []
+                for example in example_list:
+                    sent = ' '.join(example.get('tokens'))
+                    head_entity = example.get('h')[0]
+                    tail_entity = example.get('t')[0]
+                    tup_list.append((sent, head_entity, tail_entity))
+                dev_relation_2_examples[relation] = tup_list
     json_file.close()
-
+    assert len(dev_relation_2_examples.keys()) == 80
     dev_4_train = {}
     dev_4_dev = {}
     dev_4_test = {}
-    '''400, 100, 200'''
+    '''50, 5, 10'''
     for relation, ex_list in dev_relation_2_examples.items():
-        dev_4_train[relation] = ex_list[:400]
-        dev_4_dev[relation] = ex_list[400:500]
-        dev_4_test[relation] = ex_list[500:]
+        dev_4_train[relation] = ex_list[:50]
+        dev_4_dev[relation] = ex_list[50:55]
+        dev_4_test[relation] = ex_list[55:65]
 
     selected_dev_4_train = {}
     for relation, ex_list in dev_4_train.items():
@@ -78,7 +80,7 @@ def load_FewRel_data(k_shot):
     dev_examples = []
     ex_id = 0
     for relation, example_list in dev_4_dev.items():
-        assert len(example_list) == 100
+        assert len(example_list) == 5
         relation_desc = relation_2_desc.get(relation)
         for example in example_list:
             sentence, head_ent, tail_ent = example
@@ -125,3 +127,12 @@ def load_FewRel_data(k_shot):
 
 if __name__ == "__main__":
     load_FewRel_data(10)
+
+
+'''
+80 classes; (50, 5, 10)
+
+50*6400 = 320000
+pos: 32000
+neg:
+'''

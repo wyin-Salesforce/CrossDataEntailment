@@ -364,7 +364,7 @@ def examples_to_features(source_examples, label_list, args, tokenizer, batch_siz
 
     return dev_dataloader
 
-def evaluation(test_dataloader, input_threshold, flag='Test'):
+def evaluation(test_dataloader, input_threshold, device, flag='Test'):
     eval_loss = 0
     nb_eval_steps = 0
     preds = []
@@ -593,8 +593,8 @@ def main():
 
     model.eval()
 
-    best_dev_threshold, dev_performance = evaluation(dev_dataloader, 0.0, flag='Dev')
-    best_test_threshold, test_performance = evaluation(test_dataloader, best_dev_threshold, flag='Test')
+    best_dev_threshold, dev_performance = evaluation(dev_dataloader, 0.0, device, flag='Dev')
+    best_test_threshold, test_performance = evaluation(test_dataloader, best_dev_threshold, device, flag='Test')
     print('dev:', best_dev_threshold, dev_performance)
     print('test:', best_test_threshold, test_performance)
     # logger.info("***** Running test *****")

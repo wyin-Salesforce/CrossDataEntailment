@@ -64,13 +64,13 @@ def load_CLINC150_full(filename, k_shot):
     dev_intent2examples={}
     test_intent2examples={}
 
-    length2size = defaultdict(int)
+    # length2size = defaultdict(int)
     for key, value in file2dict.items():
         print(key, len(value))
         if key in set(['train', 'val','test']):
             for sub_list in value:
                 sentence = sub_list[0].strip()
-                length2size[len(sentence.split())]+=1
+                # length2size[len(sentence.split())]+=1
                 intent = ' '.join(sub_list[1].split('_'))
                 intent = dataIntent_2_realIntent.get(intent, intent)
 
@@ -95,7 +95,7 @@ def load_CLINC150_full(filename, k_shot):
         elif key in set(['oos_val','oos_test']):
             for sub_list in value:
                 sentence = sub_list[0].strip()
-                length2size[len(sentence.split())]+=1
+                # length2size[len(sentence.split())]+=1
                 intent = 'oos'
                 if key == 'oos_val':
                     examples = dev_intent2examples.get(intent)
@@ -110,7 +110,7 @@ def load_CLINC150_full(filename, k_shot):
                     examples.append(sentence)
                     test_intent2examples[intent] = examples
 
-    print('length2size:', length2size)
+    # print('length2size:', length2size)
     '''confirm everything is correct'''
     assert len(train_intent2examples.keys()) == 15*10
     assert len(dev_intent2examples.keys()) == 15*10+1

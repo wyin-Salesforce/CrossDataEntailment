@@ -865,8 +865,8 @@ def main():
                 source_class_prototype_reps = torch.cat([kshot_entail_rep, kshot_neural_rep, kshot_contra_rep], dim=0) #(3, hidden)
 
                 '''first get representations for support examples in target'''
-                target_kshot_entail_dataloader_subset = examples_to_features(random.sample(target_kshot_entail_examples, args.kshot*10), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
-                target_kshot_nonentail_dataloader_subset = examples_to_features(random.sample(target_kshot_nonentail_examples, args.kshot*10), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
+                target_kshot_entail_dataloader_subset = examples_to_features(random.sample(target_kshot_entail_examples, args.kshot), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
+                target_kshot_nonentail_dataloader_subset = examples_to_features(random.sample(target_kshot_nonentail_examples, args.kshot), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
                 kshot_entail_reps = torch.zeros(1, bert_hidden_dim).to(device)
                 entail_batch_i = 0
                 for entail_batch in target_kshot_entail_dataloader_subset:#target_kshot_entail_dataloader:

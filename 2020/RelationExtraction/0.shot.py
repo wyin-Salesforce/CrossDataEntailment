@@ -551,13 +551,11 @@ def main():
     model.to(device)
 
 
-    dev_dataloader = examples_to_features(dev_examples, label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
     test_dataloader = examples_to_features(test_examples, label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
 
 
     model.eval()
 
-    # evaluation(model, dev_dataloader,  device, flag='Dev')
     evaluation(model, test_dataloader, device, flag='Test')
 
 

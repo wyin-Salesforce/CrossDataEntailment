@@ -520,6 +520,7 @@ def evaluation(model, roberta_model, class_prototype_reps, test_dataloader, devi
     for pair_id, predgoldlist in pairID_2_predgoldlist.items():
         predgoldlist.sort(key=lambda x:x[0]) #sort by prob
         # assert len(predgoldlist) == 4
+        print('predgoldlist:', predgoldlist)
         if predgoldlist[-1][1] == 0:
             hit_size+=1
     test_acc= hit_size/total_size
@@ -631,15 +632,6 @@ def main():
 
     args.train_batch_size = args.train_batch_size // args.gradient_accumulation_steps
 
-
-    # scitail_path = '/export/home/Dataset/SciTailV1/tsv_format/'
-    # target_kshot_entail_examples, target_kshot_nonentail_examples = get_GAP_as_train_k_shot('gap-development.tsv', args.kshot, args.seed) #train_pu_half_v1.txt
-    # target_dev_examples = get_GAP_dev_or_test('gap-validation.tsv', 0)
-    # target_test_examples = get_GAP_dev_or_test('gap-test.tsv', 0)
-
-    # mctest_path = '/export/home/Dataset/MCTest/Statements/'
-    # target_kshot_entail_examples, target_kshot_nonentail_examples = get_MCTest_train(mctest_path+'mc500.train.statements.pairs', args.kshot) #train_pu_half_v1.txt
-    # target_dev_examples, target_test_examples = get_MCTest_dev_and_test(mctest_path+'mc500.dev.statements.pairs', mctest_path+'mc500.test.statements.pairs')
 
     target_kshot_entail_examples, target_kshot_nonentail_examples, target_dev_examples, target_test_examples = load_FewRel_GFS_Entail(args.kshot)
 
@@ -865,8 +857,8 @@ def main():
                 source_class_prototype_reps = torch.cat([kshot_entail_rep, kshot_neural_rep, kshot_contra_rep], dim=0) #(3, hidden)
 
                 '''first get representations for support examples in target'''
-                target_kshot_entail_dataloader_subset = examples_to_features(random.sample(target_kshot_entail_examples, args.kshot*80), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
-                target_kshot_nonentail_dataloader_subset = examples_to_features(random.sample(target_kshot_nonentail_examples, args.kshot*80), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
+                target_kshot_entail_dataloader_subset = examples_to_features(random.sample(target_kshot_entail_examples, args.kshot), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
+                target_kshot_nonentail_dataloader_subset = examples_to_features(random.sample(target_kshot_nonentail_examples, args.kshot), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
                 kshot_entail_reps = torch.zeros(1, bert_hidden_dim).to(device)
                 entail_batch_i = 0
                 for entail_batch in target_kshot_entail_dataloader_subset:#target_kshot_entail_dataloader:

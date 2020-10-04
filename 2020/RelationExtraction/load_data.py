@@ -156,8 +156,8 @@ def load_FewRel_GFS_Entail(k_shot):
     '''50, 5, 10'''
     for relation, ex_list in dev_relation_2_examples.items():
         dev_4_train[relation] = ex_list[:50]
-        dev_4_dev[relation] = ex_list[50:55]
-        dev_4_test[relation] = ex_list[55:65]
+        dev_4_dev[relation] = ex_list[50:51]
+        dev_4_test[relation] = ex_list[51:61]
 
     selected_dev_4_train = {}
     for relation, ex_list in dev_4_train.items():
@@ -188,7 +188,7 @@ def load_FewRel_GFS_Entail(k_shot):
     dev_examples = []
     ex_id = 0
     for relation, example_list in dev_4_dev.items():
-        assert len(example_list) == 5
+        assert len(example_list) == 1
         relation_desc = relation_2_desc.get(relation)
         for example in example_list:
             sentence, head_ent, tail_ent = example

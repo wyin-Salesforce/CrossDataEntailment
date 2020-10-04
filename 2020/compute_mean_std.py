@@ -5,7 +5,7 @@ import statistics
 
 
 # initializing list
-test_list = [36.52, 38.52, 37.52, 39.87, 38.62]
+test_list = [59.37, 60.75, 57.87, 59.37, 58.75]
 
 print('sum:', sum(test_list))
 average = round(sum(test_list)/len(test_list), 2)

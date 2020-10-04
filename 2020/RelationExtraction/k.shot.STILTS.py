@@ -43,7 +43,7 @@ from transformers.optimization import AdamW
 from transformers.modeling_roberta import RobertaModel#RobertaForSequenceClassification
 from torch.nn import functional as F
 
-from load_data import load_FewRel_data
+from load_data_STILTS import load_FewRel_data
 
 logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt = '%m/%d/%Y %H:%M:%S',
@@ -681,10 +681,9 @@ def main():
 
 
                 logits = model(input_ids, input_mask)
-                # loss = loss_by_logits_and_2way_labels(logits, label_ids.view(-1), device)
-                loss_fct = CrossEntropyLoss()
-
-                loss = loss_fct(logits.view(-1, 3), label_ids.view(-1))
+                loss = loss_by_logits_and_2way_labels(logits, label_ids.view(-1), device)
+                # loss_fct = CrossEntropyLoss()
+                # loss = loss_fct(logits.view(-1, 3), label_ids.view(-1))
 
                 if n_gpu > 1:
                     loss = loss.mean() # mean() to average on multi-gpu.

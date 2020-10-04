@@ -825,7 +825,7 @@ def main():
 
             global_step += 1
             iter_co+=1
-            if iter_co %20==0:
+            if iter_co %50==0:
                 # if iter_co % len(source_remain_ex_dataloader)==0:
                 '''
                 start evaluate on dev set after this epoch
@@ -865,8 +865,8 @@ def main():
                 source_class_prototype_reps = torch.cat([kshot_entail_rep, kshot_neural_rep, kshot_contra_rep], dim=0) #(3, hidden)
 
                 '''first get representations for support examples in target'''
-                target_kshot_entail_dataloader_subset = examples_to_features(random.sample(target_kshot_entail_examples, args.kshot), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
-                target_kshot_nonentail_dataloader_subset = examples_to_features(random.sample(target_kshot_nonentail_examples, args.kshot), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
+                target_kshot_entail_dataloader_subset = examples_to_features(random.sample(target_kshot_entail_examples, args.kshot*80), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
+                target_kshot_nonentail_dataloader_subset = examples_to_features(random.sample(target_kshot_nonentail_examples, args.kshot*80), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
                 kshot_entail_reps = torch.zeros(1, bert_hidden_dim).to(device)
                 entail_batch_i = 0
                 for entail_batch in target_kshot_entail_dataloader_subset:#target_kshot_entail_dataloader:
@@ -910,7 +910,7 @@ def main():
 
 
 
-            if iter_co == 100:#3000:
+            if iter_co == 3000:
                 break
     print('final_test_performance:', final_test_performance)
 

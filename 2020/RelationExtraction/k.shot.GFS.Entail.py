@@ -803,8 +803,8 @@ def main():
             '''target side loss'''
             target_label_ids_batch = torch.tensor([0]*selected_target_entail_rep.shape[0]+[1]*selected_target_neural_rep.shape[0], dtype=torch.long)
             target_batch_logits = batch_logits[-target_last_hidden_batch.shape[0]:]
-            target_loss_list = loss_by_logits_and_2way_labels(target_batch_logits, target_label_ids_batch.view(-1), device)
-
+            # target_loss_list = loss_by_logits_and_2way_labels(target_batch_logits, target_label_ids_batch.view(-1), device)
+            target_loss_list = loss_fct(target_batch_logits.view(-1, source_num_labels), target_label_ids_batch.view(-1))
             loss = source_loss_list+target_loss_list#torch.mean(torch.cat([source_loss_list, target_loss_list]))
             source_loss+=source_loss_list
             target_loss+=target_loss_list
@@ -865,8 +865,8 @@ def main():
                 source_class_prototype_reps = torch.cat([kshot_entail_rep, kshot_neural_rep, kshot_contra_rep], dim=0) #(3, hidden)
 
                 '''first get representations for support examples in target'''
-                target_kshot_entail_dataloader_subset = examples_to_features(random.sample(target_kshot_entail_examples, args.kshot), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
-                target_kshot_nonentail_dataloader_subset = examples_to_features(random.sample(target_kshot_nonentail_examples, args.kshot), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
+                target_kshot_entail_dataloader_subset = examples_to_features(random.sample(target_kshot_entail_examples, args.kshot*10), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
+                target_kshot_nonentail_dataloader_subset = examples_to_features(random.sample(target_kshot_nonentail_examples, args.kshot*10), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
                 kshot_entail_reps = torch.zeros(1, bert_hidden_dim).to(device)
                 entail_batch_i = 0
                 for entail_batch in target_kshot_entail_dataloader_subset:#target_kshot_entail_dataloader:
@@ -897,13 +897,12 @@ def main():
                 if dev_acc > max_dev_acc:
                     max_dev_acc = dev_acc
                     print('\n\t dev acc:', dev_acc, ' max_dev_acc:', max_dev_acc, '\n')
-                    # test_acc = evaluation(protonet, target_test_dataloader,  device, flag='Test')
-                    test_acc = evaluation(protonet, roberta_model, class_prototype_reps, target_test_dataloader, device, flag='Test')
-                    if test_acc > max_test_acc:
-                        max_test_acc = test_acc
-
-                    final_test_performance = test_acc
-                    print('\n\t test acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
+                    # test_acc = evaluation(protonet, roberta_model, class_prototype_reps, target_test_dataloader, device, flag='Test')
+                    # if test_acc > max_test_acc:
+                    #     max_test_acc = test_acc
+                    #
+                    # final_test_performance = test_acc
+                    # print('\n\t test acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
                 else:
                     print('\n\t dev acc:', dev_acc, ' max_dev_acc:', max_dev_acc, '\n')
 

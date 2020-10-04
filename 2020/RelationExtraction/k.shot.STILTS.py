@@ -702,7 +702,7 @@ def main():
                 global_step += 1
                 iter_co+=1
                 print('iter_co:', iter_co, ' mean loss:', tr_loss/iter_co)
-                if iter_co %20==0:
+                if iter_co %500==0:
                     # if iter_co % len(train_dataloader)==0:
                     '''
                     start evaluate on dev set after this epoch

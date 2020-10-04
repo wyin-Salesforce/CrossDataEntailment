@@ -480,14 +480,14 @@ def evaluation(model, test_dataloader, device, flag='Test'):
         pairID_2_predgoldlist[pair_id] = predgoldlist
 
     total_size = len(pairID_2_predgoldlist)
-    # if flag=='Test':
-    #     assert total_size == 200 * 16
-    # else:
-    #     assert total_size == 100 * 16
+    if flag=='Test':
+        assert total_size == 10 * 80
+    else:
+        assert total_size == 5 * 80
     hit_size = 0
     for pair_id, predgoldlist in pairID_2_predgoldlist.items():
         predgoldlist.sort(key=lambda x:x[0]) #sort by prob
-        # assert len(predgoldlist) == 16
+        assert len(predgoldlist) == 80
         if predgoldlist[-1][1] == 0:
             hit_size+=1
     acc= hit_size/total_size
@@ -671,7 +671,7 @@ def main():
         iter_co = 0
         final_test_performance = 0.0
         for _ in trange(int(args.num_train_epochs), desc="Epoch"):
-            tr_loss = 0
+
             nb_tr_examples, nb_tr_steps = 0, 0
             for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
                 model.train()
@@ -696,6 +696,7 @@ def main():
                 optimizer.zero_grad()
                 global_step += 1
                 iter_co+=1
+                print('iter_co:', iter_co, ' mean loss:', tr_loss/iter_co)
                 if iter_co %20==0:
                     # if iter_co % len(train_dataloader)==0:
                     '''

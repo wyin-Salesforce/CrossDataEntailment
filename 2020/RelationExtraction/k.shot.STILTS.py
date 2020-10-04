@@ -488,7 +488,7 @@ def evaluation(model, test_dataloader, device, flag='Test'):
     for pair_id, predgoldlist in pairID_2_predgoldlist.items():
         predgoldlist.sort(key=lambda x:x[0]) #sort by prob
         assert len(predgoldlist) == 80
-        print('predgoldlist:', predgoldlist)
+        # print('predgoldlist:', predgoldlist)
         if predgoldlist[-1][1] == 0:
             hit_size+=1
     acc= hit_size/total_size
@@ -681,7 +681,11 @@ def main():
 
 
                 logits = model(input_ids, input_mask)
-                loss = loss_by_logits_and_2way_labels(logits, label_ids.view(-1), device)
+                # loss = loss_by_logits_and_2way_labels(logits, label_ids.view(-1), device)
+                loss_fct = CrossEntropyLoss()
+
+                loss = loss_fct(logits.view(-1, num_labels), label_ids.view(-1))
+
                 if n_gpu > 1:
                     loss = loss.mean() # mean() to average on multi-gpu.
                 if args.gradient_accumulation_steps > 1:

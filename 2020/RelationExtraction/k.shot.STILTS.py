@@ -663,57 +663,57 @@ def main():
     max_dev_acc = 0.0
     if args.do_train:
 
-        # train_dataloader = examples_to_features(train_examples, label_list, args, tokenizer, args.train_batch_size, "classification", dataloader_mode='random')
+        train_dataloader = examples_to_features(train_examples, label_list, args, tokenizer, args.train_batch_size, "classification", dataloader_mode='random')
         dev_dataloader = examples_to_features(dev_examples, label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
         test_dataloader = examples_to_features(test_examples, label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
 
 
         iter_co = 0
         final_test_performance = 0.0
-        # for _ in trange(int(args.num_train_epochs), desc="Epoch"):
-        #     tr_loss = 0
-        #     nb_tr_examples, nb_tr_steps = 0, 0
-        #     for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
-        #         model.train()
-        #         batch = tuple(t.to(device) for t in batch)
-        #         _, input_ids, input_mask, segment_ids, label_ids = batch
-        #
-        #
-        #         logits = model(input_ids, input_mask)
-        #         loss = loss_by_logits_and_2way_labels(logits, label_ids.view(-1), device)
-        #         if n_gpu > 1:
-        #             loss = loss.mean() # mean() to average on multi-gpu.
-        #         if args.gradient_accumulation_steps > 1:
-        #             loss = loss / args.gradient_accumulation_steps
-        #
-        #         loss.backward()
-        #
-        #         tr_loss += loss.item()
-        #         nb_tr_examples += input_ids.size(0)
-        #         nb_tr_steps += 1
-        #
-        #         optimizer.step()
-        #         optimizer.zero_grad()
-        #         global_step += 1
-        #         iter_co+=1
-        #         # if iter_co %20==0:
-        #         if iter_co % len(train_dataloader)==0:
-        '''
-        start evaluate on dev set after this epoch
-        '''
-        model.eval()
-        dev_acc = evaluation(model, dev_dataloader,  device, flag='Dev')
-        if dev_acc > max_dev_acc:
-            max_dev_acc = dev_acc
-            print('\n\t dev acc:', dev_acc, ' max_dev_acc:', max_dev_acc, '\n')
-            test_acc = evaluation(model, test_dataloader,  device, flag='Test')
-            if test_acc > max_test_acc:
-                max_test_acc = test_acc
+        for _ in trange(int(args.num_train_epochs), desc="Epoch"):
+            tr_loss = 0
+            nb_tr_examples, nb_tr_steps = 0, 0
+            for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
+                model.train()
+                batch = tuple(t.to(device) for t in batch)
+                _, input_ids, input_mask, segment_ids, label_ids = batch
 
-            final_test_performance = test_acc
-            print('\n\t test acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
-        else:
-            print('\n\t dev acc:', dev_acc, ' max_dev_acc:', max_dev_acc, '\n')
+
+                logits = model(input_ids, input_mask)
+                loss = loss_by_logits_and_2way_labels(logits, label_ids.view(-1), device)
+                if n_gpu > 1:
+                    loss = loss.mean() # mean() to average on multi-gpu.
+                if args.gradient_accumulation_steps > 1:
+                    loss = loss / args.gradient_accumulation_steps
+
+                loss.backward()
+
+                tr_loss += loss.item()
+                nb_tr_examples += input_ids.size(0)
+                nb_tr_steps += 1
+
+                optimizer.step()
+                optimizer.zero_grad()
+                global_step += 1
+                iter_co+=1
+                if iter_co %20==0:
+                    # if iter_co % len(train_dataloader)==0:
+                    '''
+                    start evaluate on dev set after this epoch
+                    '''
+                    model.eval()
+                    dev_acc = evaluation(model, dev_dataloader,  device, flag='Dev')
+                    if dev_acc > max_dev_acc:
+                        max_dev_acc = dev_acc
+                        print('\n\t dev acc:', dev_acc, ' max_dev_acc:', max_dev_acc, '\n')
+                        test_acc = evaluation(model, test_dataloader,  device, flag='Test')
+                        if test_acc > max_test_acc:
+                            max_test_acc = test_acc
+
+                        final_test_performance = test_acc
+                        print('\n\t test acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
+                    else:
+                        print('\n\t dev acc:', dev_acc, ' max_dev_acc:', max_dev_acc, '\n')
 
         print('final_test_performance:', final_test_performance)
 

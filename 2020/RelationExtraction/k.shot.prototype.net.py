@@ -643,8 +643,10 @@ def main():
                 '''
                 protonet.eval()
                 '''first get representations for support examples'''
+                target_kshot_entail_dataloader_subset = examples_to_features(random.sample(target_kshot_entail_examples, args.kshot), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
+                target_kshot_nonentail_dataloader_subset = examples_to_features(random.sample(target_kshot_nonentail_examples, args.kshot), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
                 kshot_entail_reps = []
-                for entail_batch in target_kshot_entail_dataloader:
+                for entail_batch in target_kshot_entail_dataloader_subset:
                     entail_batch = tuple(t.to(device) for t in entail_batch)
                     _, input_ids, input_mask, segment_ids, label_ids = entail_batch
                     roberta_model.eval()
@@ -653,7 +655,7 @@ def main():
                     kshot_entail_reps.append(last_hidden_entail)
                 kshot_entail_rep = torch.mean(torch.cat(kshot_entail_reps, dim=0), dim=0, keepdim=True)
                 kshot_nonentail_reps = []
-                for nonentail_batch in target_kshot_nonentail_dataloader:
+                for nonentail_batch in target_kshot_nonentail_dataloader_subset:
                     nonentail_batch = tuple(t.to(device) for t in nonentail_batch)
                     _, input_ids, input_mask, segment_ids, label_ids = nonentail_batch
                     roberta_model.eval()

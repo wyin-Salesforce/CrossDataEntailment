@@ -488,6 +488,7 @@ def evaluation(model, test_dataloader, device, flag='Test'):
     for pair_id, predgoldlist in pairID_2_predgoldlist.items():
         predgoldlist.sort(key=lambda x:x[0]) #sort by prob
         assert len(predgoldlist) == 80
+        print('predgoldlist:', predgoldlist)
         if predgoldlist[-1][1] == 0:
             hit_size+=1
     acc= hit_size/total_size

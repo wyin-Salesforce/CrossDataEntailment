@@ -684,7 +684,7 @@ def main():
                 # loss = loss_by_logits_and_2way_labels(logits, label_ids.view(-1), device)
                 loss_fct = CrossEntropyLoss()
 
-                loss = loss_fct(logits.view(-1, num_labels), label_ids.view(-1))
+                loss = loss_fct(logits.view(-1, 3), label_ids.view(-1))
 
                 if n_gpu > 1:
                     loss = loss.mean() # mean() to average on multi-gpu.
@@ -732,4 +732,6 @@ if __name__ == "__main__":
 
 CUDA_VISIBLE_DEVICES=7 python -u k.shot.STILTS.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 8 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 0
 
+
+because negative pairs is 79 times larger than positive pairs; while the batch size is only 20
 '''

@@ -491,6 +491,8 @@ def evaluation(model, test_dataloader, device, flag='Test'):
         label_ids = label_ids.to(device)
         gold_label_ids+=list(label_ids.detach().cpu().numpy())
 
+        print('input_ids:', input_ids)
+        print('input_mask:', input_mask)
         with torch.no_grad():
             logits = model(input_ids, input_mask)
         if len(preds) == 0:
@@ -866,8 +868,8 @@ def main():
                 source_class_prototype_reps = torch.cat([kshot_entail_rep, kshot_neural_rep, kshot_contra_rep], dim=0) #(3, hidden)
 
                 '''first get representations for support examples in target'''
-                target_kshot_entail_dataloader_subset = examples_to_features(random.sample(target_kshot_entail_examples, args.kshot), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
-                target_kshot_nonentail_dataloader_subset = examples_to_features(random.sample(target_kshot_nonentail_examples, args.kshot), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
+                target_kshot_entail_dataloader_subset = examples_to_features(random.sample(target_kshot_entail_examples, args.kshot*2), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
+                target_kshot_nonentail_dataloader_subset = examples_to_features(random.sample(target_kshot_nonentail_examples, args.kshot*2), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
                 kshot_entail_reps = torch.zeros(1, bert_hidden_dim).to(device)
                 entail_batch_i = 0
                 for entail_batch in target_kshot_entail_dataloader_subset:#target_kshot_entail_dataloader:
@@ -907,82 +909,10 @@ def main():
                     print('\n\t dev acc:', dev_acc, ' max_dev_acc:', max_dev_acc, '\n')
 
 
-                # for idd, dev_or_test_dataloader in enumerate([target_dev_dataloader, target_test_dataloader]):
-                #
-                #     if idd == 0:
-                #         logger.info("***** Running dev *****")
-                #         logger.info("  Num examples = %d", len(target_dev_examples))
-                #     else:
-                #         logger.info("***** Running test *****")
-                #         logger.info("  Num examples = %d", len(target_test_examples))
-                #     eval_loss = 0
-                #     nb_eval_steps = 0
-                #     preds = []
-                #     gold_label_ids = []
-                #     gold_pair_ids = []
-                #     for input_pair_ids, input_ids, input_mask, segment_ids, label_ids in dev_or_test_dataloader:
-                #         input_ids = input_ids.to(device)
-                #         input_mask = input_mask.to(device)
-                #         segment_ids = segment_ids.to(device)
-                #         gold_pair_ids+= list(input_pair_ids.numpy())
-                #         label_ids = label_ids.to(device)
-                #         gold_label_ids+=list(label_ids.detach().cpu().numpy())
-                #         roberta_model.eval()
-                #         with torch.no_grad():
-                #             last_hidden_target_batch, logits_from_source = roberta_model(input_ids, input_mask)
-                #
-                #         with torch.no_grad():
-                #             logits = protonet(class_prototype_reps, last_hidden_target_batch)
-                #         # '''add source logits'''
-                #         # logits = logits_from_source#F.softmax(logits, dim=1)+F.softmax(logits_from_source, dim=1)
-                #         if len(preds) == 0:
-                #             preds.append(logits.detach().cpu().numpy())
-                #         else:
-                #             preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
-                #     preds = preds[0]
-                #     pred_probs = list(softmax(preds,axis=1)[:,0]) #entail prob
-                #
-                #     assert len(gold_pair_ids) == len(pred_probs)
-                #     assert len(gold_pair_ids) == len(gold_label_ids)
-                #
-                #     pairID_2_predgoldlist = {}
-                #     for pair_id, prob, gold_id in zip(gold_pair_ids, pred_probs, gold_label_ids):
-                #         predgoldlist = pairID_2_predgoldlist.get(pair_id)
-                #         if predgoldlist is None:
-                #             predgoldlist = []
-                #         predgoldlist.append((prob, gold_id))
-                #         pairID_2_predgoldlist[pair_id] = predgoldlist
-                #     total_size = len(pairID_2_predgoldlist)
-                #     hit_size = 0
-                #     for pair_id, predgoldlist in pairID_2_predgoldlist.items():
-                #         predgoldlist.sort(key=lambda x:x[0]) #sort by prob
-                #         assert len(predgoldlist) == 4
-                #         if predgoldlist[-1][1] == 0:
-                #             hit_size+=1
-                #     test_acc= hit_size/total_size
-                #
-                #     if idd == 0: # this is dev
-                #         if test_acc > max_dev_acc:
-                #             max_dev_acc = test_acc
-                #             print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
-                #
-                #         else:
-                #             print('\ndev acc:', test_acc, ' max_dev_acc:', max_dev_acc, '\n')
-                #             break
-                #     else: # this is test
-                #         if test_acc > max_test_acc:
-                #             max_test_acc = test_acc
-                #
-                #         final_test_performance = test_acc
-                #         print('\n\t\t test acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
 
 
 
-
-
-
-
-            if iter_co == 40:#3000:
+            if iter_co == 100:#3000:
                 break
     print('final_test_performance:', final_test_performance)
 

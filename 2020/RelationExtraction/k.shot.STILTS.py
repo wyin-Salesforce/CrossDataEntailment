@@ -43,7 +43,7 @@ from transformers.optimization import AdamW
 from transformers.modeling_roberta import RobertaModel#RobertaForSequenceClassification
 from torch.nn import functional as F
 
-from load_data_STILTS import load_FewRel_data
+from load_data import load_FewRel_data
 
 logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt = '%m/%d/%Y %H:%M:%S',
@@ -480,15 +480,14 @@ def evaluation(model, test_dataloader, device, flag='Test'):
         pairID_2_predgoldlist[pair_id] = predgoldlist
 
     total_size = len(pairID_2_predgoldlist)
-    if flag=='Test':
-        assert total_size == 10 * 80
-    else:
-        assert total_size == 5 * 80
+    # if flag=='Test':
+    #     assert total_size == 200 * 16
+    # else:
+    #     assert total_size == 100 * 16
     hit_size = 0
     for pair_id, predgoldlist in pairID_2_predgoldlist.items():
         predgoldlist.sort(key=lambda x:x[0]) #sort by prob
-        assert len(predgoldlist) == 80
-        # print('predgoldlist:', predgoldlist)
+        # assert len(predgoldlist) == 16
         if predgoldlist[-1][1] == 0:
             hit_size+=1
     acc= hit_size/total_size
@@ -672,7 +671,7 @@ def main():
         iter_co = 0
         final_test_performance = 0.0
         for _ in trange(int(args.num_train_epochs), desc="Epoch"):
-
+            tr_loss = 0
             nb_tr_examples, nb_tr_steps = 0, 0
             for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
                 model.train()
@@ -681,9 +680,9 @@ def main():
 
 
                 logits = model(input_ids, input_mask)
-                loss = loss_by_logits_and_2way_labels(logits, label_ids.view(-1), device)
-                # loss_fct = CrossEntropyLoss()
-                # loss = loss_fct(logits.view(-1, 3), label_ids.view(-1))
+                # loss = loss_by_logits_and_2way_labels(logits, label_ids.view(-1), device)
+                loss_fct = CrossEntropyLoss()
+                loss = loss_fct(logits.view(-1, 3), label_ids.view(-1))
 
                 if n_gpu > 1:
                     loss = loss.mean() # mean() to average on multi-gpu.
@@ -700,9 +699,8 @@ def main():
                 optimizer.zero_grad()
                 global_step += 1
                 iter_co+=1
-                print('iter_co:', iter_co, ' mean loss:', tr_loss/iter_co)
-                if iter_co %500==0:
-                    # if iter_co % len(train_dataloader)==0:
+                # if iter_co %20==0:
+                if iter_co % len(train_dataloader)==0:
                     '''
                     start evaluate on dev set after this epoch
                     '''
@@ -711,12 +709,12 @@ def main():
                     if dev_acc > max_dev_acc:
                         max_dev_acc = dev_acc
                         print('\n\t dev acc:', dev_acc, ' max_dev_acc:', max_dev_acc, '\n')
-                        # test_acc = evaluation(model, test_dataloader,  device, flag='Test')
-                        # if test_acc > max_test_acc:
-                        #     max_test_acc = test_acc
-                        #
-                        # final_test_performance = test_acc
-                        # print('\n\t test acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
+                        test_acc = evaluation(model, test_dataloader,  device, flag='Test')
+                        if test_acc > max_test_acc:
+                            max_test_acc = test_acc
+
+                        final_test_performance = test_acc
+                        print('\n\t test acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
                     else:
                         print('\n\t dev acc:', dev_acc, ' max_dev_acc:', max_dev_acc, '\n')
 
@@ -731,6 +729,4 @@ if __name__ == "__main__":
 
 CUDA_VISIBLE_DEVICES=7 python -u k.shot.STILTS.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 8 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 0
 
-
-because negative pairs is 79 times larger than positive pairs; while the batch size is only 20
 '''

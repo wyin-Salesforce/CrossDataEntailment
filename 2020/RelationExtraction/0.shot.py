@@ -42,7 +42,7 @@ from transformers.tokenization_roberta import RobertaTokenizer
 from transformers.optimization import AdamW
 from transformers.modeling_roberta import RobertaModel#RobertaForSequenceClassification
 
-from load_FewRel import load_FewRel_data
+from load_data import load_FewRel_data
 
 logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt = '%m/%d/%Y %H:%M:%S',
@@ -404,11 +404,11 @@ def evaluation(model, test_dataloader, device, flag='Test'):
         pairID_2_predgoldlist[pair_id] = predgoldlist
 
     total_size = len(pairID_2_predgoldlist)
-    assert total_size == 200 * 16
+    # assert total_size == 200 * 16
     hit_size = 0
     for pair_id, predgoldlist in pairID_2_predgoldlist.items():
         predgoldlist.sort(key=lambda x:x[0]) #sort by prob
-        assert len(predgoldlist) == 16
+        # assert len(predgoldlist) == 16
         if predgoldlist[-1][1] == 0:
             hit_size+=1
     acc= hit_size/total_size

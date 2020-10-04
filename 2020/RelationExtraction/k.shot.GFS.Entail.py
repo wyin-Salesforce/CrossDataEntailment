@@ -767,7 +767,6 @@ def main():
             target_kshot_nonentail_dataloader_subset = examples_to_features(random.sample(target_kshot_nonentail_examples, args.kshot), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
             kshot_entail_reps = []
             for entail_batch in target_kshot_entail_dataloader_subset:
-                print('entail_batch...')
                 roberta_model.train()
                 last_hidden_entail, _ = roberta_model(entail_batch[1].to(device), entail_batch[2].to(device))
                 kshot_entail_reps.append(torch.mean(last_hidden_entail,dim=0, keepdim=True))
@@ -775,7 +774,6 @@ def main():
             kshot_entail_rep = torch.mean(all_kshot_entail_reps, dim=0, keepdim=True)
             kshot_nonentail_reps = []
             for nonentail_batch in target_kshot_nonentail_dataloader_subset:
-                print('nonentail_batch...')
                 roberta_model.train()
                 last_hidden_nonentail, _ = roberta_model(nonentail_batch[1].to(device), nonentail_batch[2].to(device))
                 kshot_nonentail_reps.append(torch.mean(last_hidden_nonentail,dim=0, keepdim=True))
@@ -787,7 +785,6 @@ def main():
 
 
             '''forward to model'''
-            print('forwarding...')
             target_batch_size = args.target_train_batch_size #10*3
             target_batch_size_entail = target_batch_size#random.randrange(5)+1
             target_batch_size_neural = target_batch_size#random.randrange(5)+1
@@ -798,7 +795,6 @@ def main():
             target_last_hidden_batch = torch.cat([selected_target_entail_rep, selected_target_neural_rep])
 
             last_hidden_batch = torch.cat([source_last_hidden_batch, target_last_hidden_batch], dim=0) #(train_batch_size+10*2)
-            print('protonet...')
             batch_logits = protonet(class_prototype_reps, last_hidden_batch)
 
             '''source side loss'''
@@ -809,7 +805,7 @@ def main():
             target_label_ids_batch = torch.tensor([0]*selected_target_entail_rep.shape[0]+[1]*selected_target_neural_rep.shape[0], dtype=torch.long)
             target_batch_logits = batch_logits[-target_last_hidden_batch.shape[0]:]
             target_loss_list = loss_by_logits_and_2way_labels(target_batch_logits, target_label_ids_batch.view(-1), device)
-            print('loss...')
+
             loss = source_loss_list+target_loss_list#torch.mean(torch.cat([source_loss_list, target_loss_list]))
             source_loss+=source_loss_list
             target_loss+=target_loss_list
@@ -870,9 +866,11 @@ def main():
                 source_class_prototype_reps = torch.cat([kshot_entail_rep, kshot_neural_rep, kshot_contra_rep], dim=0) #(3, hidden)
 
                 '''first get representations for support examples in target'''
+                target_kshot_entail_dataloader_subset = examples_to_features(random.sample(target_kshot_entail_examples, args.kshot), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
+                target_kshot_nonentail_dataloader_subset = examples_to_features(random.sample(target_kshot_nonentail_examples, args.kshot), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
                 kshot_entail_reps = torch.zeros(1, bert_hidden_dim).to(device)
                 entail_batch_i = 0
-                for entail_batch in target_kshot_entail_dataloader:
+                for entail_batch in target_kshot_entail_dataloader_subset:#target_kshot_entail_dataloader:
                     roberta_model.eval()
                     with torch.no_grad():
                         last_hidden_entail, _ = roberta_model(entail_batch[1].to(device), entail_batch[2].to(device))
@@ -881,7 +879,7 @@ def main():
                 kshot_entail_rep = kshot_entail_reps/entail_batch_i
                 kshot_nonentail_reps = torch.zeros(1, bert_hidden_dim).to(device)
                 nonentail_batch_i = 0
-                for nonentail_batch in target_kshot_nonentail_dataloader:
+                for nonentail_batch in target_kshot_nonentail_dataloader_subset:#target_kshot_nonentail_dataloader:
                     roberta_model.eval()
                     with torch.no_grad():
                         last_hidden_nonentail, _ = roberta_model(nonentail_batch[1].to(device), nonentail_batch[2].to(device))

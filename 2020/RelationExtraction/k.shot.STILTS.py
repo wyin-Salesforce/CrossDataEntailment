@@ -729,4 +729,5 @@ if __name__ == "__main__":
 
 CUDA_VISIBLE_DEVICES=7 python -u k.shot.STILTS.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 8 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 0
 
+in this file we use standard crossentropy loss rather than the 2-way loss because the data is over unbalanced
 '''

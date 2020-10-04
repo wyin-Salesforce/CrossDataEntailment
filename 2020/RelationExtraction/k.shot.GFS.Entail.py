@@ -301,7 +301,7 @@ class PrototypeNet(nn.Module):
         repeat_rep_classes = rep_classes.repeat(batch_size, 1)
         repeat_rep_query = torch.repeat_interleave(rep_query_batch, repeats=class_size, dim=0)
         combined_rep = torch.cat([repeat_rep_classes, repeat_rep_query, repeat_rep_classes*repeat_rep_query, repeat_rep_classes-repeat_rep_query], dim=1) #(#class*batch, 3*hidden)
-        print('combined_rep:', combined_rep.dtype)
+
         output_1 = self.dropout(torch.tanh(self.HiddenLayer_1(combined_rep))) +combined_rep
         output_2 = self.dropout(torch.tanh(self.HiddenLayer_2(output_1))) +output_1
         output_3 = self.dropout(torch.tanh(self.HiddenLayer_3(output_2)))
@@ -474,14 +474,14 @@ def loss_by_logits_and_2way_labels(logits, label_ids, device):
     return loss
 
 
-def evaluation(model, test_dataloader, device, flag='Test'):
+def evaluation(model, roberta_model, class_prototype_reps, test_dataloader, device, flag='Test'):
+
     eval_loss = 0
     nb_eval_steps = 0
     preds = []
     gold_label_ids = []
     gold_pair_ids = []
-
-    threshold = 0.3
+    # for input_pair_ids, input_ids, input_mask, segment_ids, label_ids in dev_or_test_dataloader:
     for _, batch in enumerate(tqdm(test_dataloader, desc=flag)):
         input_pair_ids, input_ids, input_mask, segment_ids, label_ids = batch
         input_ids = input_ids.to(device)
@@ -490,18 +490,19 @@ def evaluation(model, test_dataloader, device, flag='Test'):
         gold_pair_ids+= list(input_pair_ids.numpy())
         label_ids = label_ids.to(device)
         gold_label_ids+=list(label_ids.detach().cpu().numpy())
-
-        print('input_ids:', input_ids)
-        print('input_mask:', input_mask)
+        roberta_model.eval()
         with torch.no_grad():
-            logits = model(input_ids, input_mask)
+            last_hidden_target_batch, logits_from_source = roberta_model(input_ids, input_mask)
+
+        with torch.no_grad():
+            logits = model(class_prototype_reps, last_hidden_target_batch)
+        # '''add source logits'''
+        # logits = logits_from_source#F.softmax(logits, dim=1)+F.softmax(logits_from_source, dim=1)
         if len(preds) == 0:
             preds.append(logits.detach().cpu().numpy())
         else:
             preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
-
     preds = preds[0]
-
     pred_probs = list(softmax(preds,axis=1)[:,0]) #entail prob
 
     assert len(gold_pair_ids) == len(pred_probs)
@@ -512,22 +513,18 @@ def evaluation(model, test_dataloader, device, flag='Test'):
         predgoldlist = pairID_2_predgoldlist.get(pair_id)
         if predgoldlist is None:
             predgoldlist = []
-        predgoldlist.append((prob, gold_id))  #(0.2, 0/1)
+        predgoldlist.append((prob, gold_id))
         pairID_2_predgoldlist[pair_id] = predgoldlist
-
     total_size = len(pairID_2_predgoldlist)
-    # if flag=='Test':
-    #     assert total_size == 200 * 16
-    # else:
-    #     assert total_size == 100 * 16
     hit_size = 0
     for pair_id, predgoldlist in pairID_2_predgoldlist.items():
         predgoldlist.sort(key=lambda x:x[0]) #sort by prob
-        # assert len(predgoldlist) == 16
+        # assert len(predgoldlist) == 4
         if predgoldlist[-1][1] == 0:
             hit_size+=1
-    acc= hit_size/total_size
-    return acc
+    test_acc= hit_size/total_size
+    return test_acc
+
 
 
 def main():
@@ -868,8 +865,8 @@ def main():
                 source_class_prototype_reps = torch.cat([kshot_entail_rep, kshot_neural_rep, kshot_contra_rep], dim=0) #(3, hidden)
 
                 '''first get representations for support examples in target'''
-                target_kshot_entail_dataloader_subset = examples_to_features(random.sample(target_kshot_entail_examples, args.kshot*2), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
-                target_kshot_nonentail_dataloader_subset = examples_to_features(random.sample(target_kshot_nonentail_examples, args.kshot*2), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
+                target_kshot_entail_dataloader_subset = examples_to_features(random.sample(target_kshot_entail_examples, args.kshot), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
+                target_kshot_nonentail_dataloader_subset = examples_to_features(random.sample(target_kshot_nonentail_examples, args.kshot), target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
                 kshot_entail_reps = torch.zeros(1, bert_hidden_dim).to(device)
                 entail_batch_i = 0
                 for entail_batch in target_kshot_entail_dataloader_subset:#target_kshot_entail_dataloader:
@@ -895,11 +892,13 @@ def main():
 
                 protonet.eval()
 
-                dev_acc = evaluation(protonet, target_dev_dataloader,  device, flag='Dev')
+                # dev_acc = evaluation(protonet, target_dev_dataloader,  device, flag='Dev')
+                dev_acc = evaluation(protonet, roberta_model, class_prototype_reps, target_dev_dataloader, device, flag='Dev')
                 if dev_acc > max_dev_acc:
                     max_dev_acc = dev_acc
                     print('\n\t dev acc:', dev_acc, ' max_dev_acc:', max_dev_acc, '\n')
-                    test_acc = evaluation(protonet, target_test_dataloader,  device, flag='Test')
+                    # test_acc = evaluation(protonet, target_test_dataloader,  device, flag='Test')
+                    test_acc = evaluation(protonet, roberta_model, class_prototype_reps, target_test_dataloader, device, flag='Test')
                     if test_acc > max_test_acc:
                         max_test_acc = test_acc
 

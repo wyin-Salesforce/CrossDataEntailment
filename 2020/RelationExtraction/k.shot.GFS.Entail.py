@@ -122,8 +122,8 @@ def convert_examples_to_features(examples, label_list, max_seq_length,
 
     features = []
     for (ex_index, example) in enumerate(examples):
-        if ex_index % 10000 == 0:
-            logger.info("Writing example %d of %d" % (ex_index, len(examples)))
+        # if ex_index % 10000 == 0:
+        #     logger.info("Writing example %d of %d" % (ex_index, len(examples)))
 
         tokens_a = tokenizer.tokenize(example.text_a)
 
@@ -520,7 +520,7 @@ def evaluation(model, roberta_model, class_prototype_reps, test_dataloader, devi
     for pair_id, predgoldlist in pairID_2_predgoldlist.items():
         predgoldlist.sort(key=lambda x:x[0]) #sort by prob
         # assert len(predgoldlist) == 4
-        print('predgoldlist:', predgoldlist)
+        # print('predgoldlist:', predgoldlist)
         if predgoldlist[-1][1] == 0:
             hit_size+=1
     test_acc= hit_size/total_size
@@ -795,8 +795,8 @@ def main():
             '''target side loss'''
             target_label_ids_batch = torch.tensor([0]*selected_target_entail_rep.shape[0]+[1]*selected_target_neural_rep.shape[0], dtype=torch.long)
             target_batch_logits = batch_logits[-target_last_hidden_batch.shape[0]:]
-            target_loss_list = loss_by_logits_and_2way_labels(target_batch_logits, target_label_ids_batch.view(-1), device)
-            # target_loss_list = loss_fct(target_batch_logits.view(-1, source_num_labels), target_label_ids_batch.to(device).view(-1))
+            # target_loss_list = loss_by_logits_and_2way_labels(target_batch_logits, target_label_ids_batch.view(-1), device)
+            target_loss_list = loss_fct(target_batch_logits.view(-1, source_num_labels), target_label_ids_batch.to(device).view(-1))
             loss = source_loss_list+target_loss_list#torch.mean(torch.cat([source_loss_list, target_loss_list]))
             source_loss+=source_loss_list
             target_loss+=target_loss_list
@@ -817,6 +817,7 @@ def main():
 
             global_step += 1
             iter_co+=1
+            print('iter_co:', iter_co, 'mean loss:', tr_loss/iter_co)
             if iter_co %50==0:
                 # if iter_co % len(source_remain_ex_dataloader)==0:
                 '''

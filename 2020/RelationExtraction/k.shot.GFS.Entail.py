@@ -736,8 +736,9 @@ def main():
             target_last_hidden_batch = torch.cat([selected_target_entail_rep, selected_target_neural_rep])
 
             last_hidden_batch = torch.cat([source_last_hidden_batch, target_last_hidden_batch], dim=0) #(train_batch_size+10*2)
+            print('last_hidden_batch shape:', last_hidden_batch.shape)
             batch_logits = protonet(class_prototype_reps, last_hidden_batch)
-
+            exit(0)
             '''source side loss'''
             # loss_fct = CrossEntropyLoss(reduction='none')
             loss_fct = CrossEntropyLoss()

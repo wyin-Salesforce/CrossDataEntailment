@@ -340,6 +340,7 @@ def convert_examples_to_features(examples, label_list, entity_label_list, max_se
     entity_label_map = {label : i for i, label in enumerate(entity_label_list)}
 
     features = []
+    give_up = 0
     for (ex_index, example) in enumerate(examples):
         if ex_index % 10000 == 0:
             logger.info("Writing example %d of %d" % (ex_index, len(examples)))
@@ -426,16 +427,17 @@ def convert_examples_to_features(examples, label_list, entity_label_list, max_se
         span_a_left, span_a_right, span_a_token_list = wordpairID_2_tokenpairID(example.text_a, example.span_a_left, example.span_a_right, input_ids, tokenizer, sent_1=True)
         span_b_left, span_b_right, span_b_token_list = wordpairID_2_tokenpairID(example.text_a, example.span_b_left, example.span_b_right, input_ids, tokenizer, sent_1=True)
         # print('span_b_left, span_b_right, span_b_token_list:', span_b_left, span_b_right, span_b_token_list)
-        # if span_a_left is None or span_b_left is None:
-        #     '''give up this pair'''
-        #     continue
-        # else:
-        span_a_mask = [0]*len(input_ids)
-        for i in range(span_a_left, span_a_right):
-            span_a_mask[i]=1
-        span_b_mask = [0]*len(input_ids)
-        for i in range(span_b_left, span_b_right):
-            span_b_mask[i]=1
+        if span_a_left is None or span_b_left is None:
+            '''give up this pair'''
+            give_up+=1
+            continue
+        else:
+            span_a_mask = [0]*len(input_ids)
+            for i in range(span_a_left, span_a_right):
+                span_a_mask[i]=1
+            span_b_mask = [0]*len(input_ids)
+            for i in range(span_b_left, span_b_right):
+                span_b_mask[i]=1
 
         features.append(
                 InputFeatures(id = example.guid,
@@ -446,6 +448,7 @@ def convert_examples_to_features(examples, label_list, entity_label_list, max_se
                               span_b_mask = span_b_mask,
                               label_id=label_id,
                               entity_label_id = entity_label_map[example.entity_label]))
+    print('give_up:', give_up)
     return features
 
 def _truncate_seq_pair(tokens_a, tokens_b, max_length):

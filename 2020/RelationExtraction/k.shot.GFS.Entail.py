@@ -319,64 +319,12 @@ class PrototypeNet(nn.Module):
         # print('score_matrix_to_fold[:, -3:]:', score_matrix_to_fold[:, -3:])
         # print('score_from_target:', score_from_target)
         weight_4_highway = torch.sigmoid(self.score_proj_weight(score_matrix_to_fold))
-        # print('weight_4_highway:', weight_4_highway)
+        print('weight_4_highway:', weight_4_highway)
         score_matrix = weight_4_highway*(score_from_source)+(1.0-weight_4_highway)*score_from_target
         # print('score_matrix:', score_matrix)
 
         return score_matrix
 
-
-def get_MCTest_train(train_filename, k_shot):
-    '''
-    k_shot means we select k documents with question/answers
-    '''
-
-    examples_entail=[]
-    examples_non_entail =[]
-
-    instances = load_MCTest(train_filename)
-    selected_keys = list(instances.keys())
-    # for premise, hypolist in instances.items():
-    for premise in selected_keys:
-        hypolist = instances.get(premise)
-        assert len(hypolist) ==  16
-        for idd, hypo_and_label in enumerate(hypolist):
-            hypo, label = hypo_and_label
-            if label == 'ENTAILMENT':
-                examples_entail.append(
-                    InputExample(guid=0, text_a=premise, text_b=hypo, label=label))
-            else:
-                examples_non_entail.append(
-                    InputExample(guid=0, text_a=premise, text_b=hypo, label=label))
-
-    examples_entail = random.sample(examples_entail, k_shot)
-    examples_non_entail = random.sample(examples_non_entail, k_shot*3)
-    print('loaded  MCTest doc size:', len(selected_keys), 'entail size:', len(examples_entail), 'non_entail size:', len(examples_non_entail))
-    return examples_entail, examples_non_entail
-
-
-def get_MCTest_dev_and_test(train_filename, dev_filename):
-    examples_per_file = []
-    for filename in [train_filename, dev_filename]:
-
-        examples=[]
-        instances = load_MCTest(filename)
-        question_id = 0
-        for premise, hypolist in instances.items():
-            assert len(hypolist) ==  16
-            for idd, hypo_and_label in enumerate(hypolist):
-                if idd % 4 ==0:
-                    question_id+=1
-                hypo, label = hypo_and_label
-                examples.append(
-                    InputExample(guid=question_id, text_a=premise, text_b=hypo, label=label))
-
-
-        assert question_id * 4 == len(examples)
-        assert question_id//4 == len(instances)
-        print('loaded  MCTest size:', len(examples), 'question size:', question_id)
-        examples_per_file.append(examples)
-    return examples_per_file[0], examples_per_file[1] #train, dev
 
 def get_MNLI_train(filename, k_shot):
     '''

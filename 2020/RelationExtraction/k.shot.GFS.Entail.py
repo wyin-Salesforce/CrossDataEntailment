@@ -710,14 +710,14 @@ def main():
             for entail_batch in target_kshot_entail_dataloader_subset:
                 roberta_model.train()
                 last_hidden_entail, _ = roberta_model(entail_batch[1].to(device), entail_batch[2].to(device))
-                kshot_entail_reps.append(torch.mean(last_hidden_entail,dim=0, keepdim=True))
+                kshot_entail_reps.append(last_hidden_entail)
             all_kshot_entail_reps = torch.cat(kshot_entail_reps, dim=0)
             kshot_entail_rep = torch.mean(all_kshot_entail_reps, dim=0, keepdim=True)
             kshot_nonentail_reps = []
             for nonentail_batch in target_kshot_nonentail_dataloader_subset:
                 roberta_model.train()
                 last_hidden_nonentail, _ = roberta_model(nonentail_batch[1].to(device), nonentail_batch[2].to(device))
-                kshot_nonentail_reps.append(torch.mean(last_hidden_nonentail,dim=0, keepdim=True))
+                kshot_nonentail_reps.append(last_hidden_nonentail)
             all_kshot_neural_reps = torch.cat(kshot_nonentail_reps, dim=0)
             kshot_nonentail_rep = torch.mean(all_kshot_neural_reps, dim=0, keepdim=True)
             target_class_prototype_reps = torch.cat([kshot_entail_rep, kshot_nonentail_rep, kshot_nonentail_rep], dim=0) #(3, hidden)

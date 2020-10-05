@@ -727,12 +727,15 @@ def main():
 
             '''forward to model'''
             target_batch_size = args.target_train_batch_size #10*3
+            print('target_batch_size:', target_batch_size)
             target_batch_size_entail = target_batch_size#random.randrange(5)+1
             target_batch_size_neural = target_batch_size#random.randrange(5)+1
 
 
             selected_target_entail_rep = all_kshot_entail_reps[torch.randperm(all_kshot_entail_reps.shape[0])[:target_batch_size_entail]]
+            print('selected_target_entail_rep:', selected_target_entail_rep.shape)
             selected_target_neural_rep = all_kshot_neural_reps[torch.randperm(all_kshot_neural_reps.shape[0])[:target_batch_size_neural]]
+            print('selected_target_neural_rep:', selected_target_neural_rep.shape)
             target_last_hidden_batch = torch.cat([selected_target_entail_rep, selected_target_neural_rep])
 
             last_hidden_batch = torch.cat([source_last_hidden_batch, target_last_hidden_batch], dim=0) #(train_batch_size+10*2)

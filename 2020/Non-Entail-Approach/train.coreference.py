@@ -426,16 +426,16 @@ def convert_examples_to_features(examples, label_list, entity_label_list, max_se
         span_a_left, span_a_right, span_a_token_list = wordpairID_2_tokenpairID(example.text_a, example.span_a_left, example.span_a_right, input_ids, tokenizer, sent_1=True)
         span_b_left, span_b_right, span_b_token_list = wordpairID_2_tokenpairID(example.text_a, example.span_b_left, example.span_b_right, input_ids, tokenizer, sent_1=True)
         # print('span_b_left, span_b_right, span_b_token_list:', span_b_left, span_b_right, span_b_token_list)
-        if span_a_left is None or span_b_left is None:
-            '''give up this pair'''
-            continue
-        else:
-            span_a_mask = [0]*len(input_ids)
-            for i in range(span_a_left, span_a_right):
-                span_a_mask[i]=1
-            span_b_mask = [0]*len(input_ids)
-            for i in range(span_b_left, span_b_right):
-                span_b_mask[i]=1
+        # if span_a_left is None or span_b_left is None:
+        #     '''give up this pair'''
+        #     continue
+        # else:
+        span_a_mask = [0]*len(input_ids)
+        for i in range(span_a_left, span_a_right):
+            span_a_mask[i]=1
+        span_b_mask = [0]*len(input_ids)
+        for i in range(span_b_left, span_b_right):
+            span_b_mask[i]=1
 
         features.append(
                 InputFeatures(id = example.guid,
@@ -785,9 +785,11 @@ def main():
                     best_current_dev_acc = 0.0
                     best_current_threshold = -10.0
                     for threshold in np.arange(0.99, 0.0, -0.01):
-                        print('example_id_list:', example_id_list)
+                        # print('example_id_list:', example_id_list)
                         eval_output_list = build_GAP_output_format(example_id_list, gold_label_ids, pred_prob_entail, pred_label_ids_3way, threshold, dev_or_test='validation')
                         dev_acc = run_scorer('/export/home/Dataset/gap_coreference/gap-validation.tsv', eval_output_list)
+                        # print('dev_acc:', dev_acc)
+                        # exit(0)
                         if dev_acc > best_current_dev_acc:
                             best_current_dev_acc = dev_acc
                             best_current_threshold = threshold
@@ -807,9 +809,11 @@ def main():
                         gold_label_ids = []
                         example_id_list = []
                         for _, batch in enumerate(tqdm(test_dataloader, desc="test")):
-                            input_indices, input_ids, input_mask, segment_ids, _, label_ids = batch
+                            input_indices, input_ids, input_mask, span_a_mask, span_b_mask, segment_ids, _, label_ids = batch
                             input_ids = input_ids.to(device)
                             input_mask = input_mask.to(device)
+                            span_a_mask = span_a_mask.to(device)
+                            span_b_mask = span_b_mask.to(device)
                             segment_ids = segment_ids.to(device)
                             label_ids = label_ids.to(device)
                             example_ids = list(input_indices.numpy())
@@ -817,7 +821,7 @@ def main():
                             gold_label_ids+=list(label_ids.detach().cpu().numpy())
 
                             with torch.no_grad():
-                                logits = model(input_ids, input_mask)
+                                logits = model(input_ids, input_mask, span_a_mask, span_b_mask)
                             if len(preds) == 0:
                                 preds.append(logits.detach().cpu().numpy())
                             else:

@@ -840,6 +840,7 @@ def main():
                 protonet.eval()
 
                 # dev_acc = evaluation(protonet, target_dev_dataloader,  device, flag='Dev')
+                print('class_prototype_reps:', class_prototype_reps)
                 dev_acc = evaluation(protonet, roberta_model, class_prototype_reps, target_dev_dataloader, device, flag='Dev')
                 if dev_acc > max_dev_acc:
                     max_dev_acc = dev_acc

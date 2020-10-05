@@ -1,7 +1,7 @@
 export SHOT=10 #1, 3, 5, 10
 export BATCHSIZE=32
 export TARGETBATCHSIZE=6  #1, 2, 2, 2; 2 is always best
-export EPOCHSIZE=2 #only need max 1 epochs
+export EPOCHSIZE=1 #only need max 1 epochs
 export LEARNINGRATE=1e-5
 export DROPOUT=0.1
 export UPDATEBERTLAYERS=5

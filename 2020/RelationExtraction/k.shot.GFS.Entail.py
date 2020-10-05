@@ -770,7 +770,7 @@ def main():
             global_step += 1
             iter_co+=1
             # print('iter_co:', iter_co, 'mean loss:', tr_loss/iter_co)
-            if iter_co %50==0:
+            if iter_co > 1999 and iter_co %200==0:
                 # if iter_co % len(source_remain_ex_dataloader)==0:
                 '''
                 start evaluate on dev set after this epoch

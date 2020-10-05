@@ -193,7 +193,7 @@ class RteProcessor(DataProcessor):
             span_b_left = example[3][0]
             span_b_right = example[3][1]
 
-            type = example[4]
+            type = example[5]
 
             label = 'entailment' if example[4]=='TRUE' else 'not_entailment' # 'TRUE' or 'FALSE'
 

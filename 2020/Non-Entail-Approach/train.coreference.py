@@ -238,8 +238,8 @@ class RteProcessor(DataProcessor):
                 all_examples.append(row)
 
         '''select k examples'''
-        if k_shot > 0:
-            selected_examples = random.sample(all_examples, k_shot)
+        if k_shot < 1.0:
+            selected_examples = random.sample(all_examples, int(len(all_examples)*k_shot))
         else:
             selected_examples = all_examples
 
@@ -564,7 +564,7 @@ def main():
                         help="Whether to run training.")
 
     parser.add_argument('--kshot',
-                        type=int,
+                        type=float,
                         default=5,
                         help="random seed for initialization")
     parser.add_argument("--do_eval",
@@ -867,7 +867,7 @@ if __name__ == "__main__":
 
 '''
 full-shot command:
-CUDA_VISIBLE_DEVICES=7 python -u train.coreference.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 16 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 0
+CUDA_VISIBLE_DEVICES=7 python -u train.coreference.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 32 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 1.0
 
 
 '''

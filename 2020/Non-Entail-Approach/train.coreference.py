@@ -303,14 +303,10 @@ def wordpairID_2_tokenpairID(sentence, wordindex_left, wordindex_right, full_tok
     # print('span:', span, 'span_id_list:', span_id_list)
     if sent_1:
         # for i in range(wordindex_left, len(full_token_id_list)-len(span_id_list)):
-        for i in range(wordindex_left, position_two_two):
+        for i in range(0, position_two_two):
             if full_token_id_list[i:i+len(span_id_list)] == span_id_list:
                 return i, i+len(span_id_list), span_token_list
 
-        for i in range(1,len(span_id_list)):
-            for i in range(wordindex_left, position_two_two):
-                if full_token_id_list[i:i+len(span_id_list)-i] == span_id_list[:-i]:
-                    return i, i+len(span_id_list), span_token_list
 
 
         return None, None, span_token_list

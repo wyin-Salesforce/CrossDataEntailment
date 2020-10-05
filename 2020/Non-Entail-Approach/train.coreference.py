@@ -867,14 +867,14 @@ if __name__ == "__main__":
 
 '''
 full-shot command:
-86.02   CUDA_VISIBLE_DEVICES=7 python -u train.coreference.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 20 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 1.0
-84.81   CUDA_VISIBLE_DEVICES=6 python -u train.coreference.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 20 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 0.9
-80.88   CUDA_VISIBLE_DEVICES=5 python -u train.coreference.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 20 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 0.8
-79.63   CUDA_VISIBLE_DEVICES=4 python -u train.coreference.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 20 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 0.7
-71.65   CUDA_VISIBLE_DEVICES=3 python -u train.coreference.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 20 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 0.6
-60.29   CUDA_VISIBLE_DEVICES=2 python -u train.coreference.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 20 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 0.5
-63.64   CUDA_VISIBLE_DEVICES=1 python -u train.coreference.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 20 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 0.4
-63.28   CUDA_VISIBLE_DEVICES=0 python -u train.coreference.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 20 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 0.3
-60.46      CUDA_VISIBLE_DEVICES=0 python -u train.coreference.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 20 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 0.2
-54.78   CUDA_VISIBLE_DEVICES=1 python -u train.coreference.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 20 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 0.1
+92.24   CUDA_VISIBLE_DEVICES=7 python -u train.coreference.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 8 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 1.0
+90.84   CUDA_VISIBLE_DEVICES=6 python -u train.coreference.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 8 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 0.9
+88.78   CUDA_VISIBLE_DEVICES=5 python -u train.coreference.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 8 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 0.8
+85.57   CUDA_VISIBLE_DEVICES=4 python -u train.coreference.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 8 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 0.7
+82.28   CUDA_VISIBLE_DEVICES=3 python -u train.coreference.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 8 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 0.6
+86.67   CUDA_VISIBLE_DEVICES=2 python -u train.coreference.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 8 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 0.5
+85.13   CUDA_VISIBLE_DEVICES=1 python -u train.coreference.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 8 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 0.4
+80.34   CUDA_VISIBLE_DEVICES=0 python -u train.coreference.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 8 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 0.3
+73.75   CUDA_VISIBLE_DEVICES=0 python -u train.coreference.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 8 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 0.2
+65.97   CUDA_VISIBLE_DEVICES=1 python -u train.coreference.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 8 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 0.1
 '''

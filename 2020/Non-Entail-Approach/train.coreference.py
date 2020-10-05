@@ -307,9 +307,9 @@ def wordpairID_2_tokenpairID(sentence, wordindex_left, wordindex_right, full_tok
             if full_token_id_list[i:i+len(span_id_list)] == span_id_list:
                 return i, i+len(span_id_list), span_token_list
 
-        for i in range(wordindex_left, position_two_two):
-            if full_token_id_list[i] == span_id_list[0]:
-                return i, i+len(span_id_list), span_token_list
+        # for i in range(wordindex_left, position_two_two):
+        #     if full_token_id_list[i] == span_id_list[0]:
+        #         return i, i+len(span_id_list), span_token_list
 
 
 

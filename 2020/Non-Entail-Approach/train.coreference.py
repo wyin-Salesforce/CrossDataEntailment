@@ -181,7 +181,7 @@ class RteProcessor(DataProcessor):
         selected_examples: [(idd, premise, hypy_A, entity_A_label, hypy_B, entity_B_label)]
         '''
         examples=[]
-        selected_examples = load_GAP_coreference_data(filename, k_shot)
+        selected_examples = self.load_GAP_coreference_data(filename, k_shot)
         two_false_size = 0
         for example in selected_examples:
             #(idd, premise, pronoun_pos_pair, ent_B_pos_pair, entity_B_label, 'B-coref)

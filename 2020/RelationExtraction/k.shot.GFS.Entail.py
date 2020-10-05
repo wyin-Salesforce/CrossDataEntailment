@@ -771,7 +771,7 @@ def main():
 
             global_step += 1
             iter_co+=1
-            print('iter_co:', iter_co, 'mean loss:', tr_loss/iter_co)
+            # print('iter_co:', iter_co, 'mean loss:', tr_loss/iter_co)
             if iter_co %50==0:
                 # if iter_co % len(source_remain_ex_dataloader)==0:
                 '''
@@ -866,7 +866,7 @@ if __name__ == "__main__":
     main()
 
 '''
-CUDA_VISIBLE_DEVICES=0 python -u k.shot.GFS.Entail.py --do_lower_case --num_train_epochs 1 --train_batch_size 10 --eval_batch_size 64 --learning_rate 1e-4 --max_seq_length 128 --seed 42 --kshot 10 --target_train_batch_size 6 --update_BERT_top_layers 5
+CUDA_VISIBLE_DEVICES=1 python -u k.shot.GFS.Entail.py --do_lower_case --num_train_epochs 1 --train_batch_size 10 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10 --target_train_batch_size 6 --update_BERT_top_layers 5
 
 
 '''

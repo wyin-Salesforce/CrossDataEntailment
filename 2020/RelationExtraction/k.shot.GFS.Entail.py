@@ -770,7 +770,7 @@ def main():
             global_step += 1
             iter_co+=1
             # print('iter_co:', iter_co, 'mean loss:', tr_loss/iter_co)
-            if iter_co > 1999 and iter_co %200==0:
+            if iter_co %20==0:
                 # if iter_co % len(source_remain_ex_dataloader)==0:
                 '''
                 start evaluate on dev set after this epoch
@@ -843,7 +843,7 @@ def main():
                 if dev_acc > max_dev_acc:
                     max_dev_acc = dev_acc
                     print('\n\t dev acc:', dev_acc, ' max_dev_acc:', max_dev_acc, '\n')
-                    if dev_acc > 0.66: #10:0.73; 5:0.66
+                    if dev_acc > 0.73: #10:0.73; 5:0.66
                         test_acc = evaluation(protonet, roberta_model, class_prototype_reps, target_test_dataloader, device, flag='Test')
                         if test_acc > max_test_acc:
                             max_test_acc = test_acc
@@ -853,8 +853,8 @@ def main():
                 else:
                     print('\n\t dev acc:', dev_acc, ' max_dev_acc:', max_dev_acc, '\n')
 
-            # if iter_co == 3000:
-            #     break
+            if iter_co == 2000:
+                break
     print('final_test_performance:', final_test_performance)
 
 

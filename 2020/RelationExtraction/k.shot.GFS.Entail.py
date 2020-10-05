@@ -726,7 +726,7 @@ def main():
 
 
             '''forward to model'''
-            for _ in range(10):
+            for repeat in range(10):
                 target_batch_size = args.target_train_batch_size #10*3
                 # print('target_batch_size:', target_batch_size)
                 target_batch_size_entail = target_batch_size#random.randrange(5)+1
@@ -761,7 +761,10 @@ def main():
                     loss = loss / args.gradient_accumulation_steps
 
                 optimizer.zero_grad()
-                loss.backward()
+                if repeat < 9:
+                    loss.backward(retain_graph=True)
+                else:
+                    loss.backward()
                 optimizer.step()
 
                 tr_loss += loss.item()

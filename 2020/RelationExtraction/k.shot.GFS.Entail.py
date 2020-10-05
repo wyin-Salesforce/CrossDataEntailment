@@ -843,7 +843,7 @@ def main():
                 if dev_acc > max_dev_acc:
                     max_dev_acc = dev_acc
                     print('\n\t dev acc:', dev_acc, ' max_dev_acc:', max_dev_acc, '\n')
-                    if dev_acc > 0.73:
+                    if dev_acc > 0.66: #10:0.73; 5:0.66
                         test_acc = evaluation(protonet, roberta_model, class_prototype_reps, target_test_dataloader, device, flag='Test')
                         if test_acc > max_test_acc:
                             max_test_acc = test_acc

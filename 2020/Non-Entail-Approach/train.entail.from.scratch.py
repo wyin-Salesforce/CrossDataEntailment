@@ -58,37 +58,80 @@ bert_hidden_dim = 1024
 pretrain_model_dir = 'roberta-large' #'roberta-large' , 'roberta-large-mnli', 'bert-large-uncased'
 
 
+def load_GAP_coreference_data(filename, k_shot):
+    path = '/export/home/Dataset/gap_coreference/'
+
+    def generate_hypothesis(sentence, pronoun_str, pronoun_position, entity_str, entity_position):
+        pronoun_len = len(pronoun_str)
+        entity_len = len(entity_str)
+        # print(sentence, type(pronoun_position), type(pronoun_len), type(pronoun_str))
+        assert sentence[pronoun_position: (pronoun_position+pronoun_len)] == pronoun_str
+        assert sentence[entity_position: (entity_position+entity_len)] == entity_str
+
+        pronoun_left_context = sentence[:pronoun_position]
+        pronoun_right_context = sentence[pronoun_position+pronoun_len:]
+        # print('pronoun_left_context:', pronoun_left_context)
+        # print('pronoun_right_context:', pronoun_right_context)
+        if pronoun_str in set(['her','Her', 'his', 'His']):
+            entity_str=entity_str+"'s"
+        hypothesis = pronoun_left_context.strip()+' '+entity_str+' '+pronoun_right_context.strip()
+
+        return hypothesis
+
+
+    all_examples = []
+    with open(path+filename) as tsvfile:
+        reader = csv.DictReader(tsvfile, dialect='excel-tab')
+        for row in reader:
+            all_examples.append(row)
+
+    '''select k examples'''
+    # if k_shot > 0:
+    #     selected_examples = random.sample(all_examples, k_shot)
+    # else:
+    #     selected_examples = all_examples
+
+    if k_shot < 1.0:
+        selected_examples = random.sample(all_examples, int(len(all_examples)*k_shot))
+    else:
+        selected_examples = all_examples
+
+    print('read selected example size:', len(selected_examples))
+    selected_example_list = []
+    for example in selected_examples:
+        idd = example['ID']
+        premise = example['Text']
+        pronoun = example['Pronoun']
+        pronoun_pos = int(example['Pronoun-offset'])
+        entity_A = example['A']
+        entity_A_pos = int(example['A-offset'])
+        entity_A_label = example['A-coref']
+        hypy_A = generate_hypothesis(premise, pronoun, pronoun_pos, entity_A, entity_A_pos)
+
+        entity_B = example['B']
+        entity_B_pos = int(example['B-offset'])
+        entity_B_label = example['B-coref']
+        hypy_B = generate_hypothesis(premise, pronoun, pronoun_pos, entity_B, entity_B_pos)
+
+        selected_example_list.append((idd, premise, hypy_A, entity_A_label, hypy_B, entity_B_label))
+
+    return selected_example_list
+
 class RobertaForSequenceClassification(nn.Module):
     def __init__(self, tagset_size):
         super(RobertaForSequenceClassification, self).__init__()
         self.tagset_size = tagset_size
 
         self.roberta_single= RobertaModel.from_pretrained(pretrain_model_dir)
-        self.hidden_layer_0 = nn.Linear(bert_hidden_dim*3, bert_hidden_dim)
-        self.hidden_layer_1 = nn.Linear(bert_hidden_dim, bert_hidden_dim)
-        self.hidden_layer_2 = nn.Linear(bert_hidden_dim, bert_hidden_dim)
         self.single_hidden2tag = RobertaClassificationHead(bert_hidden_dim, tagset_size)
 
-    # def forward(self, input_ids, input_mask):
-    #     outputs_single = self.roberta_single(input_ids, input_mask, None)
-    #     hidden_states_single = outputs_single[1]#torch.tanh(self.hidden_layer_2(torch.tanh(self.hidden_layer_1(outputs_single[1])))) #(batch, hidden)
-    #
-    #     score_single = self.single_hidden2tag(hidden_states_single) #(batch, tag_set)
-    #     return score_single
-
-    def forward(self, input_ids, input_mask, span_a_mask, span_b_mask):
-        # single_train_input_ids, single_train_input_mask, single_train_segment_ids, single_train_label_ids = batch_single
+    def forward(self, input_ids, input_mask):
         outputs_single = self.roberta_single(input_ids, input_mask, None)
-        output_last_layer_tensor3 = outputs_single[0] #(batch_size, sequence_length, hidden_size)`)
-        span_a_reps = torch.sum(output_last_layer_tensor3*span_a_mask.unsqueeze(2), dim=1) #(batch, hidden)
-        span_b_reps = torch.sum(output_last_layer_tensor3*span_b_mask.unsqueeze(2), dim=1) #(batch, hidden)
-        combined_rep = torch.cat([span_a_reps, span_b_reps, span_a_reps*span_b_reps],dim=1) #(batch, 3*hidden)
-        MLP_input = torch.tanh(self.hidden_layer_0(combined_rep))#(batch, hidden)
-
-        hidden_states_single = torch.tanh(self.hidden_layer_2(torch.tanh(self.hidden_layer_1(MLP_input)))) #(batch, hidden)
+        hidden_states_single = outputs_single[1]#torch.tanh(self.hidden_layer_2(torch.tanh(self.hidden_layer_1(outputs_single[1])))) #(batch, hidden)
 
         score_single = self.single_hidden2tag(hidden_states_single) #(batch, tag_set)
         return score_single
+
 
 
 class RobertaClassificationHead(nn.Module):
@@ -114,7 +157,7 @@ class RobertaClassificationHead(nn.Module):
 class InputExample(object):
     """A single training/test example for simple sequence classification."""
 
-    def __init__(self, guid, text_a, text_b=None, span_a_left=None, span_a_right=None, span_b_left=None, span_b_right=None, label=None, entity_label=None):
+    def __init__(self, guid, text_a, text_b=None, label=None, entity_label=None):
         """Constructs a InputExample.
 
         Args:
@@ -128,28 +171,20 @@ class InputExample(object):
         """
         self.guid = guid
         self.text_a = text_a
-        self.span_a_left  = span_a_left
-        self.span_a_right = span_a_right
-        self.span_b_left = span_b_left
-        self.span_b_right = span_b_right
         self.text_b = text_b
         self.label = label
         self.entity_label = entity_label
-
-        # InputExample(guid=idd, text_a=premise, span_a_left=span_a_left, span_a_right=span_a_right, text_b=None, span_b_left=span_b_left, span_b_right=span_b_right, label=label, entity_label='A-coref'))
 
 
 class InputFeatures(object):
     """A single set of features of data."""
 
-    def __init__(self, id, input_ids, input_mask, segment_ids, span_a_mask, span_b_mask, label_id, entity_label_id):
+    def __init__(self, id, input_ids, input_mask, segment_ids, label_id, entity_label_id):
         self.id = id
         self.input_ids = input_ids
         self.input_mask = input_mask
         self.segment_ids = segment_ids
         self.label_id = label_id
-        self.span_a_mask = span_a_mask
-        self.span_b_mask = span_b_mask
         self.entity_label_id = entity_label_id
 
 
@@ -181,89 +216,25 @@ class RteProcessor(DataProcessor):
         selected_examples: [(idd, premise, hypy_A, entity_A_label, hypy_B, entity_B_label)]
         '''
         examples=[]
-        selected_examples = self.load_GAP_coreference_data(filename, k_shot)
+        selected_examples = load_GAP_coreference_data(filename, k_shot)
         two_false_size = 0
         for example in selected_examples:
-            #(idd, premise, pronoun_pos_pair, ent_B_pos_pair, entity_B_label, 'B-coref)
             idd = int(example[0].split('-')[1])
             premise = example[1]
-            span_a_left = example[2][0]
-            span_a_right = example[2][1]
-
-            span_b_left = example[3][0]
-            span_b_right = example[3][1]
-
-            type = example[5]
-
-            label = 'entailment' if example[4]=='TRUE' else 'not_entailment' # 'TRUE' or 'FALSE'
+            hypo_a = example[2]
+            hypo_a_label = 'entailment' if example[3]=='TRUE' else 'not_entailment' # 'TRUE' or 'FALSE'
+            hypo_b = example[4]
+            hypo_b_label = 'entailment' if example[5]=='TRUE' else 'not_entailment'
+            if hypo_a_label == 'not_entailment' and hypo_b_label == 'not_entailment':
+                two_false_size+=1
 
             examples.append(
-                InputExample(guid=idd, text_a=premise, span_a_left=span_a_left, span_a_right=span_a_right, text_b=None, span_b_left=span_b_left, span_b_right=span_b_right, label=label, entity_label=type))
-
-
-            # examples.append(
-            #     InputExample(guid=idd, text_a=premise, text_b=hypo_a, label= hypo_a_label, entity_label='A-coref'))
-            # examples.append(
-            #     InputExample(guid=idd, text_a=premise, text_b=hypo_b, label= hypo_b_label, entity_label='B-coref'))
-        print('loaded test size:', len(examples))
+                InputExample(guid=idd, text_a=premise, text_b=hypo_a, label= hypo_a_label, entity_label='A-coref'))
+            examples.append(
+                InputExample(guid=idd, text_a=premise, text_b=hypo_b, label= hypo_b_label, entity_label='B-coref'))
+        print('loaded test size:', len(examples), 'two_false_size:', two_false_size)
         return examples
 
-    def load_GAP_coreference_data(self, filename, k_shot):
-        path = '/export/home/Dataset/gap_coreference/'
-
-        def generate_word_level_range(sentence, pronoun_str, pronoun_position, entity_str, entity_position):
-            pronoun_len = len(pronoun_str)
-            entity_len = len(entity_str)
-            # print(sentence, type(pronoun_position), type(pronoun_len), type(pronoun_str))
-            assert sentence[pronoun_position: (pronoun_position+pronoun_len)] == pronoun_str
-            assert sentence[entity_position: (entity_position+entity_len)] == entity_str
-
-            pronoun_left_context = sentence[:pronoun_position]
-            pronoun_word_size = len(pronoun_str.strip().split())
-            pronoun_left_size = len(pronoun_left_context.strip().split())
-            pronoun_right_size = pronoun_left_size+pronoun_word_size-1
-
-            entity_left_context = sentence[:entity_position]
-            entity_word_size = len(entity_str.strip().split())
-            entity_left_size = len(entity_left_context.strip().split())
-            entity_right_size = entity_left_size+entity_word_size-1
-
-            return (pronoun_left_size, pronoun_right_size), (entity_left_size, entity_right_size)
-
-
-        all_examples = []
-        with open(path+filename) as tsvfile:
-            reader = csv.DictReader(tsvfile, dialect='excel-tab')
-            for row in reader:
-                all_examples.append(row)
-
-        '''select k examples'''
-        if k_shot < 1.0:
-            selected_examples = random.sample(all_examples, int(len(all_examples)*k_shot))
-        else:
-            selected_examples = all_examples
-
-        print('read selected example size:', len(selected_examples))
-        selected_example_list = []
-        for example in selected_examples:
-            idd = example['ID']
-            premise = example['Text']
-            pronoun = example['Pronoun']
-            pronoun_pos = int(example['Pronoun-offset'])
-            entity_A = example['A']
-            entity_A_pos = int(example['A-offset'])
-            entity_A_label = example['A-coref']
-            pronoun_pos_pair, ent_A_pos_pair = generate_word_level_range(premise, pronoun, pronoun_pos, entity_A, entity_A_pos)
-            selected_example_list.append((idd, premise, pronoun_pos_pair, ent_A_pos_pair, entity_A_label, 'A-coref'))
-
-            entity_B = example['B']
-            entity_B_pos = int(example['B-offset'])
-            entity_B_label = example['B-coref']
-            pronoun_pos_pair, ent_B_pos_pair = generate_word_level_range(premise, pronoun, pronoun_pos, entity_B, entity_B_pos)
-
-            selected_example_list.append((idd, premise, pronoun_pos_pair, ent_B_pos_pair, entity_B_label, 'B-coref'))
-
-        return selected_example_list
 
 
     def get_labels(self):
@@ -285,42 +256,7 @@ class RteProcessor(DataProcessor):
                 InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
         return examples
 
-def wordpairID_2_tokenpairID(sentence, wordindex_left, wordindex_right, full_token_id_list, tokenizer, sent_1=True):
-    '''pls note that the input indices pair include the b in (a,b), but the output doesn't'''
-    '''first find the position of [2,2]'''
-    position_two_two = 0
-    for i in range(len(full_token_id_list)):
-        if full_token_id_list[i]==2 and full_token_id_list[i+1]==2:
-            position_two_two = i
-            break
-    span = ' '.join(sentence.split()[wordindex_left: wordindex_right+1])
-    if wordindex_left!=0:
-        '''this span is the begining of the sent'''
-        span=' '+span
 
-    span_token_list = tokenizer.tokenize(span)
-    span_id_list = tokenizer.convert_tokens_to_ids(span_token_list)
-    # print('span:', span, 'span_id_list:', span_id_list)
-    if sent_1:
-        # for i in range(wordindex_left, len(full_token_id_list)-len(span_id_list)):
-        for i in range(wordindex_left, position_two_two):
-            if full_token_id_list[i:i+len(span_id_list)] == span_id_list:
-                return i, i+len(span_id_list), span_token_list
-
-        # for i in range(wordindex_left, position_two_two):
-        #     if full_token_id_list[i] == span_id_list[0]:
-        #         return i, i+len(span_id_list), span_token_list
-
-
-
-        return None, None, span_token_list
-    else:
-        # print('position_two_two:', position_two_two)
-        for i in range(position_two_two+2, len(full_token_id_list)):
-            if full_token_id_list[i:i+len(span_id_list)] == span_id_list:
-                return i, i+len(span_id_list), span_token_list
-
-        return None, None, span_token_list
 
 def convert_examples_to_features(examples, label_list, entity_label_list, max_seq_length,
                                  tokenizer, output_mode,
@@ -346,7 +282,6 @@ def convert_examples_to_features(examples, label_list, entity_label_list, max_se
     entity_label_map = {label : i for i, label in enumerate(entity_label_list)}
 
     features = []
-    give_up = 0
     for (ex_index, example) in enumerate(examples):
         if ex_index % 10000 == 0:
             logger.info("Writing example %d of %d" % (ex_index, len(examples)))
@@ -430,31 +365,24 @@ def convert_examples_to_features(examples, label_list, entity_label_list, max_se
         else:
             raise KeyError(output_mode)
 
-        span_a_left, span_a_right, span_a_token_list = wordpairID_2_tokenpairID(example.text_a, example.span_a_left, example.span_a_right, input_ids, tokenizer, sent_1=True)
-        span_b_left, span_b_right, span_b_token_list = wordpairID_2_tokenpairID(example.text_a, example.span_b_left, example.span_b_right, input_ids, tokenizer, sent_1=True)
-        # print('span_b_left, span_b_right, span_b_token_list:', span_b_left, span_b_right, span_b_token_list)
-        if span_a_left is None or span_b_left is None:
-            '''give up this pair'''
-            give_up+=1
-            continue
-        else:
-            span_a_mask = [0]*len(input_ids)
-            for i in range(span_a_left, span_a_right):
-                span_a_mask[i]=1
-            span_b_mask = [0]*len(input_ids)
-            for i in range(span_b_left, span_b_right):
-                span_b_mask[i]=1
+        # if ex_index < 5:
+        #     logger.info("*** Example ***")
+        #     logger.info("guid: %s" % (example.guid))
+        #     logger.info("tokens: %s" % " ".join(
+        #             [str(x) for x in tokens]))
+        #     logger.info("input_ids: %s" % " ".join([str(x) for x in input_ids]))
+        #     logger.info("input_mask: %s" % " ".join([str(x) for x in input_mask]))
+        #     logger.info("segment_ids: %s" % " ".join([str(x) for x in segment_ids]))
+        #     logger.info("label: %s (id = %d)" % (example.label, label_id))
+
 
         features.append(
                 InputFeatures(id = example.guid,
                               input_ids=input_ids,
                               input_mask=input_mask,
                               segment_ids=segment_ids,
-                              span_a_mask = span_a_mask,
-                              span_b_mask = span_b_mask,
                               label_id=label_id,
                               entity_label_id = entity_label_map[example.entity_label]))
-    print('give_up:', give_up)
     return features
 
 def _truncate_seq_pair(tokens_a, tokens_b, max_length):
@@ -494,12 +422,9 @@ def examples_to_features(source_examples, label_list, entity_label_list, args, t
     dev_all_input_mask = torch.tensor([f.input_mask for f in source_features], dtype=torch.long)
     dev_all_segment_ids = torch.tensor([f.segment_ids for f in source_features], dtype=torch.long)
     dev_all_label_ids = torch.tensor([f.label_id for f in source_features], dtype=torch.long)
-    dev_all_span_a_mask = torch.tensor([f.span_a_mask for f in source_features], dtype=torch.float)
-    dev_all_span_b_mask = torch.tensor([f.span_b_mask for f in source_features], dtype=torch.float)
-
     dev_all_entity_label_ids = torch.tensor([f.entity_label_id for f in source_features], dtype=torch.long)
 
-    dev_data = TensorDataset(dev_all_idd, dev_all_input_ids, dev_all_input_mask, dev_all_span_a_mask, dev_all_span_b_mask, dev_all_segment_ids, dev_all_label_ids, dev_all_entity_label_ids)
+    dev_data = TensorDataset(dev_all_idd, dev_all_input_ids, dev_all_input_mask, dev_all_segment_ids, dev_all_label_ids, dev_all_entity_label_ids)
     if dataloader_mode=='sequential':
         dev_sampler = SequentialSampler(dev_data)
     else:
@@ -722,10 +647,10 @@ def main():
             for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
                 model.train()
                 batch = tuple(t.to(device) for t in batch)
-                input_example_ids, input_ids, input_mask, span_a_mask, span_b_mask, segment_ids, label_ids, entity_label_ids = batch
+                input_example_ids, input_ids, input_mask, segment_ids, label_ids, entity_label_ids = batch
 
 
-                logits = model(input_ids, input_mask, span_a_mask, span_b_mask)
+                logits = model(input_ids, input_mask)
                 loss_fct = CrossEntropyLoss()
                 loss = loss_fct(logits.view(-1, num_labels), label_ids.view(-1))
 
@@ -763,11 +688,9 @@ def main():
                     gold_label_ids = []
                     example_id_list = []
                     for _, batch in enumerate(tqdm(dev_dataloader, desc="dev")):
-                        input_indices, input_ids, input_mask, span_a_mask, span_b_mask, segment_ids, _, label_ids = batch
+                        input_indices, input_ids, input_mask, segment_ids, _, label_ids = batch
                         input_ids = input_ids.to(device)
                         input_mask = input_mask.to(device)
-                        span_a_mask = span_a_mask.to(device)
-                        span_b_mask = span_b_mask.to(device)
                         segment_ids = segment_ids.to(device)
                         label_ids = label_ids.to(device)
                         example_ids = list(input_indices.numpy())
@@ -775,7 +698,7 @@ def main():
                         gold_label_ids+=list(label_ids.detach().cpu().numpy())
 
                         with torch.no_grad():
-                            logits = model(input_ids, input_mask, span_a_mask, span_b_mask)
+                            logits = model(input_ids, input_mask)
                         if len(preds) == 0:
                             preds.append(logits.detach().cpu().numpy())
                         else:
@@ -794,11 +717,8 @@ def main():
                     best_current_dev_acc = 0.0
                     best_current_threshold = -10.0
                     for threshold in np.arange(0.99, 0.0, -0.01):
-                        # print('example_id_list:', example_id_list)
                         eval_output_list = build_GAP_output_format(example_id_list, gold_label_ids, pred_prob_entail, pred_label_ids_3way, threshold, dev_or_test='validation')
                         dev_acc = run_scorer('/export/home/Dataset/gap_coreference/gap-validation.tsv', eval_output_list)
-                        # print('dev_acc:', dev_acc)
-                        # exit(0)
                         if dev_acc > best_current_dev_acc:
                             best_current_dev_acc = dev_acc
                             best_current_threshold = threshold
@@ -818,11 +738,9 @@ def main():
                         gold_label_ids = []
                         example_id_list = []
                         for _, batch in enumerate(tqdm(test_dataloader, desc="test")):
-                            input_indices, input_ids, input_mask, span_a_mask, span_b_mask, segment_ids, _, label_ids = batch
+                            input_indices, input_ids, input_mask, segment_ids, _, label_ids = batch
                             input_ids = input_ids.to(device)
                             input_mask = input_mask.to(device)
-                            span_a_mask = span_a_mask.to(device)
-                            span_b_mask = span_b_mask.to(device)
                             segment_ids = segment_ids.to(device)
                             label_ids = label_ids.to(device)
                             example_ids = list(input_indices.numpy())
@@ -830,7 +748,7 @@ def main():
                             gold_label_ids+=list(label_ids.detach().cpu().numpy())
 
                             with torch.no_grad():
-                                logits = model(input_ids, input_mask, span_a_mask, span_b_mask)
+                                logits = model(input_ids, input_mask)
                             if len(preds) == 0:
                                 preds.append(logits.detach().cpu().numpy())
                             else:
@@ -867,14 +785,7 @@ if __name__ == "__main__":
 
 '''
 full-shot command:
-86.02   CUDA_VISIBLE_DEVICES=7 python -u train.coreference.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 20 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 1.0
-84.81   CUDA_VISIBLE_DEVICES=6 python -u train.coreference.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 20 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 0.9
-80.88   CUDA_VISIBLE_DEVICES=5 python -u train.coreference.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 20 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 0.8
-79.63   CUDA_VISIBLE_DEVICES=4 python -u train.coreference.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 20 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 0.7
-71.65   CUDA_VISIBLE_DEVICES=3 python -u train.coreference.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 20 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 0.6
-60.29   CUDA_VISIBLE_DEVICES=2 python -u train.coreference.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 20 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 0.5
-63.64   CUDA_VISIBLE_DEVICES=1 python -u train.coreference.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 20 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 0.4
-63.28   CUDA_VISIBLE_DEVICES=0 python -u train.coreference.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 20 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 0.3
-60.46      CUDA_VISIBLE_DEVICES=0 python -u train.coreference.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 20 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 0.2
-54.78   CUDA_VISIBLE_DEVICES=1 python -u train.coreference.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 20 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 0.1
+CUDA_VISIBLE_DEVICES=7 python -u train.entail.from.scratch.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 8 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 0.9
+
+
 '''

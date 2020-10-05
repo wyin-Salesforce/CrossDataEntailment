@@ -316,7 +316,7 @@ class PrototypeNet(nn.Module):
         # print('score_matrix_to_fold[:,:3]:', score_matrix_to_fold[:,:3])
         # print('score_from_source:', score_from_source)
         score_from_target = torch.sigmoid(self.score_proj(score_matrix_to_fold[:, -3:]))
-        # print('score_matrix_to_fold[:, -3:]:', score_matrix_to_fold[:, -3:])
+        print('score_matrix_to_fold:', score_matrix_to_fold)
         # print('score_from_target:', score_from_target)
         weight_4_highway = torch.sigmoid(self.score_proj_weight(score_matrix_to_fold))
         print('weight_4_highway:', weight_4_highway)
@@ -650,6 +650,8 @@ def main():
     target_kshot_nonentail_dataloader = examples_to_features(target_kshot_nonentail_examples, target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
     target_dev_dataloader = examples_to_features(target_dev_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
     target_test_dataloader = examples_to_features(target_test_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
+
+    # target_dev_dataloader = examples_to_features(target_kshot_entail_examples+target_kshot_nonentail_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
 
 
 

@@ -665,7 +665,7 @@ def main():
                 kshot_nonentail_rep = torch.mean(torch.cat(kshot_nonentail_reps, dim=0), dim=0, keepdim=True)
                 target_class_prototype_reps = torch.cat([kshot_entail_rep, kshot_nonentail_rep], dim=0) #(2, hidden)
 
-                for idd, dev_or_test_dataloader in enumerate([target_dev_dataloader, target_test_dataloader]):
+                for idd, dev_or_test_dataloader in enumerate([target_dev_dataloader]):#, target_test_dataloader]):
 
                     if idd == 0:
                         logger.info("***** Running dev *****")
@@ -742,6 +742,6 @@ if __name__ == "__main__":
     main()
 
 '''
-CUDA_VISIBLE_DEVICES=6 python -u k.shot.prototype.net.py --do_lower_case --num_train_epochs 5 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 10
+CUDA_VISIBLE_DEVICES=7 python -u k.shot.prototype.net.py --do_lower_case --num_train_epochs 5 --train_batch_size 32 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10
 
 '''

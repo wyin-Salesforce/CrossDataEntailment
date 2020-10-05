@@ -367,7 +367,7 @@ def get_MNLI_train(filename, k_shot):
             remaining_examples.append(ex)
 
     assert len(kshot_entail)+len(kshot_neural)+len(kshot_contra)+len(remaining_examples)==len(examples_entail+examples_neural+examples_contra)
-    return kshot_entail, kshot_neural, kshot_contra, remaining_examples[:10000]
+    return kshot_entail, kshot_neural, kshot_contra, remaining_examples
 
 
 def examples_to_features(source_examples, label_list, args, tokenizer, batch_size, output_mode, dataloader_mode='sequential'):
@@ -649,10 +649,7 @@ def main():
     target_kshot_entail_dataloader = examples_to_features(target_kshot_entail_examples, target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
     target_kshot_nonentail_dataloader = examples_to_features(target_kshot_nonentail_examples, target_label_list, args, tokenizer, retrieve_batch_size, "classification", dataloader_mode='sequential')
     target_dev_dataloader = examples_to_features(target_dev_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
-    # target_test_dataloader = examples_to_features(target_test_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
-
-    # target_dev_dataloader = examples_to_features(target_kshot_entail_examples+target_kshot_nonentail_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
-
+    target_test_dataloader = examples_to_features(target_test_examples, target_label_list, args, tokenizer, args.eval_batch_size, "classification", dataloader_mode='sequential')
 
 
 
@@ -846,21 +843,18 @@ def main():
                 if dev_acc > max_dev_acc:
                     max_dev_acc = dev_acc
                     print('\n\t dev acc:', dev_acc, ' max_dev_acc:', max_dev_acc, '\n')
-                    # test_acc = evaluation(protonet, roberta_model, class_prototype_reps, target_test_dataloader, device, flag='Test')
-                    # if test_acc > max_test_acc:
-                    #     max_test_acc = test_acc
-                    #
-                    # final_test_performance = test_acc
-                    # print('\n\t test acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
+                    if dev_acc > 0.73:
+                        test_acc = evaluation(protonet, roberta_model, class_prototype_reps, target_test_dataloader, device, flag='Test')
+                        if test_acc > max_test_acc:
+                            max_test_acc = test_acc
+
+                        final_test_performance = test_acc
+                        print('\n\t test acc:', test_acc, ' max_test_acc:', max_test_acc, '\n')
                 else:
                     print('\n\t dev acc:', dev_acc, ' max_dev_acc:', max_dev_acc, '\n')
 
-
-
-
-
-            if iter_co == 3000:
-                break
+            # if iter_co == 3000:
+            #     break
     print('final_test_performance:', final_test_performance)
 
 
@@ -868,7 +862,7 @@ if __name__ == "__main__":
     main()
 
 '''
-CUDA_VISIBLE_DEVICES=1 python -u k.shot.GFS.Entail.py --do_lower_case --num_train_epochs 1 --train_batch_size 10 --eval_batch_size 64 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 10 --target_train_batch_size 6 --update_BERT_top_layers 5
+CUDA_VISIBLE_DEVICES=1 python -u k.shot.GFS.Entail.py --do_lower_case --num_train_epochs 1 --train_batch_size 10 --eval_batch_size 64 --learning_rate 1e-5 --max_seq_length 128 --seed 42 --kshot 10 --target_train_batch_size 6 --update_BERT_top_layers 5
 
 
 '''

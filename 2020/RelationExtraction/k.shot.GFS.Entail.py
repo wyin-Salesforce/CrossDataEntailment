@@ -311,17 +311,17 @@ class PrototypeNet(nn.Module):
 
         score_matrix_to_fold = all_scores.view(-1, class_size) #(batch_size, class_size*2)
         # score_matrix = score_matrix_to_fold[:,:3]+score_matrix_to_fold[:, -3:]#(batch_size, class_size)
-
+        print('score_matrix_to_fold:', score_matrix_to_fold)
         score_from_source = torch.sigmoid(self.score_proj(score_matrix_to_fold[:,:3]))
         # print('score_matrix_to_fold[:,:3]:', score_matrix_to_fold[:,:3])
-        # print('score_from_source:', score_from_source)
+        print('score_from_source:', score_from_source)
         score_from_target = torch.sigmoid(self.score_proj(score_matrix_to_fold[:, -3:]))
-        # print('score_matrix_to_fold:', score_matrix_to_fold)
+        print('score_from_target:', score_from_target)
         # print('score_from_target:', score_from_target)
         weight_4_highway = torch.sigmoid(self.score_proj_weight(score_matrix_to_fold))
-        # print('weight_4_highway:', weight_4_highway)
+        print('weight_4_highway:', weight_4_highway)
         score_matrix = weight_4_highway*(score_from_source)+(1.0-weight_4_highway)*score_from_target
-        # print('score_matrix:', score_matrix)
+        print('score_matrix:', score_matrix)
 
         return score_matrix
 
@@ -468,7 +468,7 @@ def evaluation(model, roberta_model, class_prototype_reps, test_dataloader, devi
     for pair_id, predgoldlist in pairID_2_predgoldlist.items():
         predgoldlist.sort(key=lambda x:x[0]) #sort by prob
         # assert len(predgoldlist) == 4
-        print('predgoldlist:', predgoldlist)
+        # print('predgoldlist:', predgoldlist)
         if predgoldlist[-1][1] == 0:
             hit_size+=1
     test_acc= hit_size/total_size

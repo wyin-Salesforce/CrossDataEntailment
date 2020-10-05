@@ -184,7 +184,7 @@ def calculate_scores(gold_annotations, system_annotations):
 
       for (gold, system) in [name_a_annotations, name_b_annotations]:
         if system is None:
-          print('Missing output for', example_id)
+          # print('Missing output for', example_id)
           scores[gender].false_negatives += 1
         elif gold and system:
           scores[gender].true_positives += 1

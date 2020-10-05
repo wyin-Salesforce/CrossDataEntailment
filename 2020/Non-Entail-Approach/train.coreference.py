@@ -785,6 +785,7 @@ def main():
                     best_current_dev_acc = 0.0
                     best_current_threshold = -10.0
                     for threshold in np.arange(0.99, 0.0, -0.01):
+                        print('example_id_list:', example_id_list)
                         eval_output_list = build_GAP_output_format(example_id_list, gold_label_ids, pred_prob_entail, pred_label_ids_3way, threshold, dev_or_test='validation')
                         dev_acc = run_scorer('/export/home/Dataset/gap_coreference/gap-validation.tsv', eval_output_list)
                         if dev_acc > best_current_dev_acc:
@@ -853,7 +854,7 @@ if __name__ == "__main__":
 
 '''
 full-shot command:
-CUDA_VISIBLE_DEVICES=7 python -u train.coreference.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 8 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 250 --seed 42 --kshot 0
+CUDA_VISIBLE_DEVICES=7 python -u train.coreference.py --task_name rte --do_train --do_lower_case --num_train_epochs 10 --train_batch_size 16 --eval_batch_size 32 --learning_rate 1e-6 --max_seq_length 128 --seed 42 --kshot 0
 
 
 '''

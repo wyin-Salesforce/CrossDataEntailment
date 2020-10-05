@@ -316,10 +316,10 @@ class PrototypeNet(nn.Module):
         # print('score_matrix_to_fold[:,:3]:', score_matrix_to_fold[:,:3])
         # print('score_from_source:', score_from_source)
         score_from_target = torch.sigmoid(self.score_proj(score_matrix_to_fold[:, -3:]))
-        print('score_matrix_to_fold:', score_matrix_to_fold)
+        # print('score_matrix_to_fold:', score_matrix_to_fold)
         # print('score_from_target:', score_from_target)
         weight_4_highway = torch.sigmoid(self.score_proj_weight(score_matrix_to_fold))
-        print('weight_4_highway:', weight_4_highway)
+        # print('weight_4_highway:', weight_4_highway)
         score_matrix = weight_4_highway*(score_from_source)+(1.0-weight_4_highway)*score_from_target
         # print('score_matrix:', score_matrix)
 
@@ -727,21 +727,21 @@ def main():
 
             '''forward to model'''
             target_batch_size = args.target_train_batch_size #10*3
-            print('target_batch_size:', target_batch_size)
+            # print('target_batch_size:', target_batch_size)
             target_batch_size_entail = target_batch_size#random.randrange(5)+1
             target_batch_size_neural = target_batch_size#random.randrange(5)+1
 
 
             selected_target_entail_rep = all_kshot_entail_reps[torch.randperm(all_kshot_entail_reps.shape[0])[:target_batch_size_entail]]
-            print('selected_target_entail_rep:', selected_target_entail_rep.shape)
+            # print('selected_target_entail_rep:', selected_target_entail_rep.shape)
             selected_target_neural_rep = all_kshot_neural_reps[torch.randperm(all_kshot_neural_reps.shape[0])[:target_batch_size_neural]]
-            print('selected_target_neural_rep:', selected_target_neural_rep.shape)
+            # print('selected_target_neural_rep:', selected_target_neural_rep.shape)
             target_last_hidden_batch = torch.cat([selected_target_entail_rep, selected_target_neural_rep])
 
             last_hidden_batch = torch.cat([source_last_hidden_batch, target_last_hidden_batch], dim=0) #(train_batch_size+10*2)
-            print('last_hidden_batch shape:', last_hidden_batch.shape)
+            # print('last_hidden_batch shape:', last_hidden_batch.shape)
             batch_logits = protonet(class_prototype_reps, last_hidden_batch)
-            exit(0)
+            # exit(0)
             '''source side loss'''
             # loss_fct = CrossEntropyLoss(reduction='none')
             loss_fct = CrossEntropyLoss()

@@ -468,7 +468,7 @@ def evaluation(model, roberta_model, class_prototype_reps, test_dataloader, devi
     for pair_id, predgoldlist in pairID_2_predgoldlist.items():
         predgoldlist.sort(key=lambda x:x[0]) #sort by prob
         # assert len(predgoldlist) == 4
-        # print('predgoldlist:', predgoldlist)
+        print('predgoldlist:', predgoldlist)
         if predgoldlist[-1][1] == 0:
             hit_size+=1
     test_acc= hit_size/total_size
